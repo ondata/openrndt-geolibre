@@ -1,0 +1,1219 @@
+{
+  "start": 1,
+  "num": 5,
+  "total": 41,
+  "nextStart": 6,
+  "sourceType": "Geoportal",
+  "sourceKey": null,
+  "results": [
+    {
+      "id": "r_piemon:0cdd5f07-b835-4a23-92d7-c571761bf0e8",
+      "title": "Ppr - Alberi monumentali (tav. P2)",
+      "description": "Il dato, puntuale, rappresenta gli alberi monumentali individuati sulla base della L.R. 50/95 e disegnati al 10.000 sulla cartografia ufficiale regionale secondo la localizzazione indicata dalla relativa D.G.R.",
+      "published": "2026-04-25T15:54:18.171Z",
+      "updated": "2026-04-25T15:54:18.171Z",
+      "author": {
+        "name": "csw.piemonte"
+      },
+      "links": [
+        {
+          "rel": "alternate",
+          "type": "application/json",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/r_piemon%3A0cdd5f07-b835-4a23-92d7-c571761bf0e8"
+        },
+        {
+          "rel": "alternate",
+          "type": "text/html",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/r_piemon%3A0cdd5f07-b835-4a23-92d7-c571761bf0e8/html"
+        },
+        {
+          "rel": "alternate",
+          "type": "application/xml",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/r_piemon%3A0cdd5f07-b835-4a23-92d7-c571761bf0e8/xml"
+        },
+        {
+          "rel": "icon",
+          "href": "https://www.geoportale.piemonte.it/geonetwork/srv/api/records/r_piemon:0cdd5f07-b835-4a23-92d7-c571761bf0e8/attachments/alberi_monumentali_s.png"
+        }
+      ],
+      "categories": [
+        {
+          "scheme": "keywords",
+          "term": "RNDT"
+        },
+        {
+          "scheme": "keywords",
+          "term": "EU"
+        },
+        {
+          "scheme": "keywords",
+          "term": "ppr"
+        },
+        {
+          "scheme": "keywords",
+          "term": "alberi"
+        },
+        {
+          "scheme": "keywords",
+          "term": "monumentali"
+        },
+        {
+          "scheme": "keywords",
+          "term": "opendata"
+        },
+        {
+          "scheme": "keywords",
+          "term": "Siti protetti"
+        },
+        {
+          "scheme": "keywords",
+          "term": "Regionale"
+        },
+        {
+          "scheme": "keywords",
+          "term": "planningCadastre"
+        }
+      ],
+      "bbox": {
+        "xmin": 6.62,
+        "ymin": 44.06,
+        "xmax": 9.21,
+        "ymax": 46.459999084472656
+      },
+      "_source": {
+        "fileid": "r_piemon:0cdd5f07-b835-4a23-92d7-c571761bf0e8",
+        "title": "Ppr - Alberi monumentali (tav. P2)",
+        "description": "Il dato, puntuale, rappresenta gli alberi monumentali individuati sulla base della L.R. 50/95 e disegnati al 10.000 sulla cartografia ufficiale regionale secondo la localizzazione indicata dalla relativa D.G.R.",
+        "keywords_s": [
+          "RNDT",
+          "EU",
+          "ppr",
+          "alberi",
+          "monumentali",
+          "opendata",
+          "Siti protetti",
+          "Regionale",
+          "planningCadastre"
+        ],
+        "thumbnail_s": "https://www.geoportale.piemonte.it/geonetwork/srv/api/records/r_piemon:0cdd5f07-b835-4a23-92d7-c571761bf0e8/attachments/alberi_monumentali_s.png",
+        "contact_organizations_s": [
+          "Regione Piemonte - A1610C - Pianificazione regionale per il governo del territorio",
+          "Regione Piemonte - A1610C - Pianificazione regionale per il governo del territorio",
+          "Regione Piemonte",
+          "Regione Piemonte - A1610C - Pianificazione regionale per il governo del territorio",
+          "Regione Piemonte - A1610C - Pianificazione regionale per il governo del territorio"
+        ],
+        "links_s": [
+          "https://www.regione.piemonte.it/web/temi/ambiente-territorio/paesaggio/piano-paesaggistico-regionale-ppr",
+          "https://www.regione.piemonte.it/web/temi/ambiente-territorio/paesaggio/piano-paesaggistico-regionale-ppr",
+          "https://www.regione.piemonte.it",
+          "https://www.regione.piemonte.it/web/temi/ambiente-territorio/paesaggio/piano-paesaggistico-regionale-ppr",
+          "https://www.regione.piemonte.it/web/temi/ambiente-territorio/paesaggio/piano-paesaggistico-regionale-ppr",
+          "https://www.datigeo-piem-download.it/direct/Geoportale/RegionePiemonte/PPR/alberi_monumentali.zip"
+        ],
+        "apiso_Identifier_s": "r_piemon:0cdd5f07-b835-4a23-92d7-c571761bf0e8",
+        "apiso_Title_txt": "Ppr - Alberi monumentali (tav. P2)",
+        "apiso_Abstract_txt": "Il dato, puntuale, rappresenta gli alberi monumentali individuati sulla base della L.R. 50/95 e disegnati al 10.000 sulla cartografia ufficiale regionale secondo la localizzazione indicata dalla relativa D.G.R.",
+        "apiso_BrowseGraphic_s": "https://www.geoportale.piemonte.it/geonetwork/srv/api/records/r_piemon:0cdd5f07-b835-4a23-92d7-c571761bf0e8/attachments/alberi_monumentali_s.png",
+        "apiso_OrganizationName_txt": "Regione Piemonte - A1610C - Pianificazione regionale per il governo del territorio",
+        "EnteResponsabile_s": "Regione Piemonte",
+        "PuntoDiContatto_s": "Regione Piemonte - A1610C - Pianificazione regionale per il governo del territorio",
+        "PuntoDiContattoEmail_s": "piano.paesaggistico@regione.piemonte.it",
+        "PuntoDiContattoSitoWeb_s": "https://www.regione.piemonte.it/web/temi/ambiente-territorio/paesaggio/piano-paesaggistico-regionale-ppr",
+        "PuntoDiContattoTelefono": "0114325813",
+        "apiso_Subject_txt": [
+          "RNDT",
+          "EU",
+          "ppr",
+          "alberi",
+          "monumentali",
+          "opendata",
+          "Siti protetti",
+          "Regionale",
+          "planningCadastre"
+        ],
+        "apiso_Format_s": [
+          "ESRI Shape"
+        ],
+        "apiso_TopicCategory_s": [
+          "planningCadastre"
+        ],
+        "apiso_Type_s": "dataset",
+        "apiso_Modified_dt": "2025-11-25T00:00:00Z",
+        "apiso_PublicationDate_dt": "2017-10-20T00:00:00Z",
+        "apiso_Language_s": "ita",
+        "apiso_ResourceLanguage_s": "ita",
+        "apiso_OtherConstraints_s": [
+          "no limitations to public access",
+          "https://creativecommons.org/licenses/by/4.0/deed.it"
+        ],
+        "apiso_HasSecurityConstraints_b": true,
+        "envelope_geo": [
+          {
+            "type": "envelope",
+            "coordinates": [
+              [
+                6.62,
+                46.459999084472656
+              ],
+              [
+                9.21,
+                44.06
+              ]
+            ]
+          }
+        ],
+        "envelope_cen_pt": [
+          {
+            "lat": 45.25999954223633,
+            "lon": 7.915000000000001
+          }
+        ],
+        "apiso_CRS": {
+          "id_s": "WGS84/UTM 32N"
+        },
+        "apiso_Denominator_i": "10000",
+        "isOpendata": [
+          "opendata"
+        ],
+        "OpenDataTheme_s": [
+          "RNDT",
+          "EU",
+          "ppr",
+          "alberi",
+          "monumentali",
+          "opendata",
+          "Siti protetti",
+          "Regionale"
+        ],
+        "INSPIRETheme_s": [
+          "Siti protetti"
+        ],
+        "AmbitoTerritoriale_s": [
+          "Regionale"
+        ],
+        "apiso_Lineage_txt": [
+          "Il dato è stato creato ex novo dalla Regione Piemonte"
+        ],
+        "apiso_ConditionApplyingToAccessAndUse_txt": [
+          "https://creativecommons.org/licenses/by/4.0/deed.it"
+        ],
+        "apiso_ResponsiblePartyRole_txt": "author",
+        "apiso_SpecificationTitle_txt": [
+          "REGOLAMENTO (UE) N. 1089/2010 DELLA COMMISSIONE del 23 novembre 2010 recante attuazione della direttiva 2007/2/CE del Parlamento europeo e del Consiglio per quanto riguarda l'interoperabilità dei set di dati territoriali e dei servizi di dati territoriali"
+        ],
+        "apiso_SpecificationDateType_txt": [
+          "publication"
+        ],
+        "url_thumbnail_s": "https://www.geoportale.piemonte.it/geonetwork/srv/api/records/r_piemon:0cdd5f07-b835-4a23-92d7-c571761bf0e8/attachments/alberi_monumentali_s.png",
+        "url_website_s": "https://www.regione.piemonte.it/web/temi/ambiente-territorio/paesaggio/piano-paesaggistico-regionale-ppr",
+        "url_http_download_s": "https://www.datigeo-piem-download.it/direct/Geoportale/RegionePiemonte/PPR/alberi_monumentali.zip",
+        "url_download_s": [
+          "https://www.datigeo-piem-download.it/direct/Geoportale/RegionePiemonte/PPR/alberi_monumentali.zip"
+        ],
+        "sys_created_dt": "2026-04-25T15:54:18.171Z",
+        "sys_modified_dt": "2026-04-25T15:54:18.171Z",
+        "sys_xmlmodified_dt": "2026-04-25T15:54:18.171Z",
+        "sys_approval_status_s": "approved",
+        "sys_owner_s": "csw.piemonte",
+        "sys_owner_txt": "csw.piemonte",
+        "sys_metadatatype_s": "rndt2-dataset",
+        "sys_xmlmeta_obj": {
+          "mimetype": "application/xml",
+          "hash": "-8478370519700075879:-390537719491126900:30955",
+          "date": "2026-04-25T15:54:18.172Z",
+          "size": 30955
+        }
+      }
+    },
+    {
+      "id": "r_emiro:alberi_monumentali",
+      "title": "Alberi Monumentali della Regione Emilia-Romagna",
+      "description": "Alberi Monumentali d’Italia (AMI) e Alberi Monumentali Regionali (AMR) ricadenti nel territorio della Regione Emilia-Romagna, tutelati ai sensi dell’art. 7 della Legge 10/2013 e s.m.i. e della L.R. 20/2023 per il loro elevato valore naturalistico, paesaggistico e/o storico-culturale-religioso.",
+      "published": "2026-04-25T15:59:20.209Z",
+      "updated": "2026-09-26T16:41:43.900Z",
+      "author": {
+        "name": "marco.lipera"
+      },
+      "links": [
+        {
+          "rel": "alternate",
+          "type": "application/json",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/r_emiro%3Aalberi_monumentali"
+        },
+        {
+          "rel": "alternate",
+          "type": "text/html",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/r_emiro%3Aalberi_monumentali/html"
+        },
+        {
+          "rel": "alternate",
+          "type": "application/xml",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/r_emiro%3Aalberi_monumentali/xml"
+        },
+        {
+          "rel": "icon",
+          "href": "https://mappegis.regione.emilia-romagna.it/metadata/anteprima/Alberi%20Monumentali%20RER.jpg"
+        }
+      ],
+      "categories": [
+        {
+          "scheme": "keywords",
+          "term": "Regionale"
+        },
+        {
+          "scheme": "keywords",
+          "term": "albero"
+        },
+        {
+          "scheme": "keywords",
+          "term": "biodiversità"
+        },
+        {
+          "scheme": "keywords",
+          "term": "conservazione della natura"
+        },
+        {
+          "scheme": "keywords",
+          "term": "flora (biologia)"
+        },
+        {
+          "scheme": "keywords",
+          "term": "monumento naturale"
+        },
+        {
+          "scheme": "keywords",
+          "term": "protezione della natura"
+        },
+        {
+          "scheme": "keywords",
+          "term": "protezione delle piante"
+        },
+        {
+          "scheme": "keywords",
+          "term": "Distribuzione delle specie"
+        },
+        {
+          "scheme": "keywords",
+          "term": "Zone sottoposte a gestione/limitazioni/regolamentazione e unità con obbligo di comunicare dati"
+        },
+        {
+          "scheme": "keywords",
+          "term": "alberi"
+        },
+        {
+          "scheme": "keywords",
+          "term": "ambiente"
+        },
+        {
+          "scheme": "keywords",
+          "term": "EU"
+        },
+        {
+          "scheme": "keywords",
+          "term": "filare"
+        },
+        {
+          "scheme": "keywords",
+          "term": "flora"
+        },
+        {
+          "scheme": "keywords",
+          "term": "open data"
+        },
+        {
+          "scheme": "keywords",
+          "term": "pregio naturalistico"
+        },
+        {
+          "scheme": "keywords",
+          "term": "vincoli"
+        },
+        {
+          "scheme": "keywords",
+          "term": "biota"
+        },
+        {
+          "scheme": "keywords",
+          "term": "environment"
+        },
+        {
+          "scheme": "keywords",
+          "term": "planningCadastre"
+        }
+      ],
+      "bbox": {
+        "xmin": 9.172921,
+        "ymin": 43.703388,
+        "xmax": 12.850398,
+        "ymax": 45.169558
+      },
+      "_source": {
+        "sys_created_dt": "2026-04-25T15:59:20.209Z",
+        "sys_modified_dt": "2026-09-26T16:41:43.900Z",
+        "sys_xmlmodified_dt": "2026-08-24T14:36:30.610Z",
+        "sys_approval_status_s": "approved",
+        "sys_owner_s": "marco.lipera",
+        "sys_owner_txt": "marco.lipera",
+        "sys_metadatatype_s": "rndt2-dataset",
+        "sys_xmlmeta_obj": {
+          "mimetype": "application/xml",
+          "hash": "3036540794809016450:3126284179972237057:174195",
+          "date": "2026-08-24T14:36:30.614Z",
+          "size": 174195
+        },
+        "src_source_type_s": "CSW",
+        "src_source_uri_s": "CSW:https://servizimoka.regione.emilia-romagna.it/geoportalEsri/csw#urn:ogc:CSW:2.0.2:HTTP:OGCISO:ESRI:GPT",
+        "src_source_name_s": "Servizio di ricerca Regione Emilia Romagna",
+        "src_uri_s": "uuid:r_emiro:alberi_monumentali",
+        "src_source_ref_s": "2b4d5ea1991f4e388ca0473ccab74c40",
+        "src_task_ref_s": "8995b76f20d54586842689260720d5f0",
+        "fileid": "r_emiro:alberi_monumentali",
+        "title": "Alberi Monumentali della Regione Emilia-Romagna",
+        "description": "Alberi Monumentali d’Italia (AMI) e Alberi Monumentali Regionali (AMR) ricadenti nel territorio della Regione Emilia-Romagna, tutelati ai sensi dell’art. 7 della Legge 10/2013 e s.m.i. e della L.R. 20/2023 per il loro elevato valore naturalistico, paesaggistico e/o storico-culturale-religioso.",
+        "keywords_s": [
+          "Regionale",
+          "albero",
+          "biodiversità",
+          "conservazione della natura",
+          "flora (biologia)",
+          "monumento naturale",
+          "protezione della natura",
+          "protezione delle piante",
+          "Distribuzione delle specie",
+          "Zone sottoposte a gestione/limitazioni/regolamentazione e unità con obbligo di comunicare dati",
+          "alberi",
+          "ambiente",
+          "EU",
+          "filare",
+          "flora",
+          "open data",
+          "pregio naturalistico",
+          "vincoli",
+          "biota",
+          "environment",
+          "planningCadastre"
+        ],
+        "thumbnail_s": "https://mappegis.regione.emilia-romagna.it/metadata/anteprima/Alberi%20Monumentali%20RER.jpg",
+        "contact_organizations_s": [
+          "Area Biodiversità - Settore Aree Protette, Foreste e Sviluppo zone montane - Regione Emilia-Romagna",
+          "Area Biodiversità - Settore Aree Protette, Foreste e Sviluppo zone montane - Regione Emilia-Romagna",
+          "Area Biodiversità - Settore Aree Protette, Foreste e Sviluppo zone montane - Regione Emilia-Romagna",
+          "Regione Emilia-Romagna",
+          "Regione Emilia-Romagna",
+          "Area Biodiversità - Settore Aree Protette, Foreste e Sviluppo zone montane - Regione Emilia-Romagna",
+          "Regione Emilia-Romagna"
+        ],
+        "contact_people_s": [
+          "Francesco Besio",
+          "Barbara Guandalini",
+          "Francesco Besio",
+          "Regione Emilia-Romagna",
+          "Settore Aree Protette, Foreste e Sviluppo zone montane",
+          "Barbara Guandalini",
+          "Settore Aree Protette, Foreste e Sviluppo zone montane"
+        ],
+        "links_s": [
+          "https://ambiente.regione.emilia-romagna.it/it/parchi-natura2000",
+          "https://ambiente.regione.emilia-romagna.it/it/parchi-natura2000",
+          "https://ambiente.regione.emilia-romagna.it/it/parchi-natura2000",
+          "http://www.regione.emilia-romagna.it",
+          "https://ambiente.regione.emilia-romagna.it/it/parchi-natura2000",
+          "https://ambiente.regione.emilia-romagna.it/it/parchi-natura2000",
+          "https://ambiente.regione.emilia-romagna.it/it/parchi-natura2000",
+          "https://servizimoka.regione.emilia-romagna.it/download/d/dynamic?id=r_emiro:alberi_monumentali",
+          "https://ambiente.regione.emilia-romagna.it/it/parchi-natura2000/sistema-regionale/alberi-monumentali",
+          "https://servizimoka.regione.emilia-romagna.it/mokaApp/applicazioni/ALBMON_2022PUB",
+          "https://mappegis.regione.emilia-romagna.it/moka/download/amb/albmondoc/tabDecodifica.zip"
+        ],
+        "apiso_Identifier_s": "r_emiro:alberi_monumentali",
+        "apiso_ParentIdentifier_s": "r_emiro:alberi_monumentali",
+        "apiso_Title_txt": "Alberi Monumentali della Regione Emilia-Romagna",
+        "apiso_AlternateTitle_txt": [
+          "Alberi Monumentali d’Italia (AMI) e Alberi Monumentali Regionali (AMR) nel territorio della Regione Emilia-Romagna"
+        ],
+        "apiso_Abstract_txt": "Alberi Monumentali d’Italia (AMI) e Alberi Monumentali Regionali (AMR) ricadenti nel territorio della Regione Emilia-Romagna, tutelati ai sensi dell’art. 7 della Legge 10/2013 e s.m.i. e della L.R. 20/2023 per il loro elevato valore naturalistico, paesaggistico e/o storico-culturale-religioso.",
+        "apiso_BrowseGraphic_s": "https://mappegis.regione.emilia-romagna.it/metadata/anteprima/Alberi%20Monumentali%20RER.jpg",
+        "apiso_OrganizationName_txt": "Area Biodiversità - Settore Aree Protette, Foreste e Sviluppo zone montane - Regione Emilia-Romagna",
+        "EnteResponsabile_s": "Regione Emilia-Romagna",
+        "PuntoDiContatto_s": "Area Biodiversità - Settore Aree Protette, Foreste e Sviluppo zone montane - Regione Emilia-Romagna",
+        "PuntoDiContattoEmail_s": "barbara.guandalini@regione.emilia-romagna.it",
+        "PuntoDiContattoSitoWeb_s": "https://ambiente.regione.emilia-romagna.it/it/parchi-natura2000",
+        "PuntoDiContattoTelefono": "0515276264",
+        "apiso_Subject_txt": [
+          "Regionale",
+          "albero",
+          "biodiversità",
+          "conservazione della natura",
+          "flora (biologia)",
+          "monumento naturale",
+          "protezione della natura",
+          "protezione delle piante",
+          "Distribuzione delle specie",
+          "Zone sottoposte a gestione/limitazioni/regolamentazione e unità con obbligo di comunicare dati",
+          "alberi",
+          "ambiente",
+          "EU",
+          "filare",
+          "flora",
+          "open data",
+          "pregio naturalistico",
+          "vincoli",
+          "biota",
+          "environment",
+          "planningCadastre"
+        ],
+        "apiso_Format_s": [
+          "Shape file (.shp)",
+          "XLSX",
+          "CSV"
+        ],
+        "apiso_TopicCategory_s": [
+          "biota",
+          "environment",
+          "planningCadastre"
+        ],
+        "apiso_Type_s": "dataset",
+        "apiso_Modified_dt": "2025-11-17T00:00:00Z",
+        "apiso_CreationDate_dt": "2021-11-01T00:00:00Z",
+        "apiso_RevisionDate_dt": "2025-11-17T00:00:00Z",
+        "apiso_PublicationDate_dt": "2024-01-01T00:00:00Z",
+        "apiso_Language_s": "ita",
+        "apiso_ResourceLanguage_s": "ita",
+        "apiso_AccessConstraints_s": [
+          "CC BY 4.0 (Creative Commons - Attribuzione) https://creativecommons.org/licenses/by/4.0/deed.it"
+        ],
+        "apiso_OtherConstraints_s": [
+          "Nessuna limitazione all'accesso pubblico",
+          "https://creativecommons.org/licenses/by/4.0/deed.it"
+        ],
+        "apiso_Classification_s": [
+          "unclassified"
+        ],
+        "apiso_HasSecurityConstraints_b": true,
+        "envelope_geo": [
+          {
+            "type": "envelope",
+            "coordinates": [
+              [
+                9.172921,
+                45.169558
+              ],
+              [
+                12.850398,
+                43.703388
+              ]
+            ]
+          }
+        ],
+        "envelope_cen_pt": [
+          {
+            "lat": 44.436473,
+            "lon": 11.0116595
+          }
+        ],
+        "apiso_CRS": {
+          "id_s": "ETRS89/ETRS-TM32"
+        },
+        "apiso_GeographicDescriptionCode_s": [
+          "XL8"
+        ],
+        "apiso_Denominator_i": "5000",
+        "isOpendata": [
+          "open data",
+          "CC BY 4.0 (Creative Commons - Attribuzione) https://creativecommons.org/licenses/by/4.0/deed.it"
+        ],
+        "OpenDataTheme_s": [
+          "Regionale",
+          "albero",
+          "biodiversità",
+          "conservazione della natura",
+          "flora (biologia)",
+          "monumento naturale",
+          "protezione della natura",
+          "protezione delle piante",
+          "Distribuzione delle specie",
+          "Zone sottoposte a gestione/limitazioni/regolamentazione e unità con obbligo di comunicare dati",
+          "alberi",
+          "ambiente",
+          "EU",
+          "filare",
+          "flora",
+          "open data",
+          "pregio naturalistico",
+          "vincoli"
+        ],
+        "INSPIRETheme_s": [
+          "Distribuzione delle specie",
+          "Zone sottoposte a gestione/limitazioni/regolamentazione e unità con obbligo di comunicare dati"
+        ],
+        "AmbitoTerritoriale_s": [
+          "Regionale"
+        ],
+        "apiso_Degree_b": [
+          "false"
+        ],
+        "apiso_Lineage_txt": [
+          "La base dati è frutto della digitalizzazione dei dati ricevuti dall’Istituto per i beni artistici - culturali e naturali (IBACN) nell’anno 2021. \nTali dati sono risultati in parte incompleti e non corredati delle adeguate informazioni di geolocalizzazione, pertanto la banca dati non ricomprende tutti gli alberi monumentali presenti sul territorio. Dal 2022 la banca dati è in fase di aggiornamento e di integrazione, supportata da censimenti, segnalazioni e sopralluoghi."
+        ],
+        "apiso_ConditionApplyingToAccessAndUse_txt": [
+          "https://creativecommons.org/licenses/by/4.0/deed.it"
+        ],
+        "apiso_ResponsiblePartyRole_txt": "pointOfContact",
+        "apiso_SpecificationTitle_txt": [
+          "REGOLAMENTO (UE) N. 1089/2010 DELLA COMMISSIONE del 23 novembre 2010 recante attuazione della direttiva 2007/2/CE del Parlamento europeo e del Consiglio per quanto riguarda l'interoperabilità dei set di dati territoriali e dei servizi di dati territoriali"
+        ],
+        "apiso_SpecificationDateType_txt": [
+          "publication"
+        ],
+        "url_thumbnail_s": "https://mappegis.regione.emilia-romagna.it/metadata/anteprima/Alberi%20Monumentali%20RER.jpg",
+        "url_website_s": "https://ambiente.regione.emilia-romagna.it/it/parchi-natura2000",
+        "url_http_download_s": "https://servizimoka.regione.emilia-romagna.it/download/d/dynamic?id=r_emiro:alberi_monumentali",
+        "url_download_s": [
+          "https://servizimoka.regione.emilia-romagna.it/download/d/dynamic?id=r_emiro:alberi_monumentali"
+        ]
+      }
+    },
+    {
+      "id": "r_friuve:m10728-cc-i10983",
+      "title": "PPR - Alberi Monumentali e Notevoli",
+      "description": "Il Decreto del Ministero delle politiche agricole, alimentari e forestali del 23 ottobre 2014, emanato in applicazione della Legge 14 gennaio 2013, n. 10 (Norme per lo sviluppo degli spazi verdi urbani) ha istituito l’elenco degli Alberi monumentali d’Italia, che si compone degli elenchi regionali predisposti dalle Regioni a seguito del censimento effettuato sul proprio territorio regionale. La Regione Autonoma Friuli Venezia Giulia mediante la legge regionale 29 dicembre 2016 , n. 24 (Legge collegata alla manovra di bilancio 2017-2019) ha innovato la disciplina regionale utile alla salvaguardia degli alberi monumentali, rendendola coerente ai principi della legge nazionale di riferimento. Lo strato informativo relativo agli alberi monumentali della Regione Autonoma Friuli Venezia Giulia fa riferimento dell’Elenco regionale degli Alberi Monumentali redatto con lo scopo di inserire gli alberi monumentali regionali più rilevanti negli elenchi nazionali. Il primo elenco regionale degli alberi monumentali è stato approvato mediante D.Preg 055/Pres del 6 marzo 2017 ed stato redatto in conformità ai criteri e principi direttivi per il censimento degli alberi monumentali previsti a scala nazionale. Il presente strato informativo fa riferimento al terzo aggiornamento di cui al D.P.Reg del 03 ottobre 2023 n. 169/Pres., pubblicato sul Bollettino ufficiale della Regione n. 42 del 18 ottobre 2023, in sostituzione dell’Elenco approvato con decreto 7 agosto 2020, n. 098/Pres, predisposto facendo riferimento agli esemplari monumentali individuati, nonche ad alcuni ulteriori alberi, definiti “notevoli”, individuati a partire dai dati forniti in fase di partecipazione nell’ ambito della predisposizione dei contenuti del Piano Paesaggistico Regionale (PPR). Tali alberi sono riconosciuti come notevoli ai sensi dell’art. 42 comma 1 lettera d) delle Norme tecniche di attuazione del PPR ancorché privi del carattere della monumentalità. Per gli alberi monumentali e notevoli, oltre a quanto previsto dalla legge 10/2013 e dalla legge regionale n. 9/2007, non sono ammissibili gli interventi di cui all’art 42 comma 2 lettera c) delle suddette Norme di attuazione del PPR. Lo strato risulta coerente con il dato dell’elenco nazionale degli alberi monumentali del Ministero Politiche Agricole Alimentari e Forestali, aggiornato con decreto dirigenziale prot. n. 0490928 del 18/09/2023, pubblicato in G.U. n. 227 del 28/09/2023. La struttura dello strato, a partire dalla data del 17 novembre 2022 è stata sostituita per recepire la nuova struttura della fonte dei dati (Ministero Politiche Agricole Alimentari e Forestali) che si è modificata costringendo ad adattare il dato derivato all'interno del Piano Paesaggistico Regionale",
+      "published": "2026-04-25T15:49:13.742Z",
+      "updated": "2026-04-25T15:49:13.742Z",
+      "author": {
+        "name": "csw.friuliveneziagiulia"
+      },
+      "links": [
+        {
+          "rel": "alternate",
+          "type": "application/json",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/r_friuve%3Am10728-cc-i10983"
+        },
+        {
+          "rel": "alternate",
+          "type": "text/html",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/r_friuve%3Am10728-cc-i10983/html"
+        },
+        {
+          "rel": "alternate",
+          "type": "application/xml",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/r_friuve%3Am10728-cc-i10983/xml"
+        },
+        {
+          "rel": "related",
+          "dctype": "WFS",
+          "href": "https://serviziogc.regione.fvg.it/geoserver/PPR/wfs?request=GetCapabilities&service=wfs&version=2.0.0"
+        },
+        {
+          "rel": "related",
+          "dctype": "WFS",
+          "href": "https://serviziogc.regione.fvg.it/geoserver/PPR/wfs?version=2.0.0&service=wfs&request=GetFeature&typeName=PPR:v_alberi_monumentali_e_notevoli"
+        }
+      ],
+      "categories": [
+        {
+          "scheme": "keywords",
+          "term": "landscape management"
+        },
+        {
+          "scheme": "keywords",
+          "term": "landscape"
+        },
+        {
+          "scheme": "keywords",
+          "term": "infoFeatureAccessService"
+        },
+        {
+          "scheme": "keywords",
+          "term": "Regional"
+        },
+        {
+          "scheme": "keywords",
+          "term": "open data"
+        },
+        {
+          "scheme": "keywords",
+          "term": "EU"
+        }
+      ],
+      "bbox": {
+        "xmin": 12.32,
+        "ymin": 45.56,
+        "xmax": 13.92,
+        "ymax": 46.66
+      },
+      "_source": {
+        "fileid": "r_friuve:m10728-cc-i10983",
+        "title": "PPR - Alberi Monumentali e Notevoli",
+        "description": "Il Decreto del Ministero delle politiche agricole, alimentari e forestali del 23 ottobre 2014, emanato in applicazione della Legge 14 gennaio 2013, n. 10 (Norme per lo sviluppo degli spazi verdi urbani) ha istituito l’elenco degli Alberi monumentali d’Italia, che si compone degli elenchi regionali predisposti dalle Regioni a seguito del censimento effettuato sul proprio territorio regionale. La Regione Autonoma Friuli Venezia Giulia mediante la legge regionale 29 dicembre 2016 , n. 24 (Legge collegata alla manovra di bilancio 2017-2019) ha innovato la disciplina regionale utile alla salvaguardia degli alberi monumentali, rendendola coerente ai principi della legge nazionale di riferimento. Lo strato informativo relativo agli alberi monumentali della Regione Autonoma Friuli Venezia Giulia fa riferimento dell’Elenco regionale degli Alberi Monumentali redatto con lo scopo di inserire gli alberi monumentali regionali più rilevanti negli elenchi nazionali. Il primo elenco regionale degli alberi monumentali è stato approvato mediante D.Preg 055/Pres del 6 marzo 2017 ed stato redatto in conformità ai criteri e principi direttivi per il censimento degli alberi monumentali previsti a scala nazionale. Il presente strato informativo fa riferimento al terzo aggiornamento di cui al D.P.Reg del 03 ottobre 2023 n. 169/Pres., pubblicato sul Bollettino ufficiale della Regione n. 42 del 18 ottobre 2023, in sostituzione dell’Elenco approvato con decreto 7 agosto 2020, n. 098/Pres, predisposto facendo riferimento agli esemplari monumentali individuati, nonche ad alcuni ulteriori alberi, definiti “notevoli”, individuati a partire dai dati forniti in fase di partecipazione nell’ ambito della predisposizione dei contenuti del Piano Paesaggistico Regionale (PPR). Tali alberi sono riconosciuti come notevoli ai sensi dell’art. 42 comma 1 lettera d) delle Norme tecniche di attuazione del PPR ancorché privi del carattere della monumentalità. Per gli alberi monumentali e notevoli, oltre a quanto previsto dalla legge 10/2013 e dalla legge regionale n. 9/2007, non sono ammissibili gli interventi di cui all’art 42 comma 2 lettera c) delle suddette Norme di attuazione del PPR. Lo strato risulta coerente con il dato dell’elenco nazionale degli alberi monumentali del Ministero Politiche Agricole Alimentari e Forestali, aggiornato con decreto dirigenziale prot. n. 0490928 del 18/09/2023, pubblicato in G.U. n. 227 del 28/09/2023. La struttura dello strato, a partire dalla data del 17 novembre 2022 è stata sostituita per recepire la nuova struttura della fonte dei dati (Ministero Politiche Agricole Alimentari e Forestali) che si è modificata costringendo ad adattare il dato derivato all'interno del Piano Paesaggistico Regionale",
+        "keywords_s": [
+          "landscape management",
+          "landscape",
+          "infoFeatureAccessService",
+          "Regional",
+          "open data",
+          "EU"
+        ],
+        "contact_organizations_s": [
+          "Regione Autonoma Friuli Venezia Giulia",
+          "Regione Autonoma Friuli Venezia Giulia - SERVIZIO PIANIFICAZIONE PAESAGGISTICA, TERRITORIALE E STRATEGICA",
+          "Regione Autonoma Friuli-Venezia Giulia",
+          "Regione autonoma Friuli Venezia Giulia"
+        ],
+        "links_s": [
+          "https://www.regione.fvg.it",
+          "https://www.regione.fvg.it",
+          "https://www.regione.fvg.it",
+          "https://www.regione.fvg.it",
+          "https://serviziogc.regione.fvg.it/geoserver/PPR/wfs?request=GetCapabilities&service=wfs&version=2.0.0",
+          "https://serviziogc.regione.fvg.it/geoserver/PPR/wfs?version=2.0.0&service=wfs&request=GetFeature&typeName=PPR:v_alberi_monumentali_e_notevoli",
+          "https://serviziogc.regione.fvg.it/geoserver/PPR/wfs?request=GetCapabilities&service=wfs&version=2.0.0"
+        ],
+        "apiso_Identifier_s": "r_friuve:m10728-cc-i10983",
+        "apiso_ParentIdentifier_s": "r_friuve:m10728-cc-i10983",
+        "apiso_Title_txt": "PPR - Alberi Monumentali e Notevoli",
+        "apiso_Abstract_txt": "Il Decreto del Ministero delle politiche agricole, alimentari e forestali del 23 ottobre 2014, emanato in applicazione della Legge 14 gennaio 2013, n. 10 (Norme per lo sviluppo degli spazi verdi urbani) ha istituito l’elenco degli Alberi monumentali d’Italia, che si compone degli elenchi regionali predisposti dalle Regioni a seguito del censimento effettuato sul proprio territorio regionale. La Regione Autonoma Friuli Venezia Giulia mediante la legge regionale 29 dicembre 2016 , n. 24 (Legge collegata alla manovra di bilancio 2017-2019) ha innovato la disciplina regionale utile alla salvaguardia degli alberi monumentali, rendendola coerente ai principi della legge nazionale di riferimento. Lo strato informativo relativo agli alberi monumentali della Regione Autonoma Friuli Venezia Giulia fa riferimento dell’Elenco regionale degli Alberi Monumentali redatto con lo scopo di inserire gli alberi monumentali regionali più rilevanti negli elenchi nazionali. Il primo elenco regionale degli alberi monumentali è stato approvato mediante D.Preg 055/Pres del 6 marzo 2017 ed stato redatto in conformità ai criteri e principi direttivi per il censimento degli alberi monumentali previsti a scala nazionale. Il presente strato informativo fa riferimento al terzo aggiornamento di cui al D.P.Reg del 03 ottobre 2023 n. 169/Pres., pubblicato sul Bollettino ufficiale della Regione n. 42 del 18 ottobre 2023, in sostituzione dell’Elenco approvato con decreto 7 agosto 2020, n. 098/Pres, predisposto facendo riferimento agli esemplari monumentali individuati, nonche ad alcuni ulteriori alberi, definiti “notevoli”, individuati a partire dai dati forniti in fase di partecipazione nell’ ambito della predisposizione dei contenuti del Piano Paesaggistico Regionale (PPR). Tali alberi sono riconosciuti come notevoli ai sensi dell’art. 42 comma 1 lettera d) delle Norme tecniche di attuazione del PPR ancorché privi del carattere della monumentalità. Per gli alberi monumentali e notevoli, oltre a quanto previsto dalla legge 10/2013 e dalla legge regionale n. 9/2007, non sono ammissibili gli interventi di cui all’art 42 comma 2 lettera c) delle suddette Norme di attuazione del PPR. Lo strato risulta coerente con il dato dell’elenco nazionale degli alberi monumentali del Ministero Politiche Agricole Alimentari e Forestali, aggiornato con decreto dirigenziale prot. n. 0490928 del 18/09/2023, pubblicato in G.U. n. 227 del 28/09/2023. La struttura dello strato, a partire dalla data del 17 novembre 2022 è stata sostituita per recepire la nuova struttura della fonte dei dati (Ministero Politiche Agricole Alimentari e Forestali) che si è modificata costringendo ad adattare il dato derivato all'interno del Piano Paesaggistico Regionale",
+        "apiso_OrganizationName_txt": "Regione Autonoma Friuli Venezia Giulia",
+        "EnteResponsabile_s": "Regione Autonoma Friuli-Venezia Giulia",
+        "PuntoDiContatto_s": "Regione autonoma Friuli Venezia Giulia",
+        "PuntoDiContattoEmail_s": "irdat@regione.fvg.it",
+        "PuntoDiContattoSitoWeb_s": "https://www.regione.fvg.it",
+        "apiso_Subject_txt": [
+          "landscape management",
+          "landscape",
+          "infoFeatureAccessService",
+          "Regional",
+          "open data",
+          "EU"
+        ],
+        "apiso_Type_s": "service",
+        "apiso_Modified_dt": "2024-01-15T00:00:00Z",
+        "apiso_CreationDate_dt": "2018-04-24T00:00:00Z",
+        "apiso_RevisionDate_dt": "2024-01-15T00:00:00Z",
+        "apiso_Language_s": "ita",
+        "apiso_OtherConstraints_s": [
+          "Nessun vincolo all'accesso pubblico",
+          "https://creativecommons.org/licenses/by/4.0"
+        ],
+        "apiso_Classification_s": [
+          "unclassified"
+        ],
+        "apiso_HasSecurityConstraints_b": true,
+        "apiso_ServiceType_s": [
+          "download"
+        ],
+        "apiso_ServiceTypeVersion_s": [
+          "2.0.0"
+        ],
+        "apiso_Operation_s": [
+          "GetCapabilities",
+          "GetFeature"
+        ],
+        "apiso_OperatesOn_s": [
+          "https://irdat.regione.fvg.it/CSW/metadati/RNDT?request=GetRecordById&service=CSW&version=2.0.2&OUTPUTFORMAT=application/xml&OUTPUTSCHEMA=http://www.isotc211.org/2005/gmd&ELEMENTSETNAME=full&id=r_friuve:m10728-cc-i11037"
+        ],
+        "apiso_CouplingType_s": [
+          "mixed"
+        ],
+        "resources_nst": [
+          {
+            "url_s": "https://serviziogc.regione.fvg.it/geoserver/PPR/wfs?request=GetCapabilities&service=wfs&version=2.0.0",
+            "url_type_s": "WFS"
+          },
+          {
+            "url_s": "https://serviziogc.regione.fvg.it/geoserver/PPR/wfs?version=2.0.0&service=wfs&request=GetFeature&typeName=PPR:v_alberi_monumentali_e_notevoli",
+            "url_type_s": "WFS"
+          }
+        ],
+        "envelope_geo": [
+          {
+            "type": "envelope",
+            "coordinates": [
+              [
+                12.32,
+                46.66
+              ],
+              [
+                13.92,
+                45.56
+              ]
+            ]
+          }
+        ],
+        "envelope_cen_pt": [
+          {
+            "lat": 46.11,
+            "lon": 13.120000000000001
+          }
+        ],
+        "OpenDataTheme_s": [
+          "landscape management",
+          "landscape",
+          "infoFeatureAccessService",
+          "Regional",
+          "open data",
+          "EU"
+        ],
+        "apiso_Degree_b": [
+          "true"
+        ],
+        "apiso_ConditionApplyingToAccessAndUse_txt": [
+          "https://creativecommons.org/licenses/by/4.0"
+        ],
+        "apiso_SpecificationTitle_txt": [
+          "REGOLAMENTO (UE) N. 1089/2010 DELLA COMMISSIONE del 23 novembre 2010 recante attuazione della direttiva 2007/2/CE del Parlamento europeo e del Consiglio per quanto riguarda l'interoperabilità dei set di dati territoriali e dei servizi di dati territoriali"
+        ],
+        "apiso_SpecificationDateType_txt": [
+          "publication"
+        ],
+        "url_http_download_s": "https://serviziogc.regione.fvg.it/geoserver/PPR/wfs?request=GetCapabilities&service=wfs&version=2.0.0",
+        "url_download_s": [
+          "https://serviziogc.regione.fvg.it/geoserver/PPR/wfs?request=GetCapabilities&service=wfs&version=2.0.0"
+        ],
+        "sys_created_dt": "2026-04-25T15:49:13.742Z",
+        "sys_modified_dt": "2026-04-25T15:49:13.742Z",
+        "sys_xmlmodified_dt": "2026-04-25T15:49:13.742Z",
+        "sys_approval_status_s": "approved",
+        "sys_owner_s": "csw.friuliveneziagiulia",
+        "sys_owner_txt": "csw.friuliveneziagiulia",
+        "sys_metadatatype_s": "rndt2-service",
+        "sys_xmlmeta_obj": {
+          "mimetype": "application/xml",
+          "hash": "-1981126486191087633:3796673983043341421:26996",
+          "date": "2026-04-25T15:49:13.743Z",
+          "size": 26996
+        }
+      }
+    },
+    {
+      "id": "r_friuve:m10728-cc-i11990",
+      "title": "PPR - Alberi Monumentali e Notevoli",
+      "description": "Il Decreto del Ministero delle politiche agricole, alimentari e forestali del 23 ottobre 2014, emanato in applicazione della Legge 14 gennaio 2013, n. 10 (Norme per lo sviluppo degli spazi verdi urbani) ha istituito l’elenco degli Alberi monumentali d’Italia, che si compone degli elenchi regionali predisposti dalle Regioni a seguito del censimento effettuato sul proprio territorio regionale. La Regione Autonoma Friuli Venezia Giulia mediante la legge regionale 29 dicembre 2016 , n. 24 (Legge collegata alla manovra di bilancio 2017-2019) ha innovato la disciplina regionale utile alla salvaguardia degli alberi monumentali, rendendola coerente ai principi della legge nazionale di riferimento. Lo strato informativo relativo agli alberi monumentali della Regione Autonoma Friuli Venezia Giulia fa riferimento dell’Elenco regionale degli Alberi Monumentali redatto con lo scopo di inserire gli alberi monumentali regionali più rilevanti negli elenchi nazionali. Il primo elenco regionale degli alberi monumentali è stato approvato mediante D.Preg 055/Pres del 6 marzo 2017 ed stato redatto in conformità ai criteri e principi direttivi per il censimento degli alberi monumentali previsti a scala nazionale. Il presente strato informativo fa riferimento al terzo aggiornamento di cui al D.P.Reg del 03 ottobre 2023 n. 169/Pres., pubblicato sul Bollettino ufficiale della Regione n. 42 del 18 ottobre 2023, in sostituzione dell’Elenco approvato con decreto 7 agosto 2020, n. 098/Pres, predisposto facendo riferimento agli esemplari monumentali individuati, nonche ad alcuni ulteriori alberi, definiti “notevoli”, individuati a partire dai dati forniti in fase di partecipazione nell’ ambito della predisposizione dei contenuti del Piano Paesaggistico Regionale (PPR). Tali alberi sono riconosciuti come notevoli ai sensi dell’art. 42 comma 1 lettera d) delle Norme tecniche di attuazione del PPR ancorché privi del carattere della monumentalità. Per gli alberi monumentali e notevoli, oltre a quanto previsto dalla legge 10/2013 e dalla legge regionale n. 9/2007, non sono ammissibili gli interventi di cui all’art 42 comma 2 lettera c) delle suddette Norme di attuazione del PPR. Lo strato risulta coerente con il dato dell’elenco nazionale degli alberi monumentali del Ministero Politiche Agricole Alimentari e Forestali, aggiornato con decreto dirigenziale prot. n. 0490928 del 18/09/2023, pubblicato in G.U. n. 227 del 28/09/2023. La struttura dello strato, a partire dalla data del 17 novembre 2022 è stata sostituita per recepire la nuova struttura della fonte dei dati (Ministero Politiche Agricole Alimentari e Forestali) che si è modificata costringendo ad adattare il dato derivato all'interno del Piano Paesaggistico Regionale",
+      "published": "2026-04-25T15:53:06.844Z",
+      "updated": "2026-04-25T15:53:06.844Z",
+      "author": {
+        "name": "csw.friuliveneziagiulia"
+      },
+      "links": [
+        {
+          "rel": "alternate",
+          "type": "application/json",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/r_friuve%3Am10728-cc-i11990"
+        },
+        {
+          "rel": "alternate",
+          "type": "text/html",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/r_friuve%3Am10728-cc-i11990/html"
+        },
+        {
+          "rel": "alternate",
+          "type": "application/xml",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/r_friuve%3Am10728-cc-i11990/xml"
+        },
+        {
+          "rel": "related",
+          "dctype": "WMS",
+          "href": "https://serviziogc.regione.fvg.it/geoserver/PPR/wms?request=GetCapabilities&service=wms&version=1.1.1"
+        }
+      ],
+      "categories": [
+        {
+          "scheme": "keywords",
+          "term": "tree"
+        },
+        {
+          "scheme": "keywords",
+          "term": "landscape"
+        },
+        {
+          "scheme": "keywords",
+          "term": "infoMapAccessService"
+        },
+        {
+          "scheme": "keywords",
+          "term": "Regional"
+        },
+        {
+          "scheme": "keywords",
+          "term": "open data"
+        },
+        {
+          "scheme": "keywords",
+          "term": "EU"
+        }
+      ],
+      "bbox": {
+        "xmin": 12.32,
+        "ymin": 45.56,
+        "xmax": 13.92,
+        "ymax": 46.66
+      },
+      "_source": {
+        "fileid": "r_friuve:m10728-cc-i11990",
+        "title": "PPR - Alberi Monumentali e Notevoli",
+        "description": "Il Decreto del Ministero delle politiche agricole, alimentari e forestali del 23 ottobre 2014, emanato in applicazione della Legge 14 gennaio 2013, n. 10 (Norme per lo sviluppo degli spazi verdi urbani) ha istituito l’elenco degli Alberi monumentali d’Italia, che si compone degli elenchi regionali predisposti dalle Regioni a seguito del censimento effettuato sul proprio territorio regionale. La Regione Autonoma Friuli Venezia Giulia mediante la legge regionale 29 dicembre 2016 , n. 24 (Legge collegata alla manovra di bilancio 2017-2019) ha innovato la disciplina regionale utile alla salvaguardia degli alberi monumentali, rendendola coerente ai principi della legge nazionale di riferimento. Lo strato informativo relativo agli alberi monumentali della Regione Autonoma Friuli Venezia Giulia fa riferimento dell’Elenco regionale degli Alberi Monumentali redatto con lo scopo di inserire gli alberi monumentali regionali più rilevanti negli elenchi nazionali. Il primo elenco regionale degli alberi monumentali è stato approvato mediante D.Preg 055/Pres del 6 marzo 2017 ed stato redatto in conformità ai criteri e principi direttivi per il censimento degli alberi monumentali previsti a scala nazionale. Il presente strato informativo fa riferimento al terzo aggiornamento di cui al D.P.Reg del 03 ottobre 2023 n. 169/Pres., pubblicato sul Bollettino ufficiale della Regione n. 42 del 18 ottobre 2023, in sostituzione dell’Elenco approvato con decreto 7 agosto 2020, n. 098/Pres, predisposto facendo riferimento agli esemplari monumentali individuati, nonche ad alcuni ulteriori alberi, definiti “notevoli”, individuati a partire dai dati forniti in fase di partecipazione nell’ ambito della predisposizione dei contenuti del Piano Paesaggistico Regionale (PPR). Tali alberi sono riconosciuti come notevoli ai sensi dell’art. 42 comma 1 lettera d) delle Norme tecniche di attuazione del PPR ancorché privi del carattere della monumentalità. Per gli alberi monumentali e notevoli, oltre a quanto previsto dalla legge 10/2013 e dalla legge regionale n. 9/2007, non sono ammissibili gli interventi di cui all’art 42 comma 2 lettera c) delle suddette Norme di attuazione del PPR. Lo strato risulta coerente con il dato dell’elenco nazionale degli alberi monumentali del Ministero Politiche Agricole Alimentari e Forestali, aggiornato con decreto dirigenziale prot. n. 0490928 del 18/09/2023, pubblicato in G.U. n. 227 del 28/09/2023. La struttura dello strato, a partire dalla data del 17 novembre 2022 è stata sostituita per recepire la nuova struttura della fonte dei dati (Ministero Politiche Agricole Alimentari e Forestali) che si è modificata costringendo ad adattare il dato derivato all'interno del Piano Paesaggistico Regionale",
+        "keywords_s": [
+          "tree",
+          "landscape",
+          "infoMapAccessService",
+          "Regional",
+          "open data",
+          "EU"
+        ],
+        "contact_organizations_s": [
+          "Regione Autonoma Friuli Venezia Giulia",
+          "Regione Autonoma Friuli Venezia Giulia - SERVIZIO PIANIFICAZIONE PAESAGGISTICA, TERRITORIALE E STRATEGICA",
+          "Regione Autonoma Friuli-Venezia Giulia",
+          "Regione autonoma Friuli Venezia Giulia"
+        ],
+        "links_s": [
+          "https://www.regione.fvg.it",
+          "https://www.regione.fvg.it",
+          "https://www.regione.fvg.it",
+          "https://www.regione.fvg.it",
+          "https://serviziogc.regione.fvg.it/geoserver/PPR/wms?request=GetCapabilities&service=wms&version=1.1.1",
+          "https://serviziogc.regione.fvg.it/geoserver/PPR/wms?request=GetCapabilities&service=wms&version=1.1.1"
+        ],
+        "apiso_Identifier_s": "r_friuve:m10728-cc-i11990",
+        "apiso_ParentIdentifier_s": "r_friuve:m10728-cc-i11990",
+        "apiso_Title_txt": "PPR - Alberi Monumentali e Notevoli",
+        "apiso_Abstract_txt": "Il Decreto del Ministero delle politiche agricole, alimentari e forestali del 23 ottobre 2014, emanato in applicazione della Legge 14 gennaio 2013, n. 10 (Norme per lo sviluppo degli spazi verdi urbani) ha istituito l’elenco degli Alberi monumentali d’Italia, che si compone degli elenchi regionali predisposti dalle Regioni a seguito del censimento effettuato sul proprio territorio regionale. La Regione Autonoma Friuli Venezia Giulia mediante la legge regionale 29 dicembre 2016 , n. 24 (Legge collegata alla manovra di bilancio 2017-2019) ha innovato la disciplina regionale utile alla salvaguardia degli alberi monumentali, rendendola coerente ai principi della legge nazionale di riferimento. Lo strato informativo relativo agli alberi monumentali della Regione Autonoma Friuli Venezia Giulia fa riferimento dell’Elenco regionale degli Alberi Monumentali redatto con lo scopo di inserire gli alberi monumentali regionali più rilevanti negli elenchi nazionali. Il primo elenco regionale degli alberi monumentali è stato approvato mediante D.Preg 055/Pres del 6 marzo 2017 ed stato redatto in conformità ai criteri e principi direttivi per il censimento degli alberi monumentali previsti a scala nazionale. Il presente strato informativo fa riferimento al terzo aggiornamento di cui al D.P.Reg del 03 ottobre 2023 n. 169/Pres., pubblicato sul Bollettino ufficiale della Regione n. 42 del 18 ottobre 2023, in sostituzione dell’Elenco approvato con decreto 7 agosto 2020, n. 098/Pres, predisposto facendo riferimento agli esemplari monumentali individuati, nonche ad alcuni ulteriori alberi, definiti “notevoli”, individuati a partire dai dati forniti in fase di partecipazione nell’ ambito della predisposizione dei contenuti del Piano Paesaggistico Regionale (PPR). Tali alberi sono riconosciuti come notevoli ai sensi dell’art. 42 comma 1 lettera d) delle Norme tecniche di attuazione del PPR ancorché privi del carattere della monumentalità. Per gli alberi monumentali e notevoli, oltre a quanto previsto dalla legge 10/2013 e dalla legge regionale n. 9/2007, non sono ammissibili gli interventi di cui all’art 42 comma 2 lettera c) delle suddette Norme di attuazione del PPR. Lo strato risulta coerente con il dato dell’elenco nazionale degli alberi monumentali del Ministero Politiche Agricole Alimentari e Forestali, aggiornato con decreto dirigenziale prot. n. 0490928 del 18/09/2023, pubblicato in G.U. n. 227 del 28/09/2023. La struttura dello strato, a partire dalla data del 17 novembre 2022 è stata sostituita per recepire la nuova struttura della fonte dei dati (Ministero Politiche Agricole Alimentari e Forestali) che si è modificata costringendo ad adattare il dato derivato all'interno del Piano Paesaggistico Regionale",
+        "apiso_OrganizationName_txt": "Regione Autonoma Friuli Venezia Giulia",
+        "EnteResponsabile_s": "Regione Autonoma Friuli-Venezia Giulia",
+        "PuntoDiContatto_s": "Regione autonoma Friuli Venezia Giulia",
+        "PuntoDiContattoEmail_s": "irdat@regione.fvg.it",
+        "PuntoDiContattoSitoWeb_s": "https://www.regione.fvg.it",
+        "apiso_Subject_txt": [
+          "tree",
+          "landscape",
+          "infoMapAccessService",
+          "Regional",
+          "open data",
+          "EU"
+        ],
+        "apiso_Type_s": "service",
+        "apiso_Modified_dt": "2024-01-15T00:00:00Z",
+        "apiso_CreationDate_dt": "2018-04-24T00:00:00Z",
+        "apiso_RevisionDate_dt": "2024-01-15T00:00:00Z",
+        "apiso_Language_s": "ita",
+        "apiso_OtherConstraints_s": [
+          "Nessun vincolo all'accesso pubblico",
+          "Dato pubblico"
+        ],
+        "apiso_Classification_s": [
+          "unclassified"
+        ],
+        "apiso_HasSecurityConstraints_b": true,
+        "apiso_ServiceType_s": [
+          "view"
+        ],
+        "apiso_ServiceTypeVersion_s": [
+          "1.1.1"
+        ],
+        "apiso_Operation_s": [
+          "GetCapabilities"
+        ],
+        "apiso_OperatesOn_s": [
+          "https://irdat.regione.fvg.it/CSW/metadati/RNDT?request=GetRecordById&service=CSW&version=2.0.2&OUTPUTFORMAT=application/xml&OUTPUTSCHEMA=http://www.isotc211.org/2005/gmd&ELEMENTSETNAME=full&id=r_friuve:m10728-cc-i11037"
+        ],
+        "apiso_CouplingType_s": [
+          "mixed"
+        ],
+        "resources_nst": [
+          {
+            "url_s": "https://serviziogc.regione.fvg.it/geoserver/PPR/wms?request=GetCapabilities&service=wms&version=1.1.1",
+            "url_type_s": "WMS"
+          }
+        ],
+        "envelope_geo": [
+          {
+            "type": "envelope",
+            "coordinates": [
+              [
+                12.32,
+                46.66
+              ],
+              [
+                13.92,
+                45.56
+              ]
+            ]
+          }
+        ],
+        "envelope_cen_pt": [
+          {
+            "lat": 46.11,
+            "lon": 13.120000000000001
+          }
+        ],
+        "OpenDataTheme_s": [
+          "tree",
+          "landscape",
+          "infoMapAccessService",
+          "Regional",
+          "open data",
+          "EU"
+        ],
+        "apiso_Degree_b": [
+          "true"
+        ],
+        "apiso_ConditionApplyingToAccessAndUse_txt": [
+          "Dato pubblico"
+        ],
+        "apiso_SpecificationTitle_txt": [
+          "REGOLAMENTO (UE) N. 1089/2010 DELLA COMMISSIONE del 23 novembre 2010 recante attuazione della direttiva 2007/2/CE del Parlamento europeo e del Consiglio per quanto riguarda l'interoperabilità dei set di dati territoriali e dei servizi di dati territoriali"
+        ],
+        "apiso_SpecificationDateType_txt": [
+          "publication"
+        ],
+        "url_http_download_s": "https://serviziogc.regione.fvg.it/geoserver/PPR/wms?request=GetCapabilities&service=wms&version=1.1.1",
+        "sys_created_dt": "2026-04-25T15:53:06.844Z",
+        "sys_modified_dt": "2026-04-25T15:53:06.844Z",
+        "sys_xmlmodified_dt": "2026-04-25T15:53:06.844Z",
+        "sys_approval_status_s": "approved",
+        "sys_owner_s": "csw.friuliveneziagiulia",
+        "sys_owner_txt": "csw.friuliveneziagiulia",
+        "sys_metadatatype_s": "rndt2-service",
+        "sys_xmlmeta_obj": {
+          "mimetype": "application/xml",
+          "hash": "-2565153510049089129:-6786637230696708556:26016",
+          "date": "2026-04-25T15:53:06.846Z",
+          "size": 26016
+        }
+      }
+    },
+    {
+      "id": "r_friuve:m10728-cc-i11037",
+      "title": "PPR - Alberi Monumentali e Notevoli",
+      "description": "Il Decreto del Ministero delle politiche agricole, alimentari e forestali del 23 ottobre 2014, emanato in applicazione della Legge 14 gennaio 2013, n. 10 (Norme per lo sviluppo degli spazi verdi urbani) ha istituito l’elenco degli Alberi monumentali d’Italia, che si compone degli elenchi regionali predisposti dalle Regioni a seguito del censimento effettuato sul proprio territorio regionale. La Regione Autonoma Friuli Venezia Giulia mediante la legge regionale 29 dicembre 2016 , n. 24 (Legge collegata alla manovra di bilancio 2017-2019) ha innovato la disciplina regionale utile alla salvaguardia degli alberi monumentali, rendendola coerente ai principi della legge nazionale di riferimento. Lo strato informativo relativo agli alberi monumentali della Regione Autonoma Friuli Venezia Giulia fa riferimento dell’Elenco regionale degli Alberi Monumentali redatto con lo scopo di inserire gli alberi monumentali regionali più rilevanti negli elenchi nazionali. Il primo elenco regionale degli alberi monumentali è stato approvato mediante D.Preg 055/Pres del 6 marzo 2017 ed stato redatto in conformità ai criteri e principi direttivi per il censimento degli alberi monumentali previsti a scala nazionale. Il presente strato informativo fa riferimento al terzo aggiornamento di cui al D.P.Reg del 03 ottobre 2023 n. 169/Pres., pubblicato sul Bollettino ufficiale della Regione n. 42 del 18 ottobre 2023, in sostituzione dell’Elenco approvato con decreto 7 agosto 2020, n. 098/Pres, predisposto facendo riferimento agli esemplari monumentali individuati, nonche ad alcuni ulteriori alberi, definiti “notevoli”, individuati a partire dai dati forniti in fase di partecipazione nell’ ambito della predisposizione dei contenuti del Piano Paesaggistico Regionale (PPR). Tali alberi sono riconosciuti come notevoli ai sensi dell’art. 42 comma 1 lettera d) delle Norme tecniche di attuazione del PPR ancorché privi del carattere della monumentalità. Per gli alberi monumentali e notevoli, oltre a quanto previsto dalla legge 10/2013 e dalla legge regionale n. 9/2007, non sono ammissibili gli interventi di cui all’art 42 comma 2 lettera c) delle suddette Norme di attuazione del PPR. Lo strato risulta coerente con il dato dell’elenco nazionale degli alberi monumentali del Ministero Politiche Agricole Alimentari e Forestali, aggiornato con decreto dirigenziale prot. n. 0490928 del 18/09/2023, pubblicato in G.U. n. 227 del 28/09/2023. La struttura dello strato, a partire dalla data del 17 novembre 2022 è stata sostituita per recepire la nuova struttura della fonte dei dati (Ministero Politiche Agricole Alimentari e Forestali) che si è modificata costringendo ad adattare il dato derivato all'interno del Piano Paesaggistico Regionale",
+      "published": "2026-04-25T15:45:15.385Z",
+      "updated": "2026-04-25T15:45:15.385Z",
+      "author": {
+        "name": "csw.friuliveneziagiulia"
+      },
+      "links": [
+        {
+          "rel": "alternate",
+          "type": "application/json",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/r_friuve%3Am10728-cc-i11037"
+        },
+        {
+          "rel": "alternate",
+          "type": "text/html",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/r_friuve%3Am10728-cc-i11037/html"
+        },
+        {
+          "rel": "alternate",
+          "type": "application/xml",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/r_friuve%3Am10728-cc-i11037/xml"
+        },
+        {
+          "rel": "related",
+          "dctype": "WFS",
+          "href": "https://serviziogc.regione.fvg.it/geoserver/PPR/wfs?request=GetCapabilities&service=wfs&version=2.0.0"
+        },
+        {
+          "rel": "related",
+          "dctype": "WMS",
+          "href": "https://serviziogc.regione.fvg.it/geoserver/PPR/wms?request=GetCapabilities&service=wms&version=1.1.1"
+        }
+      ],
+      "categories": [
+        {
+          "scheme": "keywords",
+          "term": "tree"
+        },
+        {
+          "scheme": "keywords",
+          "term": "landscape"
+        },
+        {
+          "scheme": "keywords",
+          "term": "Land cover"
+        },
+        {
+          "scheme": "keywords",
+          "term": "Regional"
+        },
+        {
+          "scheme": "keywords",
+          "term": "open data"
+        },
+        {
+          "scheme": "keywords",
+          "term": "EU"
+        },
+        {
+          "scheme": "keywords",
+          "term": "environment"
+        }
+      ],
+      "bbox": {
+        "xmin": 12.32,
+        "ymin": 45.56,
+        "xmax": 13.92,
+        "ymax": 46.66
+      },
+      "_source": {
+        "fileid": "r_friuve:m10728-cc-i11037",
+        "title": "PPR - Alberi Monumentali e Notevoli",
+        "description": "Il Decreto del Ministero delle politiche agricole, alimentari e forestali del 23 ottobre 2014, emanato in applicazione della Legge 14 gennaio 2013, n. 10 (Norme per lo sviluppo degli spazi verdi urbani) ha istituito l’elenco degli Alberi monumentali d’Italia, che si compone degli elenchi regionali predisposti dalle Regioni a seguito del censimento effettuato sul proprio territorio regionale. La Regione Autonoma Friuli Venezia Giulia mediante la legge regionale 29 dicembre 2016 , n. 24 (Legge collegata alla manovra di bilancio 2017-2019) ha innovato la disciplina regionale utile alla salvaguardia degli alberi monumentali, rendendola coerente ai principi della legge nazionale di riferimento. Lo strato informativo relativo agli alberi monumentali della Regione Autonoma Friuli Venezia Giulia fa riferimento dell’Elenco regionale degli Alberi Monumentali redatto con lo scopo di inserire gli alberi monumentali regionali più rilevanti negli elenchi nazionali. Il primo elenco regionale degli alberi monumentali è stato approvato mediante D.Preg 055/Pres del 6 marzo 2017 ed stato redatto in conformità ai criteri e principi direttivi per il censimento degli alberi monumentali previsti a scala nazionale. Il presente strato informativo fa riferimento al terzo aggiornamento di cui al D.P.Reg del 03 ottobre 2023 n. 169/Pres., pubblicato sul Bollettino ufficiale della Regione n. 42 del 18 ottobre 2023, in sostituzione dell’Elenco approvato con decreto 7 agosto 2020, n. 098/Pres, predisposto facendo riferimento agli esemplari monumentali individuati, nonche ad alcuni ulteriori alberi, definiti “notevoli”, individuati a partire dai dati forniti in fase di partecipazione nell’ ambito della predisposizione dei contenuti del Piano Paesaggistico Regionale (PPR). Tali alberi sono riconosciuti come notevoli ai sensi dell’art. 42 comma 1 lettera d) delle Norme tecniche di attuazione del PPR ancorché privi del carattere della monumentalità. Per gli alberi monumentali e notevoli, oltre a quanto previsto dalla legge 10/2013 e dalla legge regionale n. 9/2007, non sono ammissibili gli interventi di cui all’art 42 comma 2 lettera c) delle suddette Norme di attuazione del PPR. Lo strato risulta coerente con il dato dell’elenco nazionale degli alberi monumentali del Ministero Politiche Agricole Alimentari e Forestali, aggiornato con decreto dirigenziale prot. n. 0490928 del 18/09/2023, pubblicato in G.U. n. 227 del 28/09/2023. La struttura dello strato, a partire dalla data del 17 novembre 2022 è stata sostituita per recepire la nuova struttura della fonte dei dati (Ministero Politiche Agricole Alimentari e Forestali) che si è modificata costringendo ad adattare il dato derivato all'interno del Piano Paesaggistico Regionale",
+        "keywords_s": [
+          "tree",
+          "landscape",
+          "Land cover",
+          "Regional",
+          "open data",
+          "EU",
+          "environment"
+        ],
+        "contact_organizations_s": [
+          "Regione Autonoma Friuli Venezia Giulia",
+          "Regione Autonoma Friuli Venezia Giulia - SERVIZIO PIANIFICAZIONE PAESAGGISTICA, TERRITORIALE E STRATEGICA",
+          "Regione Autonoma Friuli-Venezia Giulia",
+          "Regione autonoma Friuli Venezia Giulia",
+          "Insiel S.p.A."
+        ],
+        "links_s": [
+          "https://www.regione.fvg.it",
+          "https://www.regione.fvg.it",
+          "https://www.regione.fvg.it",
+          "https://www.regione.fvg.it",
+          "https://irdat.regione.fvg.it/Distributore/download?idDset=11037&idFmt=383&type=wfs&path=PPR:v_alberi_monumentali_e_notevoli",
+          "http://www.insiel.it",
+          "https://irdat.regione.fvg.it/Distributore/download?idDset=11037&idFmt=383&type=wfs&path=PPR:v_alberi_monumentali_e_notevoli",
+          "https://serviziogc.regione.fvg.it/geoserver/PPR/wfs?request=GetCapabilities&service=wfs&version=2.0.0",
+          "https://serviziogc.regione.fvg.it/geoserver/PPR/wms?request=GetCapabilities&service=wms&version=1.1.1"
+        ],
+        "apiso_Identifier_s": "r_friuve:m10728-cc-i11037",
+        "apiso_ParentIdentifier_s": "r_friuve:m10728-cc-i11037",
+        "apiso_Title_txt": "PPR - Alberi Monumentali e Notevoli",
+        "apiso_Abstract_txt": "Il Decreto del Ministero delle politiche agricole, alimentari e forestali del 23 ottobre 2014, emanato in applicazione della Legge 14 gennaio 2013, n. 10 (Norme per lo sviluppo degli spazi verdi urbani) ha istituito l’elenco degli Alberi monumentali d’Italia, che si compone degli elenchi regionali predisposti dalle Regioni a seguito del censimento effettuato sul proprio territorio regionale. La Regione Autonoma Friuli Venezia Giulia mediante la legge regionale 29 dicembre 2016 , n. 24 (Legge collegata alla manovra di bilancio 2017-2019) ha innovato la disciplina regionale utile alla salvaguardia degli alberi monumentali, rendendola coerente ai principi della legge nazionale di riferimento. Lo strato informativo relativo agli alberi monumentali della Regione Autonoma Friuli Venezia Giulia fa riferimento dell’Elenco regionale degli Alberi Monumentali redatto con lo scopo di inserire gli alberi monumentali regionali più rilevanti negli elenchi nazionali. Il primo elenco regionale degli alberi monumentali è stato approvato mediante D.Preg 055/Pres del 6 marzo 2017 ed stato redatto in conformità ai criteri e principi direttivi per il censimento degli alberi monumentali previsti a scala nazionale. Il presente strato informativo fa riferimento al terzo aggiornamento di cui al D.P.Reg del 03 ottobre 2023 n. 169/Pres., pubblicato sul Bollettino ufficiale della Regione n. 42 del 18 ottobre 2023, in sostituzione dell’Elenco approvato con decreto 7 agosto 2020, n. 098/Pres, predisposto facendo riferimento agli esemplari monumentali individuati, nonche ad alcuni ulteriori alberi, definiti “notevoli”, individuati a partire dai dati forniti in fase di partecipazione nell’ ambito della predisposizione dei contenuti del Piano Paesaggistico Regionale (PPR). Tali alberi sono riconosciuti come notevoli ai sensi dell’art. 42 comma 1 lettera d) delle Norme tecniche di attuazione del PPR ancorché privi del carattere della monumentalità. Per gli alberi monumentali e notevoli, oltre a quanto previsto dalla legge 10/2013 e dalla legge regionale n. 9/2007, non sono ammissibili gli interventi di cui all’art 42 comma 2 lettera c) delle suddette Norme di attuazione del PPR. Lo strato risulta coerente con il dato dell’elenco nazionale degli alberi monumentali del Ministero Politiche Agricole Alimentari e Forestali, aggiornato con decreto dirigenziale prot. n. 0490928 del 18/09/2023, pubblicato in G.U. n. 227 del 28/09/2023. La struttura dello strato, a partire dalla data del 17 novembre 2022 è stata sostituita per recepire la nuova struttura della fonte dei dati (Ministero Politiche Agricole Alimentari e Forestali) che si è modificata costringendo ad adattare il dato derivato all'interno del Piano Paesaggistico Regionale",
+        "apiso_OrganizationName_txt": "Regione Autonoma Friuli Venezia Giulia",
+        "EnteResponsabile_s": "Regione Autonoma Friuli-Venezia Giulia",
+        "PuntoDiContatto_s": "Regione autonoma Friuli Venezia Giulia",
+        "PuntoDiContattoEmail_s": "irdat@regione.fvg.it",
+        "PuntoDiContattoSitoWeb_s": "https://www.regione.fvg.it",
+        "apiso_Subject_txt": [
+          "tree",
+          "landscape",
+          "Land cover",
+          "Regional",
+          "open data",
+          "EU",
+          "environment"
+        ],
+        "apiso_Format_s": [
+          "Shapefile (shp)"
+        ],
+        "apiso_TopicCategory_s": [
+          "environment"
+        ],
+        "apiso_Type_s": "dataset",
+        "apiso_Modified_dt": "2024-01-15T00:00:00Z",
+        "apiso_CreationDate_dt": "2018-04-24T00:00:00Z",
+        "apiso_RevisionDate_dt": "2024-01-15T00:00:00Z",
+        "apiso_Language_s": "ita",
+        "apiso_ResourceLanguage_s": "ita",
+        "apiso_OtherConstraints_s": [
+          "Nessun vincolo all'accesso pubblico",
+          "Dato pubblico"
+        ],
+        "apiso_Classification_s": [
+          "unclassified"
+        ],
+        "apiso_HasSecurityConstraints_b": true,
+        "resources_nst": [
+          {
+            "url_s": "https://serviziogc.regione.fvg.it/geoserver/PPR/wfs?request=GetCapabilities&service=wfs&version=2.0.0",
+            "url_type_s": "WFS"
+          },
+          {
+            "url_s": "https://serviziogc.regione.fvg.it/geoserver/PPR/wms?request=GetCapabilities&service=wms&version=1.1.1",
+            "url_type_s": "WMS"
+          }
+        ],
+        "envelope_geo": [
+          {
+            "type": "envelope",
+            "coordinates": [
+              [
+                12.32,
+                46.66
+              ],
+              [
+                13.92,
+                45.56
+              ]
+            ]
+          }
+        ],
+        "envelope_cen_pt": [
+          {
+            "lat": 46.11,
+            "lon": 13.120000000000001
+          }
+        ],
+        "apiso_CRS": {
+          "id_s": "RDN2008-TM33NE"
+        },
+        "apiso_Denominator_i": "5000",
+        "keywords_s_inspire_service": [
+          "Land cover"
+        ],
+        "isOpendata": [
+          "open data"
+        ],
+        "OpenDataTheme_s": [
+          "tree",
+          "landscape",
+          "Land cover",
+          "Regional",
+          "open data",
+          "EU"
+        ],
+        "INSPIRETheme_s": [
+          "Land cover"
+        ],
+        "AmbitoTerritoriale_s": [
+          "Regional"
+        ],
+        "apiso_Degree_b": [
+          "true"
+        ],
+        "apiso_Lineage_txt": [
+          "cfr Capitolo 1  della Relazione metodologica PPR fvg e i riferimenti specifici ricavabili dai singoli capitoli della Relazione"
+        ],
+        "apiso_ConditionApplyingToAccessAndUse_txt": [
+          "Dato pubblico"
+        ],
+        "apiso_ResponsiblePartyRole_txt": "pointOfContact",
+        "apiso_SpecificationTitle_txt": [
+          "REGOLAMENTO (UE) N. 1089/2010 DELLA COMMISSIONE del 23 novembre 2010 recante attuazione della direttiva 2007/2/CE del Parlamento europeo e del Consiglio per quanto riguarda l'interoperabilità dei set di dati territoriali e dei servizi di dati territoriali"
+        ],
+        "apiso_SpecificationDateType_txt": [
+          "publication"
+        ],
+        "url_website_s": "https://www.regione.fvg.it",
+        "url_http_download_s": "https://irdat.regione.fvg.it/Distributore/download?idDset=11037&idFmt=383&type=wfs&path=PPR:v_alberi_monumentali_e_notevoli",
+        "url_download_s": [
+          "https://irdat.regione.fvg.it/Distributore/download?idDset=11037&idFmt=383&type=wfs&path=PPR:v_alberi_monumentali_e_notevoli",
+          "https://serviziogc.regione.fvg.it/geoserver/PPR/wfs?request=GetCapabilities&service=wfs&version=2.0.0"
+        ],
+        "sys_created_dt": "2026-04-25T15:45:15.385Z",
+        "sys_modified_dt": "2026-04-25T15:45:15.385Z",
+        "sys_xmlmodified_dt": "2026-04-25T15:45:15.385Z",
+        "sys_approval_status_s": "approved",
+        "sys_owner_s": "csw.friuliveneziagiulia",
+        "sys_owner_txt": "csw.friuliveneziagiulia",
+        "sys_metadatatype_s": "rndt2-dataset",
+        "sys_xmlmeta_obj": {
+          "mimetype": "application/xml",
+          "hash": "2903960752193011336:839640794168758421:33124",
+          "date": "2026-04-25T15:45:15.387Z",
+          "size": 33124
+        }
+      }
+    }
+  ]
+}

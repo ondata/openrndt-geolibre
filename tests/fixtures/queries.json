@@ -1,0 +1,267 @@
+{
+  "description": "Search form -> RNDT REST parameters. `form` overrides the empty form; `expected` is the exact output of buildQuery. Shared test oracle for the plugin (TypeScript) and openrndt (Python). `liveTotal` is the catalogue count measured on 2026-09-26, used only by scripts/check-live.mjs.",
+  "cases": [
+    {
+      "name": "empty form: whole catalogue",
+      "form": {},
+      "expected": {
+        "q": null
+      }
+    },
+    {
+      "name": "all words",
+      "form": {
+        "text": "alberi monumentali"
+      },
+      "expected": {
+        "q": "(alberi AND monumentali)"
+      },
+      "liveTotal": 41
+    },
+    {
+      "name": "any word",
+      "form": {
+        "text": "alberi monumentali",
+        "textMode": "any"
+      },
+      "expected": {
+        "q": "(alberi OR monumentali)"
+      },
+      "liveTotal": 128
+    },
+    {
+      "name": "all words in title",
+      "form": {
+        "text": "alberi monumentali",
+        "field": "title"
+      },
+      "expected": {
+        "q": "title:(alberi AND monumentali)"
+      },
+      "liveTotal": 23
+    },
+    {
+      "name": "raw Lucene: exact phrase",
+      "form": {
+        "text": "\"alberi monumentali\"",
+        "textMode": "lucene",
+        "field": "title"
+      },
+      "expected": {
+        "q": "(\"alberi monumentali\")"
+      },
+      "liveTotal": 41
+    },
+    {
+      "name": "special characters are escaped outside Lucene mode",
+      "form": {
+        "text": "pre-alpino a:b"
+      },
+      "expected": {
+        "q": "(pre\\-alpino AND a\\:b)"
+      }
+    },
+    {
+      "name": "data only",
+      "form": {
+        "kind": "data"
+      },
+      "expected": {
+        "q": "apiso_Type_s:(dataset OR series)"
+      }
+    },
+    {
+      "name": "view services",
+      "form": {
+        "kind": "services",
+        "serviceTypes": [
+          "view"
+        ]
+      },
+      "expected": {
+        "q": "apiso_Type_s:service AND apiso_ServiceType_s:(view)"
+      }
+    },
+    {
+      "name": "view or download services",
+      "form": {
+        "kind": "services",
+        "serviceTypes": [
+          "view",
+          "download"
+        ]
+      },
+      "expected": {
+        "q": "apiso_Type_s:service AND apiso_ServiceType_s:(view OR download)"
+      }
+    },
+    {
+      "name": "themes and open data are dropped for services",
+      "form": {
+        "kind": "services",
+        "inspireThemes": [
+          "Idrografia"
+        ],
+        "openDataOnly": true
+      },
+      "expected": {
+        "q": "apiso_Type_s:service"
+      }
+    },
+    {
+      "name": "keywords",
+      "form": {
+        "keywords": "opendata, Idrografia ,"
+      },
+      "expected": {
+        "q": "keywords_s:(\"opendata\" OR \"Idrografia\")"
+      }
+    },
+    {
+      "name": "organisation: case-insensitive contains on the responsible party",
+      "form": {
+        "organisation": "regione piemonte"
+      },
+      "expected": {
+        "q": "EnteResponsabile_s:/.*[rR][eE][gG][iI][oO][nN][eE] [pP][iI][eE][mM][oO][nN][tT][eE].*/"
+      },
+      "liveTotal": 613
+    },
+    {
+      "name": "INSPIRE themes and open data",
+      "form": {
+        "inspireThemes": [
+          "Idrografia",
+          "Unità amministrative"
+        ],
+        "openDataOnly": true
+      },
+      "expected": {
+        "q": "INSPIRETheme_s:(\"Idrografia\" OR \"Unità amministrative\") AND _exists_:isOpendata"
+      }
+    },
+    {
+      "name": "creation date range, excluding records without the date (issue #9 case)",
+      "form": {
+        "text": "incendi",
+        "dateField": "apiso_CreationDate_dt",
+        "dateFrom": "2024-01-01",
+        "dateTo": "2026-07-18",
+        "includeMissingDates": false
+      },
+      "expected": {
+        "q": "(incendi) AND apiso_CreationDate_dt:[2024-01-01 TO 2026-07-18]"
+      },
+      "liveTotal": 15
+    },
+    {
+      "name": "creation date range, including records without the date",
+      "form": {
+        "text": "incendi",
+        "dateField": "apiso_CreationDate_dt",
+        "dateFrom": "2024-01-01",
+        "dateTo": "2026-07-18"
+      },
+      "expected": {
+        "q": "(incendi) AND (apiso_CreationDate_dt:[2024-01-01 TO 2026-07-18] OR (NOT _exists_:apiso_CreationDate_dt))"
+      },
+      "liveTotal": 111
+    },
+    {
+      "name": "open-ended date range",
+      "form": {
+        "dateFrom": "2025-01-01",
+        "includeMissingDates": false
+      },
+      "expected": {
+        "q": "apiso_RevisionDate_dt:[2025-01-01 TO 2100-12-31]"
+      }
+    },
+    {
+      "name": "intersecting box around Rome, sorted by title",
+      "form": {
+        "text": "monumentali",
+        "bbox": [
+          12,
+          41,
+          13,
+          42
+        ],
+        "sort": "title:asc"
+      },
+      "expected": {
+        "q": "(monumentali)",
+        "bbox": "12,41,13,42",
+        "spatialRel": "Intersects",
+        "sort": "title:asc"
+      }
+    },
+    {
+      "name": "full form (portal replay, see advanced-search-form.md)",
+      "form": {
+        "kind": "data",
+        "text": "alberi monumentali",
+        "field": "title",
+        "dateField": "apiso_RevisionDate_dt",
+        "dateFrom": "2020-01-01",
+        "dateTo": "2026-12-31",
+        "bbox": [
+          11.4,
+          40.7,
+          14.1,
+          42.9
+        ],
+        "sort": "title:asc"
+      },
+      "expected": {
+        "q": "title:(alberi AND monumentali) AND (apiso_RevisionDate_dt:[2020-01-01 TO 2026-12-31] OR (NOT _exists_:apiso_RevisionDate_dt)) AND apiso_Type_s:(dataset OR series)",
+        "bbox": "11.4,40.7,14.1,42.9",
+        "spatialRel": "Intersects",
+        "sort": "title:asc"
+      },
+      "liveTotal": 1
+    },
+    {
+      "name": "organisation with regex characters is escaped",
+      "form": {
+        "organisation": "Agenzia (ARPA) dell'Ambiente"
+      },
+      "expected": {
+        "q": "EnteResponsabile_s:/.*[aA][gG][eE][nN][zZ][iI][aA] \\([aA][rR][pP][aA]\\) [dD][eE][lL][lL]'[aA][mM][bB][iI][eE][nN][tT][eE].*/"
+      }
+    }
+  ],
+  "errors": [
+    {
+      "name": "bad date",
+      "form": {
+        "dateFrom": "01/01/2024"
+      },
+      "message": "Invalid date"
+    },
+    {
+      "name": "inverted box",
+      "form": {
+        "bbox": [
+          13,
+          41,
+          12,
+          42
+        ]
+      },
+      "message": "West must be less than east"
+    },
+    {
+      "name": "box out of range",
+      "form": {
+        "bbox": [
+          -200,
+          41,
+          12,
+          42
+        ]
+      },
+      "message": "Longitudes must be within"
+    }
+  ]
+}

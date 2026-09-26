@@ -1,0 +1,1063 @@
+{
+  "start": 1,
+  "num": 5,
+  "total": 255,
+  "nextStart": 6,
+  "sourceType": "Geoportal",
+  "sourceKey": null,
+  "results": [
+    {
+      "id": "c_l219:a883ab12-e713-41fe-b2a2-34c7756dc4e2",
+      "title": "Catasto Urbano 1:1500 - Geo-servizio WMS",
+      "description": "Il Web Map Service per la consultazione del catasto urbano permette di visualizzare gli elementi del catasto urbano all'interno dell'intero territorio comunale e di consultare le informazioni associate agli elementi stessi.",
+      "published": "2026-04-25T15:37:34.537Z",
+      "updated": "2026-04-25T15:37:34.537Z",
+      "author": {
+        "name": "csw.piemonte"
+      },
+      "links": [
+        {
+          "rel": "alternate",
+          "type": "application/json",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/c_l219%3Aa883ab12-e713-41fe-b2a2-34c7756dc4e2"
+        },
+        {
+          "rel": "alternate",
+          "type": "text/html",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/c_l219%3Aa883ab12-e713-41fe-b2a2-34c7756dc4e2/html"
+        },
+        {
+          "rel": "alternate",
+          "type": "application/xml",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/c_l219%3Aa883ab12-e713-41fe-b2a2-34c7756dc4e2/xml"
+        },
+        {
+          "rel": "icon",
+          "href": "https://www.geoportale.piemonte.it/geonetwork/srv/api/records/c_l219:a883ab12-e713-41fe-b2a2-34c7756dc4e2/attachments/c_l219:a883ab12-e713-41fe-b2a2-34c7756dc4e2_s.png"
+        },
+        {
+          "rel": "related",
+          "dctype": "WMS",
+          "href": "https://geomap.reteunitaria.piemonte.it/ws/siccms/coto-01/wmsg01/wms_sicc17bis_catasto_urbano?service=WMS&version=1.1.1&request=getCapabilities"
+        }
+      ],
+      "categories": [
+        {
+          "scheme": "keywords",
+          "term": "RNDT"
+        },
+        {
+          "scheme": "keywords",
+          "term": "EU"
+        },
+        {
+          "scheme": "keywords",
+          "term": "catasto urbano"
+        },
+        {
+          "scheme": "keywords",
+          "term": "urbano"
+        },
+        {
+          "scheme": "keywords",
+          "term": "catasto"
+        },
+        {
+          "scheme": "keywords",
+          "term": "proprietÃ "
+        },
+        {
+          "scheme": "keywords",
+          "term": "indirizzi"
+        },
+        {
+          "scheme": "keywords",
+          "term": "limiti"
+        },
+        {
+          "scheme": "keywords",
+          "term": "infoMapAccessService"
+        }
+      ],
+      "bbox": {
+        "xmin": 7.57785,
+        "ymin": 45.00678,
+        "xmax": 7.77337,
+        "ymax": 45.14021
+      },
+      "_source": {
+        "fileid": "c_l219:a883ab12-e713-41fe-b2a2-34c7756dc4e2",
+        "title": "Catasto Urbano 1:1500 - Geo-servizio WMS",
+        "description": "Il Web Map Service per la consultazione del catasto urbano permette di visualizzare gli elementi del catasto urbano all'interno dell'intero territorio comunale e di consultare le informazioni associate agli elementi stessi.",
+        "keywords_s": [
+          "RNDT",
+          "EU",
+          "catasto urbano",
+          "urbano",
+          "catasto",
+          "proprietÃ ",
+          "indirizzi",
+          "limiti",
+          "infoMapAccessService"
+        ],
+        "thumbnail_s": "https://www.geoportale.piemonte.it/geonetwork/srv/api/records/c_l219:a883ab12-e713-41fe-b2a2-34c7756dc4e2/attachments/c_l219:a883ab12-e713-41fe-b2a2-34c7756dc4e2_s.png",
+        "contact_organizations_s": [
+          "Comune di Torino",
+          "Comune di Torino",
+          "Comune di Torino"
+        ],
+        "links_s": [
+          "http://geoportale.comune.torino.it",
+          "http://geoportale.comune.torino.it",
+          "http://geoportale.comune.torino.it",
+          "http://geomap.reteunitaria.piemonte.it/ws/siccms/coto-01/wmsg01/wms_sicc17bis_catasto_urbano?",
+          "https://geomap.reteunitaria.piemonte.it/ws/siccms/coto-01/wmsg01/wms_sicc17bis_catasto_urbano?service=WMS&version=1.1.1&request=getCapabilities"
+        ],
+        "apiso_Identifier_s": "c_l219:a883ab12-e713-41fe-b2a2-34c7756dc4e2",
+        "apiso_Title_txt": "Catasto Urbano 1:1500 - Geo-servizio WMS",
+        "apiso_Abstract_txt": "Il Web Map Service per la consultazione del catasto urbano permette di visualizzare gli elementi del catasto urbano all'interno dell'intero territorio comunale e di consultare le informazioni associate agli elementi stessi.",
+        "apiso_BrowseGraphic_s": "https://www.geoportale.piemonte.it/geonetwork/srv/api/records/c_l219:a883ab12-e713-41fe-b2a2-34c7756dc4e2/attachments/c_l219:a883ab12-e713-41fe-b2a2-34c7756dc4e2_s.png",
+        "apiso_OrganizationName_txt": "Comune di Torino",
+        "EnteResponsabile_s": "Comune di Torino",
+        "PuntoDiContatto_s": "Comune di Torino",
+        "PuntoDiContattoEmail_s": "geoportale@comune.torino.it",
+        "PuntoDiContattoSitoWeb_s": "http://geoportale.comune.torino.it",
+        "apiso_Subject_txt": [
+          "RNDT",
+          "EU",
+          "catasto urbano",
+          "urbano",
+          "catasto",
+          "proprietÃ ",
+          "indirizzi",
+          "limiti",
+          "infoMapAccessService"
+        ],
+        "apiso_Format_s": [
+          "OGC:WMS"
+        ],
+        "apiso_Type_s": "service",
+        "apiso_Modified_dt": "2019-11-13T00:00:00Z",
+        "apiso_CreationDate_dt": "2011-05-01T00:00:00Z",
+        "apiso_RevisionDate_dt": "2011-05-01T00:00:00Z",
+        "apiso_Language_s": "ita",
+        "apiso_OtherConstraints_s": [
+          "no limitations to public access",
+          "Condizioni sconosciute"
+        ],
+        "apiso_HasSecurityConstraints_b": true,
+        "apiso_ServiceType_s": [
+          "view"
+        ],
+        "apiso_Operation_s": [
+          "GetMap"
+        ],
+        "apiso_OperatesOn_s": [
+          "c_l219:85cea270-4304-4ccb-922a-a20095f27f94",
+          "http://geoportale.comune.torino.it/geonetworkcoto/srv/eng/csw?request=GetRecordById&service=CSW&version=2.0.2&id=c_l219:85cea270-4304-4ccb-922a-a20095f27f94&elementSetName=full&outputSchema=http://www.isotc211.org/2005/gmd"
+        ],
+        "apiso_CouplingType_s": [
+          "mixed"
+        ],
+        "resources_nst": [
+          {
+            "url_s": "https://geomap.reteunitaria.piemonte.it/ws/siccms/coto-01/wmsg01/wms_sicc17bis_catasto_urbano?service=WMS&version=1.1.1&request=getCapabilities",
+            "url_type_s": "WMS"
+          }
+        ],
+        "envelope_geo": [
+          {
+            "type": "envelope",
+            "coordinates": [
+              [
+                7.57785,
+                45.14021
+              ],
+              [
+                7.77337,
+                45.00678
+              ]
+            ]
+          }
+        ],
+        "envelope_cen_pt": [
+          {
+            "lat": 45.073495,
+            "lon": 7.67561
+          }
+        ],
+        "OpenDataTheme_s": [
+          "RNDT",
+          "EU",
+          "catasto urbano",
+          "urbano",
+          "catasto",
+          "proprietÃ ",
+          "indirizzi",
+          "limiti",
+          "infoMapAccessService"
+        ],
+        "apiso_Degree_b": [
+          "false"
+        ],
+        "apiso_SpecificationTitle_txt": [
+          "REGOLAMENTO  (CE)  N.  976/2009  DELLA  COMMISSIONE  del 19   ottobre   2009   recante   attuazione   della   direttiva 2007/2/CE   del Parlamento europeo e del Consiglio per quanto riguarda i servizi di rete",
+          "REGOLAMENTO (UE) N. 1089/2010 DELLA COMMISSIONE del 23 novembre 2010 recante attuazione della direttiva 2007/2/CE del Parlamento europeo e del Consiglio per quanto riguarda l'interoperabilità dei set di dati territoriali e dei servizi di dati territoriali"
+        ],
+        "apiso_SpecificationDateType_txt": [
+          "publication",
+          "publication"
+        ],
+        "url_http_download_s": "https://geomap.reteunitaria.piemonte.it/ws/siccms/coto-01/wmsg01/wms_sicc17bis_catasto_urbano?service=WMS&version=1.1.1&request=getCapabilities",
+        "sys_created_dt": "2026-04-25T15:37:34.537Z",
+        "sys_modified_dt": "2026-04-25T15:37:34.537Z",
+        "sys_xmlmodified_dt": "2026-04-25T15:37:34.537Z",
+        "sys_approval_status_s": "approved",
+        "sys_owner_s": "csw.piemonte",
+        "sys_owner_txt": "csw.piemonte",
+        "sys_metadatatype_s": "rndt2-service",
+        "sys_xmlmeta_obj": {
+          "mimetype": "application/xml",
+          "hash": "8007553523332060810:1572332796362521914:23019",
+          "date": "2026-04-25T15:37:34.539Z",
+          "size": 23019
+        }
+      }
+    },
+    {
+      "id": "r_lombar:1019d1db-648f-46d4-b428-951722b8f5c3",
+      "title": "Mappe catastali - WMS",
+      "description": "Le mappe catastali (catasto terreni e catasto fabbricati) sono consultabili a video e non si possono scaricare.ll servizio permette però di: navigare in mappa: esplorare l'informazione catastale di tutto il territorio regionaleconseguire le principali informazioni quali Sezione, Foglio, Particella (cliccando in mappa. tramite il pop-up)sovrapporre l'informazione catastale ad altre banche dati",
+      "published": "2026-04-25T15:37:14.916Z",
+      "updated": "2026-04-25T15:37:14.916Z",
+      "author": {
+        "name": "csw.lombardia"
+      },
+      "links": [
+        {
+          "rel": "alternate",
+          "type": "application/json",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/r_lombar%3A1019d1db-648f-46d4-b428-951722b8f5c3"
+        },
+        {
+          "rel": "alternate",
+          "type": "text/html",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/r_lombar%3A1019d1db-648f-46d4-b428-951722b8f5c3/html"
+        },
+        {
+          "rel": "alternate",
+          "type": "application/xml",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/r_lombar%3A1019d1db-648f-46d4-b428-951722b8f5c3/xml"
+        }
+      ],
+      "categories": [
+        {
+          "scheme": "keywords",
+          "term": "eu"
+        },
+        {
+          "scheme": "keywords",
+          "term": "fabbricati"
+        },
+        {
+          "scheme": "keywords",
+          "term": "terreni"
+        },
+        {
+          "scheme": "keywords",
+          "term": "foglio"
+        },
+        {
+          "scheme": "keywords",
+          "term": "particella"
+        },
+        {
+          "scheme": "keywords",
+          "term": "mappale"
+        },
+        {
+          "scheme": "keywords",
+          "term": "catasto"
+        },
+        {
+          "scheme": "keywords",
+          "term": "catastale"
+        },
+        {
+          "scheme": "keywords",
+          "term": "catastali"
+        },
+        {
+          "scheme": "keywords",
+          "term": "edifici"
+        },
+        {
+          "scheme": "keywords",
+          "term": "Regional"
+        },
+        {
+          "scheme": "keywords",
+          "term": "infoMapAccessService"
+        }
+      ],
+      "bbox": {
+        "xmin": 7.562709631978292,
+        "ymin": 43.10786940040173,
+        "xmax": 16.336778411707094,
+        "ymax": 48.302623025138836
+      },
+      "_source": {
+        "fileid": "r_lombar:1019d1db-648f-46d4-b428-951722b8f5c3",
+        "title": "Mappe catastali - WMS",
+        "description": "Le mappe catastali (catasto terreni e catasto fabbricati) sono consultabili a video e non si possono scaricare.ll servizio permette però di: navigare in mappa: esplorare l'informazione catastale di tutto il territorio regionaleconseguire le principali informazioni quali Sezione, Foglio, Particella (cliccando in mappa. tramite il pop-up)sovrapporre l'informazione catastale ad altre banche dati",
+        "keywords_s": [
+          "eu",
+          "fabbricati",
+          "terreni",
+          "foglio",
+          "particella",
+          "mappale",
+          "catasto",
+          "catastale",
+          "catastali",
+          "edifici",
+          "Regional",
+          "infoMapAccessService"
+        ],
+        "contact_organizations_s": [
+          "Regione Lombardia",
+          "Regione Lombardia",
+          "Regione Lombardia",
+          "Regione Lombardia"
+        ],
+        "links_s": [
+          "https://www.cartografia.servizirl.it/arcgis/services/catasto/catastoRL/MapServer/WMSServer?",
+          "https://www.cartografia.servizirl.it/arcgis/services/catasto/catastoRL/MapServer/WMSServer?"
+        ],
+        "apiso_Identifier_s": "r_lombar:1019d1db-648f-46d4-b428-951722b8f5c3",
+        "apiso_ParentIdentifier_s": "r_lombar:1019d1db-648f-46d4-b428-951722b8f5c3",
+        "apiso_Title_txt": "Mappe catastali - WMS",
+        "apiso_Abstract_txt": "Le mappe catastali (catasto terreni e catasto fabbricati) sono consultabili a video e non si possono scaricare.ll servizio permette però di: navigare in mappa: esplorare l'informazione catastale di tutto il territorio regionaleconseguire le principali informazioni quali Sezione, Foglio, Particella (cliccando in mappa. tramite il pop-up)sovrapporre l'informazione catastale ad altre banche dati",
+        "apiso_OrganizationName_txt": "Regione Lombardia",
+        "EnteResponsabile_s": "Regione Lombardia",
+        "PuntoDiContatto_s": "Regione Lombardia",
+        "PuntoDiContattoEmail_s": "Sit_RL@regione.lombardia.it",
+        "PuntoDiContattoTelefono": "02-67651",
+        "apiso_Subject_txt": [
+          "eu",
+          "fabbricati",
+          "terreni",
+          "foglio",
+          "particella",
+          "mappale",
+          "catasto",
+          "catastale",
+          "catastali",
+          "edifici",
+          "Regional",
+          "infoMapAccessService"
+        ],
+        "apiso_Type_s": "service",
+        "apiso_Modified_dt": "2023-12-12T00:00:00Z",
+        "apiso_PublicationDate_dt": "2021-12-31T00:00:00Z",
+        "apiso_Language_s": "ita",
+        "apiso_OtherConstraints_s": [
+          "https://creativecommons.org/licenses/by/4.0/legalcode.it",
+          "Nessuna Limitazione al Pubblico Accesso"
+        ],
+        "apiso_HasSecurityConstraints_b": true,
+        "apiso_ServiceType_s": [
+          "view"
+        ],
+        "apiso_Operation_s": [
+          "Get View Service Metadata"
+        ],
+        "apiso_OperatesOn_s": [
+          "https://www.geoportale.regione.lombardia.it/metadati?p_p_id=detailSheetMetadata_WAR_gptmetadataportlet&p_p_lifecycle=2&p_p_state=normal&p_p_mode=view&p_p_cacheability=cacheLevelPage&_detailSheetMetadata_WAR_gptmetadataportlet_javax.faces.resource=metadato&_detailSheetMetadata_WAR_gptmetadataportlet_ln=publishedMetadataResources&_detailSheetMetadata_WAR_gptmetadataportlet_identifier=r_lombar%3A0c4ece1d-c99c-4ccc-937a-563ae0e96f69&_detailSheetMetadata_WAR_gptmetadataportlet_rid=local&identifier=r_lombar%3A0c4ece1d-c99c-4ccc-937a-563ae0e96f69"
+        ],
+        "apiso_CouplingType_s": [
+          "tight"
+        ],
+        "envelope_geo": [
+          {
+            "type": "envelope",
+            "coordinates": [
+              [
+                7.562709631978292,
+                48.302623025138836
+              ],
+              [
+                16.336778411707094,
+                43.10786940040173
+              ]
+            ]
+          }
+        ],
+        "envelope_cen_pt": [
+          {
+            "lat": 45.705246212770284,
+            "lon": 11.949744021842694
+          }
+        ],
+        "apiso_CRS": {
+          "id_s": "WGS84/UTM32"
+        },
+        "OpenDataTheme_s": [
+          "eu",
+          "fabbricati",
+          "terreni",
+          "foglio",
+          "particella",
+          "mappale",
+          "catasto",
+          "catastale",
+          "catastali",
+          "edifici",
+          "Regional",
+          "infoMapAccessService"
+        ],
+        "apiso_ConditionApplyingToAccessAndUse_txt": [
+          "https://creativecommons.org/licenses/by/4.0/legalcode.it"
+        ],
+        "apiso_SpecificationTitle_txt": [
+          "REGOLAMENTO (UE) N. 1089/2010 DELLA COMMISSIONE del 23 novembre 2010 recante attuazione della direttiva 2007/2/CE del Parlamento europeo e del Consiglio per quanto riguarda l'interoperabilità dei set di dati territoriali e dei servizi di dati territoriali"
+        ],
+        "apiso_SpecificationDateType_txt": [
+          "publication"
+        ],
+        "url_http_download_s": "https://www.cartografia.servizirl.it/arcgis/services/catasto/catastoRL/MapServer/WMSServer?",
+        "sys_created_dt": "2026-04-25T15:37:14.916Z",
+        "sys_modified_dt": "2026-04-25T15:37:14.916Z",
+        "sys_xmlmodified_dt": "2026-04-25T15:37:14.916Z",
+        "sys_approval_status_s": "approved",
+        "sys_owner_s": "csw.lombardia",
+        "sys_owner_txt": "csw.lombardia",
+        "sys_metadatatype_s": "rndt2-service",
+        "sys_xmlmeta_obj": {
+          "mimetype": "application/xml",
+          "hash": "926535991399493266:-1516004247234752061:24537",
+          "date": "2026-04-25T15:37:14.917Z",
+          "size": 24537
+        }
+      }
+    },
+    {
+      "id": "c_l219:4bfe0c85-3a26-4e3f-a6c8-88cf6f6e2dcf",
+      "title": "Microzone Censuarie - Geo-servizio WMS",
+      "description": "Il Web Map Service per la consultazione delle suddivisioni delle Microzone Censuarie permette di visualizzare gli elementi delle microzone all'interno dell'intero territorio comunale e di consultare le informazioni associate agli elementi stessi.",
+      "published": "2026-04-25T15:36:37.890Z",
+      "updated": "2026-04-25T15:36:37.890Z",
+      "author": {
+        "name": "csw.piemonte"
+      },
+      "links": [
+        {
+          "rel": "alternate",
+          "type": "application/json",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/c_l219%3A4bfe0c85-3a26-4e3f-a6c8-88cf6f6e2dcf"
+        },
+        {
+          "rel": "alternate",
+          "type": "text/html",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/c_l219%3A4bfe0c85-3a26-4e3f-a6c8-88cf6f6e2dcf/html"
+        },
+        {
+          "rel": "alternate",
+          "type": "application/xml",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/c_l219%3A4bfe0c85-3a26-4e3f-a6c8-88cf6f6e2dcf/xml"
+        },
+        {
+          "rel": "icon",
+          "href": "https://www.geoportale.piemonte.it/geonetwork/srv/api/records/c_l219:4bfe0c85-3a26-4e3f-a6c8-88cf6f6e2dcf/attachments/c_l219:4bfe0c85-3a26-4e3f-a6c8-88cf6f6e2dcf_s.png"
+        },
+        {
+          "rel": "related",
+          "dctype": "WMS",
+          "href": "https://geomap.reteunitaria.piemonte.it/ws/siccms/coto-01/wmsg01/wms_sicc18_microzone_censuarie?service=WMS&version=1.1.1&request=getCapabilities"
+        }
+      ],
+      "categories": [
+        {
+          "scheme": "keywords",
+          "term": "RNDT"
+        },
+        {
+          "scheme": "keywords",
+          "term": "EU"
+        },
+        {
+          "scheme": "keywords",
+          "term": "censuarie"
+        },
+        {
+          "scheme": "keywords",
+          "term": "microzone"
+        },
+        {
+          "scheme": "keywords",
+          "term": "catasto"
+        },
+        {
+          "scheme": "keywords",
+          "term": "limiti"
+        },
+        {
+          "scheme": "keywords",
+          "term": "infoMapAccessService"
+        }
+      ],
+      "bbox": {
+        "xmin": 7.57785,
+        "ymin": 45.00678,
+        "xmax": 7.77337,
+        "ymax": 45.14021
+      },
+      "_source": {
+        "fileid": "c_l219:4bfe0c85-3a26-4e3f-a6c8-88cf6f6e2dcf",
+        "title": "Microzone Censuarie - Geo-servizio WMS",
+        "description": "Il Web Map Service per la consultazione delle suddivisioni delle Microzone Censuarie permette di visualizzare gli elementi delle microzone all'interno dell'intero territorio comunale e di consultare le informazioni associate agli elementi stessi.",
+        "keywords_s": [
+          "RNDT",
+          "EU",
+          "censuarie",
+          "microzone",
+          "catasto",
+          "limiti",
+          "infoMapAccessService"
+        ],
+        "thumbnail_s": "https://www.geoportale.piemonte.it/geonetwork/srv/api/records/c_l219:4bfe0c85-3a26-4e3f-a6c8-88cf6f6e2dcf/attachments/c_l219:4bfe0c85-3a26-4e3f-a6c8-88cf6f6e2dcf_s.png",
+        "contact_organizations_s": [
+          "Comune di Torino",
+          "Comune di Torino",
+          "Comune di Torino"
+        ],
+        "links_s": [
+          "http://geoportale.comune.torino.it",
+          "http://geoportale.comune.torino.it",
+          "http://geoportale.comune.torino.it",
+          "http://geomap.reteunitaria.piemonte.it/ws/siccms/coto-01/wmsg01/wms_sicc18_microzone_censuarie?",
+          "https://geomap.reteunitaria.piemonte.it/ws/siccms/coto-01/wmsg01/wms_sicc18_microzone_censuarie?service=WMS&version=1.1.1&request=getCapabilities"
+        ],
+        "apiso_Identifier_s": "c_l219:4bfe0c85-3a26-4e3f-a6c8-88cf6f6e2dcf",
+        "apiso_Title_txt": "Microzone Censuarie - Geo-servizio WMS",
+        "apiso_Abstract_txt": "Il Web Map Service per la consultazione delle suddivisioni delle Microzone Censuarie permette di visualizzare gli elementi delle microzone all'interno dell'intero territorio comunale e di consultare le informazioni associate agli elementi stessi.",
+        "apiso_BrowseGraphic_s": "https://www.geoportale.piemonte.it/geonetwork/srv/api/records/c_l219:4bfe0c85-3a26-4e3f-a6c8-88cf6f6e2dcf/attachments/c_l219:4bfe0c85-3a26-4e3f-a6c8-88cf6f6e2dcf_s.png",
+        "apiso_OrganizationName_txt": "Comune di Torino",
+        "EnteResponsabile_s": "Comune di Torino",
+        "PuntoDiContatto_s": "Comune di Torino",
+        "PuntoDiContattoEmail_s": "geoportale@comune.torino.it",
+        "PuntoDiContattoSitoWeb_s": "http://geoportale.comune.torino.it",
+        "apiso_Subject_txt": [
+          "RNDT",
+          "EU",
+          "censuarie",
+          "microzone",
+          "catasto",
+          "limiti",
+          "infoMapAccessService"
+        ],
+        "apiso_Format_s": [
+          "OGC:WMS"
+        ],
+        "apiso_Type_s": "service",
+        "apiso_Modified_dt": "2019-11-13T00:00:00Z",
+        "apiso_CreationDate_dt": "2011-05-01T00:00:00Z",
+        "apiso_RevisionDate_dt": "2011-05-01T00:00:00Z",
+        "apiso_Language_s": "ita",
+        "apiso_OtherConstraints_s": [
+          "no limitations to public access",
+          "Condizioni sconosciute"
+        ],
+        "apiso_HasSecurityConstraints_b": true,
+        "apiso_ServiceType_s": [
+          "view"
+        ],
+        "apiso_Operation_s": [
+          "GetMap"
+        ],
+        "apiso_OperatesOn_s": [
+          "c_l219:cbd02575-de8e-4a76-a35d-c0ae48cbfc9a",
+          "http://geoportale.comune.torino.it/geonetworkcoto/srv/eng/csw?request=GetRecordById&service=CSW&version=2.0.2&id=c_l219:cbd02575-de8e-4a76-a35d-c0ae48cbfc9a&elementSetName=full&outputSchema=http://www.isotc211.org/2005/gmd"
+        ],
+        "apiso_CouplingType_s": [
+          "mixed"
+        ],
+        "resources_nst": [
+          {
+            "url_s": "https://geomap.reteunitaria.piemonte.it/ws/siccms/coto-01/wmsg01/wms_sicc18_microzone_censuarie?service=WMS&version=1.1.1&request=getCapabilities",
+            "url_type_s": "WMS"
+          }
+        ],
+        "envelope_geo": [
+          {
+            "type": "envelope",
+            "coordinates": [
+              [
+                7.57785,
+                45.14021
+              ],
+              [
+                7.77337,
+                45.00678
+              ]
+            ]
+          }
+        ],
+        "envelope_cen_pt": [
+          {
+            "lat": 45.073495,
+            "lon": 7.67561
+          }
+        ],
+        "OpenDataTheme_s": [
+          "RNDT",
+          "EU",
+          "censuarie",
+          "microzone",
+          "catasto",
+          "limiti",
+          "infoMapAccessService"
+        ],
+        "apiso_Degree_b": [
+          "false"
+        ],
+        "apiso_SpecificationTitle_txt": [
+          "REGOLAMENTO  (CE)  N.  976/2009  DELLA  COMMISSIONE  del 19   ottobre   2009   recante   attuazione   della   direttiva 2007/2/CE   del Parlamento europeo e del Consiglio per quanto riguarda i servizi di rete",
+          "REGOLAMENTO (UE) N. 1089/2010 DELLA COMMISSIONE del 23 novembre 2010 recante attuazione della direttiva 2007/2/CE del Parlamento europeo e del Consiglio per quanto riguarda l'interoperabilità dei set di dati territoriali e dei servizi di dati territoriali"
+        ],
+        "apiso_SpecificationDateType_txt": [
+          "publication",
+          "publication"
+        ],
+        "url_http_download_s": "https://geomap.reteunitaria.piemonte.it/ws/siccms/coto-01/wmsg01/wms_sicc18_microzone_censuarie?service=WMS&version=1.1.1&request=getCapabilities",
+        "sys_created_dt": "2026-04-25T15:36:37.890Z",
+        "sys_modified_dt": "2026-04-25T15:36:37.890Z",
+        "sys_xmlmodified_dt": "2026-04-25T15:36:37.890Z",
+        "sys_approval_status_s": "approved",
+        "sys_owner_s": "csw.piemonte",
+        "sys_owner_txt": "csw.piemonte",
+        "sys_metadatatype_s": "rndt2-service",
+        "sys_xmlmeta_obj": {
+          "mimetype": "application/xml",
+          "hash": "-2256453808954305386:1148123178795636374:22805",
+          "date": "2026-04-25T15:36:37.891Z",
+          "size": 22805
+        }
+      }
+    },
+    {
+      "id": "c_l219:b21f0488-aaee-4d94-afa6-c25a273d98ac",
+      "title": "Zone OMI - Geo-servizio WMS",
+      "description": "Il Web Map Service per la consultazione delle suddivisioni delle Zone OMI permette di visualizzare gli elementi delle zone all'interno dell'intero territorio comunale e di consultare le informazioni associate agli elementi stessi; è possibile consultare direttamente il sito: https://www1.agenziaentrate.gov.it/servizi/geopoi_omi/index.php",
+      "published": "2026-04-25T15:44:08.831Z",
+      "updated": "2026-04-25T15:44:08.831Z",
+      "author": {
+        "name": "csw.piemonte"
+      },
+      "links": [
+        {
+          "rel": "alternate",
+          "type": "application/json",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/c_l219%3Ab21f0488-aaee-4d94-afa6-c25a273d98ac"
+        },
+        {
+          "rel": "alternate",
+          "type": "text/html",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/c_l219%3Ab21f0488-aaee-4d94-afa6-c25a273d98ac/html"
+        },
+        {
+          "rel": "alternate",
+          "type": "application/xml",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/c_l219%3Ab21f0488-aaee-4d94-afa6-c25a273d98ac/xml"
+        },
+        {
+          "rel": "icon",
+          "href": "https://www.geoportale.piemonte.it/geonetwork/srv/api/records/c_l219:b21f0488-aaee-4d94-afa6-c25a273d98ac/attachments/zone_omi_s.png"
+        },
+        {
+          "rel": "related",
+          "dctype": "WMS",
+          "href": "https://geomap.reteunitaria.piemonte.it/ws/siccms/coto-01/wmsg01/wms_sicc130_zone_omi?service=WMS&version=1.3.0&request=getCapabilities"
+        }
+      ],
+      "categories": [
+        {
+          "scheme": "keywords",
+          "term": "RNDT"
+        },
+        {
+          "scheme": "keywords",
+          "term": "EU"
+        },
+        {
+          "scheme": "keywords",
+          "term": "catasto"
+        },
+        {
+          "scheme": "keywords",
+          "term": "fasce"
+        },
+        {
+          "scheme": "keywords",
+          "term": "infoMapAccessService"
+        },
+        {
+          "scheme": "keywords",
+          "term": "omogenee"
+        },
+        {
+          "scheme": "keywords",
+          "term": "valori immobiliari"
+        }
+      ],
+      "bbox": {
+        "xmin": 7.57785,
+        "ymin": 45.00678,
+        "xmax": 7.77337,
+        "ymax": 45.14021
+      },
+      "_source": {
+        "fileid": "c_l219:b21f0488-aaee-4d94-afa6-c25a273d98ac",
+        "title": "Zone OMI - Geo-servizio WMS",
+        "description": "Il Web Map Service per la consultazione delle suddivisioni delle Zone OMI permette di visualizzare gli elementi delle zone all'interno dell'intero territorio comunale e di consultare le informazioni associate agli elementi stessi; è possibile consultare direttamente il sito: https://www1.agenziaentrate.gov.it/servizi/geopoi_omi/index.php",
+        "keywords_s": [
+          "RNDT",
+          "EU",
+          "catasto",
+          "fasce",
+          "infoMapAccessService",
+          "omogenee",
+          "valori immobiliari"
+        ],
+        "thumbnail_s": "https://www.geoportale.piemonte.it/geonetwork/srv/api/records/c_l219:b21f0488-aaee-4d94-afa6-c25a273d98ac/attachments/zone_omi_s.png",
+        "contact_organizations_s": [
+          "Comune di Torino",
+          "Comune di Torino",
+          "Comune di Torino"
+        ],
+        "links_s": [
+          "http://geoportale.comune.torino.it",
+          "http://geoportale.comune.torino.it",
+          "http://geoportale.comune.torino.it",
+          "http://geomap.reteunitaria.piemonte.it/ws/siccms/coto-01/wmsg01/wms_sicc130_zone_omi?",
+          "https://geomap.reteunitaria.piemonte.it/ws/siccms/coto-01/wmsg01/wms_sicc130_zone_omi?service=WMS&version=1.3.0&request=getCapabilities"
+        ],
+        "apiso_Identifier_s": "c_l219:b21f0488-aaee-4d94-afa6-c25a273d98ac",
+        "apiso_Title_txt": "Zone OMI - Geo-servizio WMS",
+        "apiso_Abstract_txt": "Il Web Map Service per la consultazione delle suddivisioni delle Zone OMI permette di visualizzare gli elementi delle zone all'interno dell'intero territorio comunale e di consultare le informazioni associate agli elementi stessi; è possibile consultare direttamente il sito: https://www1.agenziaentrate.gov.it/servizi/geopoi_omi/index.php",
+        "apiso_BrowseGraphic_s": "https://www.geoportale.piemonte.it/geonetwork/srv/api/records/c_l219:b21f0488-aaee-4d94-afa6-c25a273d98ac/attachments/zone_omi_s.png",
+        "apiso_OrganizationName_txt": "Comune di Torino",
+        "EnteResponsabile_s": "Comune di Torino",
+        "PuntoDiContatto_s": "Comune di Torino",
+        "PuntoDiContattoEmail_s": "geoportale@comune.torino.it",
+        "PuntoDiContattoSitoWeb_s": "http://geoportale.comune.torino.it",
+        "apiso_Subject_txt": [
+          "RNDT",
+          "EU",
+          "catasto",
+          "fasce",
+          "infoMapAccessService",
+          "omogenee",
+          "valori immobiliari"
+        ],
+        "apiso_Format_s": [
+          "OGC:WMS"
+        ],
+        "apiso_Type_s": "service",
+        "apiso_Modified_dt": "2022-06-06T00:00:00Z",
+        "apiso_CreationDate_dt": "2022-04-04T00:00:00Z",
+        "apiso_RevisionDate_dt": "2022-04-04T00:00:00Z",
+        "apiso_Language_s": "ita",
+        "apiso_OtherConstraints_s": [
+          "no limitations to public access",
+          "Condizioni sconosciute"
+        ],
+        "apiso_HasSecurityConstraints_b": true,
+        "apiso_ServiceType_s": [
+          "view"
+        ],
+        "apiso_Operation_s": [
+          "GetMap"
+        ],
+        "apiso_OperatesOn_s": [
+          "c_l219:ac7e1b64-f06c-41ef-ac02-1bd696649905",
+          "http://geoportale.comune.torino.it/geonetworkcoto/srv/eng/csw?request=GetRecordById&service=CSW&version=2.0.2&id=c_l219:ac7e1b64-f06c-41ef-ac02-1bd696649905&elementSetName=full&outputSchema=http://www.isotc211.org/2005/gmd"
+        ],
+        "apiso_OperatesOnIdentifier_s": [
+          "c_l219:ac7e1b64-f06c-41ef-ac02-1bd696649905"
+        ],
+        "apiso_OperatesOnName_s": [
+          "GetCapabilities"
+        ],
+        "apiso_CouplingType_s": [
+          "mixed"
+        ],
+        "resources_nst": [
+          {
+            "url_s": "https://geomap.reteunitaria.piemonte.it/ws/siccms/coto-01/wmsg01/wms_sicc130_zone_omi?service=WMS&version=1.3.0&request=getCapabilities",
+            "url_type_s": "WMS"
+          }
+        ],
+        "envelope_geo": [
+          {
+            "type": "envelope",
+            "coordinates": [
+              [
+                7.57785,
+                45.14021
+              ],
+              [
+                7.77337,
+                45.00678
+              ]
+            ]
+          }
+        ],
+        "envelope_cen_pt": [
+          {
+            "lat": 45.073495,
+            "lon": 7.67561
+          }
+        ],
+        "OpenDataTheme_s": [
+          "RNDT",
+          "EU",
+          "catasto",
+          "fasce",
+          "infoMapAccessService",
+          "omogenee",
+          "valori immobiliari"
+        ],
+        "apiso_Degree_b": [
+          "false"
+        ],
+        "apiso_SpecificationTitle_txt": [
+          "REGOLAMENTO  (CE)  N.  976/2009  DELLA  COMMISSIONE  del 19   ottobre   2009   recante   attuazione   della   direttiva 2007/2/CE   del Parlamento europeo e del Consiglio per quanto riguarda i servizi di rete",
+          "REGOLAMENTO (UE) N. 1089/2010 DELLA COMMISSIONE del 23 novembre 2010 recante attuazione della direttiva 2007/2/CE del Parlamento europeo e del Consiglio per quanto riguarda l'interoperabilità dei set di dati territoriali e dei servizi di dati territoriali"
+        ],
+        "apiso_SpecificationDateType_txt": [
+          "publication",
+          "publication"
+        ],
+        "url_http_download_s": "https://geomap.reteunitaria.piemonte.it/ws/siccms/coto-01/wmsg01/wms_sicc130_zone_omi?service=WMS&version=1.3.0&request=getCapabilities",
+        "sys_created_dt": "2026-04-25T15:44:08.831Z",
+        "sys_modified_dt": "2026-04-25T15:44:08.831Z",
+        "sys_xmlmodified_dt": "2026-04-25T15:44:08.831Z",
+        "sys_approval_status_s": "approved",
+        "sys_owner_s": "csw.piemonte",
+        "sys_owner_txt": "csw.piemonte",
+        "sys_metadatatype_s": "rndt2-service",
+        "sys_xmlmeta_obj": {
+          "mimetype": "application/xml",
+          "hash": "6666891990440849631:8618288479619468757:23724",
+          "date": "2026-04-25T15:44:08.833Z",
+          "size": 23724
+        }
+      }
+    },
+    {
+      "id": "c_l219:30c5973d-20be-4384-a53e-0f7fafa5aa5c",
+      "title": "Microzone Censuarie - Geo-servizio WFS",
+      "description": "Il Web Feature Service per la consultazione delle suddivisioni delle Microzone Censuarie permette di visualizzare gli elementi delle microzone all'interno dell'intero territorio comunale e di consultare le informazioni associate agli elementi stessi.",
+      "published": "2026-04-25T15:46:43.751Z",
+      "updated": "2026-04-25T15:46:43.751Z",
+      "author": {
+        "name": "csw.piemonte"
+      },
+      "links": [
+        {
+          "rel": "alternate",
+          "type": "application/json",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/c_l219%3A30c5973d-20be-4384-a53e-0f7fafa5aa5c"
+        },
+        {
+          "rel": "alternate",
+          "type": "text/html",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/c_l219%3A30c5973d-20be-4384-a53e-0f7fafa5aa5c/html"
+        },
+        {
+          "rel": "alternate",
+          "type": "application/xml",
+          "href": "https://geodati.gov.it/geoportal-catalog/rest/metadata/item/c_l219%3A30c5973d-20be-4384-a53e-0f7fafa5aa5c/xml"
+        },
+        {
+          "rel": "icon",
+          "href": "https://www.geoportale.piemonte.it/geonetwork/srv/api/records/c_l219:30c5973d-20be-4384-a53e-0f7fafa5aa5c/attachments/c_l219:30c5973d-20be-4384-a53e-0f7fafa5aa5c_s.png"
+        },
+        {
+          "rel": "related",
+          "dctype": "WFS",
+          "href": "https://geomap.reteunitaria.piemonte.it/ws/siccms/coto-01/wfsg01/wfs_sicc18_microzone_censuarie?service=WFS&version=1.0.0&request=getCapabilities"
+        }
+      ],
+      "categories": [
+        {
+          "scheme": "keywords",
+          "term": "RNDT"
+        },
+        {
+          "scheme": "keywords",
+          "term": "EU"
+        },
+        {
+          "scheme": "keywords",
+          "term": "censuarie"
+        },
+        {
+          "scheme": "keywords",
+          "term": "microzone"
+        },
+        {
+          "scheme": "keywords",
+          "term": "catasto"
+        },
+        {
+          "scheme": "keywords",
+          "term": "limiti"
+        },
+        {
+          "scheme": "keywords",
+          "term": "infoFeatureAccessService"
+        }
+      ],
+      "bbox": {
+        "xmin": 7.57785,
+        "ymin": 45.00678,
+        "xmax": 7.77337,
+        "ymax": 45.14021
+      },
+      "_source": {
+        "fileid": "c_l219:30c5973d-20be-4384-a53e-0f7fafa5aa5c",
+        "title": "Microzone Censuarie - Geo-servizio WFS",
+        "description": "Il Web Feature Service per la consultazione delle suddivisioni delle Microzone Censuarie permette di visualizzare gli elementi delle microzone all'interno dell'intero territorio comunale e di consultare le informazioni associate agli elementi stessi.",
+        "keywords_s": [
+          "RNDT",
+          "EU",
+          "censuarie",
+          "microzone",
+          "catasto",
+          "limiti",
+          "infoFeatureAccessService"
+        ],
+        "thumbnail_s": "https://www.geoportale.piemonte.it/geonetwork/srv/api/records/c_l219:30c5973d-20be-4384-a53e-0f7fafa5aa5c/attachments/c_l219:30c5973d-20be-4384-a53e-0f7fafa5aa5c_s.png",
+        "contact_organizations_s": [
+          "Comune di Torino",
+          "Comune di Torino",
+          "Comune di Torino"
+        ],
+        "links_s": [
+          "http://geoportale.comune.torino.it",
+          "http://geoportale.comune.torino.it",
+          "http://geoportale.comune.torino.it",
+          "http://geomap.reteunitaria.piemonte.it/ws/siccms/coto-01/wfsg01/wfs_sicc18_microzone_censuarie?",
+          "https://geomap.reteunitaria.piemonte.it/ws/siccms/coto-01/wfsg01/wfs_sicc18_microzone_censuarie?service=WFS&version=1.0.0&request=getCapabilities"
+        ],
+        "apiso_Identifier_s": "c_l219:30c5973d-20be-4384-a53e-0f7fafa5aa5c",
+        "apiso_Title_txt": "Microzone Censuarie - Geo-servizio WFS",
+        "apiso_Abstract_txt": "Il Web Feature Service per la consultazione delle suddivisioni delle Microzone Censuarie permette di visualizzare gli elementi delle microzone all'interno dell'intero territorio comunale e di consultare le informazioni associate agli elementi stessi.",
+        "apiso_BrowseGraphic_s": "https://www.geoportale.piemonte.it/geonetwork/srv/api/records/c_l219:30c5973d-20be-4384-a53e-0f7fafa5aa5c/attachments/c_l219:30c5973d-20be-4384-a53e-0f7fafa5aa5c_s.png",
+        "apiso_OrganizationName_txt": "Comune di Torino",
+        "EnteResponsabile_s": "Comune di Torino",
+        "PuntoDiContatto_s": "Comune di Torino",
+        "PuntoDiContattoEmail_s": "geoportale@comune.torino.it",
+        "PuntoDiContattoSitoWeb_s": "http://geoportale.comune.torino.it",
+        "apiso_Subject_txt": [
+          "RNDT",
+          "EU",
+          "censuarie",
+          "microzone",
+          "catasto",
+          "limiti",
+          "infoFeatureAccessService"
+        ],
+        "apiso_Format_s": [
+          "OGC:WFS"
+        ],
+        "apiso_Type_s": "service",
+        "apiso_Modified_dt": "2019-11-13T00:00:00Z",
+        "apiso_CreationDate_dt": "2013-09-01T00:00:00Z",
+        "apiso_RevisionDate_dt": "2013-09-01T00:00:00Z",
+        "apiso_Language_s": "ita",
+        "apiso_OtherConstraints_s": [
+          "no limitations to public access",
+          "Condizioni sconosciute"
+        ],
+        "apiso_HasSecurityConstraints_b": true,
+        "apiso_ServiceType_s": [
+          "view"
+        ],
+        "apiso_Operation_s": [
+          "GetMap"
+        ],
+        "apiso_OperatesOn_s": [
+          "c_l219:cbd02575-de8e-4a76-a35d-c0ae48cbfc9a",
+          "http://geoportale.comune.torino.it/geonetworkcoto/srv/eng/csw?request=GetRecordById&service=CSW&version=2.0.2&id=c_l219:cbd02575-de8e-4a76-a35d-c0ae48cbfc9a&elementSetName=full&outputSchema=http://www.isotc211.org/2005/gmd"
+        ],
+        "apiso_CouplingType_s": [
+          "mixed"
+        ],
+        "resources_nst": [
+          {
+            "url_s": "https://geomap.reteunitaria.piemonte.it/ws/siccms/coto-01/wfsg01/wfs_sicc18_microzone_censuarie?service=WFS&version=1.0.0&request=getCapabilities",
+            "url_type_s": "WFS"
+          }
+        ],
+        "envelope_geo": [
+          {
+            "type": "envelope",
+            "coordinates": [
+              [
+                7.57785,
+                45.14021
+              ],
+              [
+                7.77337,
+                45.00678
+              ]
+            ]
+          }
+        ],
+        "envelope_cen_pt": [
+          {
+            "lat": 45.073495,
+            "lon": 7.67561
+          }
+        ],
+        "OpenDataTheme_s": [
+          "RNDT",
+          "EU",
+          "censuarie",
+          "microzone",
+          "catasto",
+          "limiti",
+          "infoFeatureAccessService"
+        ],
+        "apiso_Degree_b": [
+          "false"
+        ],
+        "apiso_SpecificationTitle_txt": [
+          "REGOLAMENTO  (CE)  N.  976/2009  DELLA  COMMISSIONE  del 19   ottobre   2009   recante   attuazione   della   direttiva 2007/2/CE   del Parlamento europeo e del Consiglio per quanto riguarda i servizi di rete",
+          "REGOLAMENTO (UE) N. 1089/2010 DELLA COMMISSIONE del 23 novembre 2010 recante attuazione della direttiva 2007/2/CE del Parlamento europeo e del Consiglio per quanto riguarda l'interoperabilità dei set di dati territoriali e dei servizi di dati territoriali"
+        ],
+        "apiso_SpecificationDateType_txt": [
+          "publication",
+          "publication"
+        ],
+        "url_http_download_s": "https://geomap.reteunitaria.piemonte.it/ws/siccms/coto-01/wfsg01/wfs_sicc18_microzone_censuarie?service=WFS&version=1.0.0&request=getCapabilities",
+        "sys_created_dt": "2026-04-25T15:46:43.751Z",
+        "sys_modified_dt": "2026-04-25T15:46:43.751Z",
+        "sys_xmlmodified_dt": "2026-04-25T15:46:43.751Z",
+        "sys_approval_status_s": "approved",
+        "sys_owner_s": "csw.piemonte",
+        "sys_owner_txt": "csw.piemonte",
+        "sys_metadatatype_s": "rndt2-service",
+        "sys_xmlmeta_obj": {
+          "mimetype": "application/xml",
+          "hash": "5252136879421772630:3198330177202151241:22821",
+          "date": "2026-04-25T15:46:43.752Z",
+          "size": 22821
+        }
+      }
+    }
+  ]
+}

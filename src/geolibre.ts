@@ -1,133 +1,64 @@
-import { PluginControl } from "./lib/core/PluginControl";
-import type { PluginState } from "./lib/core/types";
-import type {
-  GeoLibreAppAPI,
-  GeoLibreMapControlPosition,
-  GeoLibrePlugin,
-} from "./lib/geolibre/host-api";
-import { registerTemplateFloatingPanel } from "./lib/geolibre/floating-panel";
-import { registerTemplateRightPanel } from "./lib/geolibre/right-panel";
-import { registerTemplateToolbarMenu } from "./lib/geolibre/toolbar-menu";
-import { PLUGIN_DATA_PARAM, maybeHandleDeepLink } from "./lib/utils/deep-link";
-import "./lib/styles/plugin-control.css";
+import type { GeoLibrePlugin, GeoLibreRightPanelRegistration } from "./lib/geolibre/host-api";
+import { PANEL_ID, PLUGIN_ID, PLUGIN_NAME, PLUGIN_VERSION } from "./rndt/constants";
+import type { RndtHost } from "./rndt/host";
+import { RndtPanel } from "./rndt/panel";
+import "./rndt/panel.css";
 
-// The host API is generic over the control type; bind it to this plugin's
-// concrete control so the wired callbacks are fully typed.
-type AppAPI = GeoLibreAppAPI<PluginControl>;
+/**
+ * openrndt-geolibre: search the Italian national catalogue of spatial data
+ * (RNDT) from a GeoLibre right panel and add its WMS/WFS services to the map.
+ *
+ * Panel-only plugin: no map control, so GeoLibre shows it as a plain toggle in
+ * the Plugins menu (like other catalogue plugins). Toggling it on opens the
+ * panel; toggling it off removes the panel and the result footprints.
+ */
 
-let control: PluginControl | null = null;
-let position: GeoLibreMapControlPosition = "top-right";
-let pendingState: Partial<PluginState> | null = null;
-// Disposers for the demo UI surfaces; each is null when the host does not
-// provide that surface. See ./lib/geolibre/{right-panel,floating-panel,
-// toolbar-menu}.ts.
-let disposeRightPanel: (() => void) | null = null;
-let disposeFloatingPanel: (() => void) | null = null;
-let disposeToolbarMenu: (() => void) | null = null;
+/** `engines` is part of GeoLibre's plugin contract but not of the template's copy. */
+type Plugin = GeoLibrePlugin & { engines?: ("maplibre" | "mapbox" | "cesium" | "arcgis")[] };
 
-function createControl(app: AppAPI): PluginControl {
-  const nextControl = new PluginControl({
-    collapsed: pendingState?.collapsed ?? true,
-    panelWidth: pendingState?.panelWidth ?? 300,
-    title: "GeoLibre Plugin Template",
-    // Bind optional host capabilities; each falls back to a no-op on hosts (or
-    // standalone usage) that do not provide them.
-    pickFiles: () => app.pickLocalDirectoryFiles?.() ?? Promise.resolve(null),
-    registerNativeLayer: (layer) => app.registerExternalNativeLayer?.(layer),
-    unregisterNativeLayer: (id) => app.unregisterExternalNativeLayer?.(id),
-  });
+let disposePanel: (() => void) | null = null;
 
-  if (pendingState) {
-    nextControl.setState(pendingState);
-  }
-
-  return nextControl;
-}
-
-function isPluginState(value: unknown): value is Partial<PluginState> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return false;
-  }
-
-  const candidate = value as Record<string, unknown>;
-  if ("collapsed" in candidate && typeof candidate.collapsed !== "boolean") {
-    return false;
-  }
-  if ("panelWidth" in candidate && typeof candidate.panelWidth !== "number") {
-    return false;
-  }
-  if (
-    "data" in candidate &&
-    (typeof candidate.data !== "object" ||
-      candidate.data === null ||
-      Array.isArray(candidate.data))
-  ) {
-    return false;
-  }
-
-  return true;
-}
-
-export const plugin: GeoLibrePlugin<PluginControl> = {
-  id: "geolibre-plugin-template",
-  name: "GeoLibre Plugin Template",
-  version: "0.1.0",
-  urlParameterNames: [PLUGIN_DATA_PARAM],
+export const plugin: Plugin = {
+  id: PLUGIN_ID,
+  name: PLUGIN_NAME,
+  version: PLUGIN_VERSION,
+  // The footprints layer draws on the MapLibre map directly.
+  engines: ["maplibre"],
   activate(app) {
-    control = control ?? createControl(app);
-    const added = app.addMapControl(control, position);
-    if (!added) {
-      control = null;
-      return false;
-    }
-    // Demonstrate the native plugin UI surfaces. Remove any you do not need
-    // (and their imports) if your plugin only needs a map control. The right
-    // panel opens immediately; the floating panel is registered and opened on
-    // demand from the toolbar menu.
-    disposeRightPanel = registerTemplateRightPanel(app);
-    disposeFloatingPanel = registerTemplateFloatingPanel(app);
-    disposeToolbarMenu = registerTemplateToolbarMenu(app);
+    const host = app as RndtHost;
+    if (!host.registerRightPanel) return false;
+    const panel = new RndtPanel(host);
+    const registration: GeoLibreRightPanelRegistration & { deactivatePluginOnClose?: boolean } = {
+      id: PANEL_ID,
+      title: "RNDT",
+      defaultWidth: 380,
+      // The panel is the plugin's whole UI: closing it with X turns the plugin
+      // off, so the Plugins menu check mark follows (GeoLibre host option).
+      deactivatePluginOnClose: true,
+      render: (container) => panel.mount(container),
+    };
+    const unregister = host.registerRightPanel(registration);
+    // A toolbar menu brings the panel back when another plugin panel has
+    // taken its place, and clears results.
+    const unregisterMenu = host.registerToolbarMenu?.({
+      id: `${PLUGIN_ID}-menu`,
+      label: "RNDT",
+      items: [
+        { id: "open", label: "Open search panel", onSelect: () => host.openRightPanel?.(PANEL_ID) },
+        { id: "clear", label: "Clear results and footprints", onSelect: () => panel.clearResults() },
+      ],
+    });
+    host.openRightPanel?.(PANEL_ID);
+    disposePanel = () => {
+      unregisterMenu?.();
+      host.closeRightPanel?.(PANEL_ID);
+      unregister();
+      panel.destroy();
+    };
   },
-  // Deep link: GeoLibre auto-activates this plugin when a URL carries a
-  // parameter it owns and dispatches the parsed parameters here, e.g.
-  // ?plugin-data=https://example.com/dataset.zip
-  handleUrlParameters(_app, params) {
-    if (control) return maybeHandleDeepLink(control, params);
-  },
-  deactivate(app) {
-    disposeToolbarMenu?.();
-    disposeToolbarMenu = null;
-    disposeFloatingPanel?.();
-    disposeFloatingPanel = null;
-    disposeRightPanel?.();
-    disposeRightPanel = null;
-    if (!control) return;
-    pendingState = control.getState();
-    app.removeMapControl(control);
-    control = null;
-  },
-  getMapControlPosition() {
-    return position;
-  },
-  setMapControlPosition(app, nextPosition) {
-    position = nextPosition;
-    if (!control) return;
-
-    app.removeMapControl(control);
-    const added = app.addMapControl(control, position);
-    if (!added) {
-      pendingState = control.getState();
-      control = null;
-      return false;
-    }
-  },
-  getProjectState() {
-    return control?.getState() ?? pendingState ?? undefined;
-  },
-  applyProjectState(_app, state) {
-    if (!isPluginState(state)) return false;
-    pendingState = state;
-    control?.setState(state);
+  deactivate() {
+    disposePanel?.();
+    disposePanel = null;
   },
 };
 

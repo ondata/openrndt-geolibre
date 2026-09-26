@@ -1,0 +1,406 @@
+<?xml version='1.0' encoding="UTF-8" standalone="no" ?>
+<WMS_Capabilities version="1.3.0"  xmlns="http://www.opengis.net/wms"   xmlns:sld="http://www.opengis.net/sld"   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"   xmlns:ms="http://mapserver.gis.umn.edu/mapserver"   xmlns:inspire_common="http://inspire.ec.europa.eu/schemas/common/1.0"   xmlns:inspire_vs="http://inspire.ec.europa.eu/schemas/inspire_vs/1.0"   xsi:schemaLocation="http://www.opengis.net/wms http://schemas.opengis.net/wms/1.3.0/capabilities_1_3_0.xsd  http://www.opengis.net/sld http://schemas.opengis.net/sld/1.1.0/sld_capabilities.xsd  http://inspire.ec.europa.eu/schemas/inspire_vs/1.0  http://inspire.ec.europa.eu/schemas/inspire_vs/1.0/inspire_vs.xsd http://mapserver.gis.umn.edu/mapserver https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php?language=ita&amp;service=WMS&amp;version=1.3.0&amp;request=GetSchemaExtension">
+
+<!-- MapServer version 7.4.3 OUTPUT=PNG OUTPUT=JPEG SUPPORTS=PROJ SUPPORTS=AGG SUPPORTS=FREETYPE SUPPORTS=CAIRO SUPPORTS=ICONV SUPPORTS=WMS_SERVER SUPPORTS=WMS_CLIENT SUPPORTS=WFS_SERVER SUPPORTS=WFS_CLIENT SUPPORTS=THREADS INPUT=JPEG INPUT=ORACLESPATIAL INPUT=OGR INPUT=GDAL INPUT=SHAPEFILE -->
+
+<Service>
+  <Name>WMS</Name>
+  <Title>Cartografia Catastale</Title>
+  <Abstract>Agenzia delle Entrate - Servizio di consultazione della cartografia catastale WMS. Le informazioni sono allineate con la banca dati cartografica del Catasto, costantemente aggiornata in modalità automatica mediante gli atti tecnici predisposti dai professionisti abilitati. Licenza CC BY 4.0. L&#39;Agenzia è l&#39;amministrazione titolare dei dati. La citazione della titolarità è sempre obbligatoria in caso d&#39;uso.</Abstract>
+  <KeywordList>
+      <Keyword>WMS</Keyword>
+      <Keyword> INSPIRE</Keyword>
+      <Keyword> ViewService</Keyword>
+      <Keyword> Cartografia catastale</Keyword>
+      <Keyword> Particelle catastali</Keyword>
+      <Keyword> Pianificazione del territorio e catasto</Keyword>
+      <Keyword> Cadastral parcels</Keyword>
+      <Keyword>open data</Keyword>
+      <Keyword>dati geospaziali</Keyword>
+      <Keyword vocabulary="ISO">infoMapAccessService</Keyword>
+  </KeywordList>
+  <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php?language=ita&amp;"/>
+  <ContactInformation>
+    <ContactPersonPrimary>
+      <ContactPerson>Agenzia delle Entrate – Direzione Centrale Servizi Catastali, Cartografici e di Pubblicità Immobiliare</ContactPerson>
+      <ContactOrganization>Agenzia delle Entrate</ContactOrganization>
+    </ContactPersonPrimary>
+      <ContactPosition>Proprietario</ContactPosition>
+  <ContactElectronicMailAddress>assistenzaweb@agenziaentrate.it</ContactElectronicMailAddress>
+  </ContactInformation>
+  <Fees>CC BY 4.0</Fees>
+  <AccessConstraints>Dato pubblico</AccessConstraints>
+  <MaxWidth>2048</MaxWidth>
+  <MaxHeight>2048</MaxHeight>
+</Service>
+
+<Capability>
+  <Request>
+    <GetCapabilities>
+      <Format>text/xml</Format>
+      <DCPType>
+        <HTTP>
+          <Get><OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php?language=ita&amp;"/></Get>
+          <Post><OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php?language=ita&amp;"/></Post>
+        </HTTP>
+      </DCPType>
+    </GetCapabilities>
+    <GetMap>
+      <Format>image/png</Format>
+      <Format>image/jpeg</Format>
+      <DCPType>
+        <HTTP>
+          <Get><OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php?language=ita&amp;"/></Get>
+          <Post><OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php?language=ita&amp;"/></Post>
+        </HTTP>
+      </DCPType>
+    </GetMap>
+    <GetFeatureInfo>
+      <Format>text/html</Format>
+      <Format>text/plain</Format>
+      <Format>application/vnd.ogc.gml</Format>
+      <DCPType>
+        <HTTP>
+          <Get><OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php?language=ita&amp;"/></Get>
+          <Post><OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php?language=ita&amp;"/></Post>
+        </HTTP>
+      </DCPType>
+    </GetFeatureInfo>
+    <ms:GetStyles>
+      <Format>text/xml</Format>
+      <DCPType>
+        <HTTP>
+          <Get><OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php?language=ita&amp;"/></Get>
+          <Post><OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php?language=ita&amp;"/></Post>
+        </HTTP>
+      </DCPType>
+    </ms:GetStyles>
+  </Request>
+  <Exception>
+    <Format>XML</Format>
+    <Format>INIMAGE</Format>
+    <Format>BLANK</Format>
+  </Exception>
+  <sld:UserDefinedSymbolization SupportSLD="1" UserLayer="0" UserStyle="1" RemoteWFS="0" InlineFeature="0" RemoteWCS="0"/>
+  <inspire_vs:ExtendedCapabilities>
+    <inspire_common:MetadataUrl xsi:type="inspire_common:resourceLocatorType">
+      <inspire_common:URL>https://csw.cartografia.agenziaentrate.gov.it/age-inspire/srv/ita/csw?SERVICE=CSW&amp;VERSION=2.0.2&amp;REQUEST=GetRecordById&amp;ID=age:consultazione_catasto_wms&amp;ElementSetName=full&amp;outputSchema=csw:IsoRecord</inspire_common:URL>
+      <inspire_common:MediaType>application/vnd.ogc.csw.capabilities.response_xml</inspire_common:MediaType>
+    </inspire_common:MetadataUrl>
+    <inspire_common:SupportedLanguages>
+      <inspire_common:DefaultLanguage><inspire_common:Language>ita</inspire_common:Language></inspire_common:DefaultLanguage>
+    </inspire_common:SupportedLanguages>
+    <inspire_common:ResponseLanguage><inspire_common:Language>ita</inspire_common:Language></inspire_common:ResponseLanguage>
+  </inspire_vs:ExtendedCapabilities>
+  <Layer queryable="1">
+    <Name>Cartografia_Catastale</Name>
+    <Title>Cartografia Catastale</Title>
+    <Abstract>Agenzia delle Entrate - Servizio di consultazione della cartografia catastale WMS. Le informazioni sono allineate con la banca dati cartografica del Catasto, costantemente aggiornata in modalità automatica mediante gli atti tecnici predisposti dai professionisti abilitati. Licenza CC BY 4.0. L&#39;Agenzia è l&#39;amministrazione titolare dei dati. La citazione della titolarità è sempre obbligatoria in caso d&#39;uso.</Abstract>
+    <KeywordList>
+        <Keyword>WMS</Keyword>
+        <Keyword> INSPIRE</Keyword>
+        <Keyword> ViewService</Keyword>
+        <Keyword> Cartografia catastale</Keyword>
+        <Keyword> Particelle catastali</Keyword>
+        <Keyword> Pianificazione del territorio e catasto</Keyword>
+        <Keyword> Cadastral parcels</Keyword>
+        <Keyword>open data</Keyword>
+        <Keyword>dati geospaziali</Keyword>
+        <Keyword vocabulary="ISO">infoMapAccessService</Keyword>
+    </KeywordList>
+    <CRS>EPSG:6706</CRS>
+    <CRS>EPSG:4258</CRS>
+    <CRS>EPSG:3044</CRS>
+    <CRS>EPSG:3045</CRS>
+    <CRS>EPSG:3046</CRS>
+    <CRS>EPSG:25832</CRS>
+    <CRS>EPSG:25833</CRS>
+    <CRS>EPSG:25834</CRS>
+    <EX_GeographicBoundingBox>
+        <westBoundLongitude>2</westBoundLongitude>
+        <eastBoundLongitude>19</eastBoundLongitude>
+        <southBoundLatitude>33</southBoundLatitude>
+        <northBoundLatitude>48</northBoundLatitude>
+    </EX_GeographicBoundingBox>
+    <BoundingBox CRS="EPSG:6706"
+                minx="33" miny="2" maxx="48" maxy="19" />
+    <Style>
+       <Name>default</Name>
+       <Title>default</Title>
+       <LegendURL width="249" height="153">
+          <Format>image/png</Format>
+          <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php?language=ita&amp;version=1.3.0&amp;service=WMS&amp;request=GetLegendGraphic&amp;sld_version=1.1.0&amp;layer=Cartografia_Catastale&amp;format=image/png&amp;STYLE=default"/>
+       </LegendURL>
+    </Style>
+    <Layer queryable="0" opaque="0" cascaded="0">
+        <Name>province</Name>
+        <Title>Province - Uffici</Title>
+        <Abstract>Il layer contiene la rappresentazione, a seguito di un processo di semplificazione, dei confini delle province per come di competenza degli Uffici del catasto.</Abstract>
+        <EX_GeographicBoundingBox>
+            <westBoundLongitude>2</westBoundLongitude>
+            <eastBoundLongitude>19</eastBoundLongitude>
+            <southBoundLatitude>33</southBoundLatitude>
+            <northBoundLatitude>48</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="EPSG:6706"
+                    minx="33" miny="2" maxx="48" maxy="19" />
+        <MetadataURL type="ISO19115:2003">
+          <Format>application/vnd.ogc.csw.capabilities.response_xml</Format>
+          <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://csw.cartografia.agenziaentrate.gov.it/age-inspire/srv/ita/csw?SERVICE=CSW&amp;VERSION=2.0.2&amp;REQUEST=GetRecordById&amp;ID=age:S_0000_ITALIA&amp;ElementSetName=full&amp;outputSchema=csw:IsoRecord"/>
+        </MetadataURL>
+        <Style>
+          <Name>default</Name>
+          <Title>default</Title>
+          <LegendURL width="88" height="20">
+             <Format>image/png</Format>
+             <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php?language=ita&amp;version=1.3.0&amp;service=WMS&amp;request=GetLegendGraphic&amp;sld_version=1.1.0&amp;layer=province&amp;format=image/png&amp;STYLE=default"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>50000</MinScaleDenominator>
+    </Layer>
+    <Layer queryable="1" opaque="0" cascaded="0">
+        <Name>CP.CadastralZoning</Name>
+        <Title>Mappe</Title>
+        <Abstract>Il layer contiene la rappresentazione dei bordi delle mappe catastali. Ciascuna mappa e&#39; etichettata con un codice formato da:
+- numero del foglio 
+- eventuale lettera identificativa dell&#39;allegato 
+- eventuale lettera identificativa dello sviluppo, preceduta dal carattere &#39;_&#39; o dalla lettera identificativa dell&#39;allegato.</Abstract>
+        <EX_GeographicBoundingBox>
+            <westBoundLongitude>2</westBoundLongitude>
+            <eastBoundLongitude>19</eastBoundLongitude>
+            <southBoundLatitude>33</southBoundLatitude>
+            <northBoundLatitude>48</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="EPSG:6706"
+                    minx="33" miny="2" maxx="48" maxy="19" />
+        <MetadataURL type="ISO19115:2003">
+          <Format>application/vnd.ogc.csw.capabilities.response_xml</Format>
+          <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://csw.cartografia.agenziaentrate.gov.it/age-inspire/srv/ita/csw?SERVICE=CSW&amp;VERSION=2.0.2&amp;REQUEST=GetRecordById&amp;ID=age:S_0000_ITALIA&amp;ElementSetName=full&amp;outputSchema=csw:IsoRecord"/>
+        </MetadataURL>
+        <Style>
+          <Name>default</Name>
+          <Title>default</Title>
+          <LegendURL width="74" height="22">
+             <Format>image/png</Format>
+             <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php?language=ita&amp;version=1.3.0&amp;service=WMS&amp;request=GetLegendGraphic&amp;sld_version=1.1.0&amp;layer=CP.CadastralZoning&amp;format=image/png&amp;STYLE=default"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>20</MinScaleDenominator>
+        <MaxScaleDenominator>200000</MaxScaleDenominator>
+    </Layer>
+    <Layer queryable="0" opaque="0" cascaded="0">
+        <Name>acque</Name>
+        <Title>Acque</Title>
+        <Abstract>Il layer contiene la rappresentazione di specchi e corsi d&#39;acqua.
+Si assumono come rappresentazione dell&#39;alveo dei corsi d&#39;acqua pubblica le linee corrispondenti ai limiti raggiunti dal livello medio delle piene ordinarie.
+Si assume come rappresentazione degli specchi d&#39;acqua naturali, laghi e stagni, la linea corrispondente alla curva di livello a quota uguale a quella di sbocco; ovvero - in mancanza di sbocco - quella corrispondente al livello ordinario delle acque.
+I laghi artificiali si rappresentano con le linee corrispondenti al livello di massimo invaso.
+I canali artificiali per la condotta delle acque si rappresentano con le linee corrispondenti alle sommità delle loro sponde.</Abstract>
+        <EX_GeographicBoundingBox>
+            <westBoundLongitude>2</westBoundLongitude>
+            <eastBoundLongitude>19</eastBoundLongitude>
+            <southBoundLatitude>33</southBoundLatitude>
+            <northBoundLatitude>48</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="EPSG:6706"
+                    minx="33" miny="2" maxx="48" maxy="19" />
+        <MetadataURL type="ISO19115:2003">
+          <Format>application/vnd.ogc.csw.capabilities.response_xml</Format>
+          <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://csw.cartografia.agenziaentrate.gov.it/age-inspire/srv/ita/csw?SERVICE=CSW&amp;VERSION=2.0.2&amp;REQUEST=GetRecordById&amp;ID=age:S_0000_ITALIA&amp;ElementSetName=full&amp;outputSchema=csw:IsoRecord"/>
+        </MetadataURL>
+        <Style>
+          <Name>default</Name>
+          <Title>default</Title>
+          <LegendURL width="71" height="22">
+             <Format>image/png</Format>
+             <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php?language=ita&amp;version=1.3.0&amp;service=WMS&amp;request=GetLegendGraphic&amp;sld_version=1.1.0&amp;layer=acque&amp;format=image/png&amp;STYLE=default"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>20</MinScaleDenominator>
+        <MaxScaleDenominator>40000</MaxScaleDenominator>
+    </Layer>
+    <Layer queryable="0" opaque="0" cascaded="0">
+        <Name>strade</Name>
+        <Title>Strade</Title>
+        <Abstract>Il layer contiene la rappresentazione delle strade pubbliche (statali, provinciali e comunali) o soggette a servitù pubblica (vicinali), che si rappresentano in mappa con linea continua corrispondente ai limiti della loro sede.
+Sono comprese nella sede stradale il piano viabile, le cunette, nonché le scarpate e le zone di rispetto e protezione laterali quando hanno larghezza grafica inferiore a mm.3 (alla scala originaria della mappa) o di larghezza superiore quando non forniscono reddito apprezzabile.</Abstract>
+        <EX_GeographicBoundingBox>
+            <westBoundLongitude>2</westBoundLongitude>
+            <eastBoundLongitude>19</eastBoundLongitude>
+            <southBoundLatitude>33</southBoundLatitude>
+            <northBoundLatitude>48</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="EPSG:6706"
+                    minx="33" miny="2" maxx="48" maxy="19" />
+        <MetadataURL type="ISO19115:2003">
+          <Format>application/vnd.ogc.csw.capabilities.response_xml</Format>
+          <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://csw.cartografia.agenziaentrate.gov.it/age-inspire/srv/ita/csw?SERVICE=CSW&amp;VERSION=2.0.2&amp;REQUEST=GetRecordById&amp;ID=age:S_0000_ITALIA&amp;ElementSetName=full&amp;outputSchema=csw:IsoRecord"/>
+        </MetadataURL>
+        <Style>
+          <Name>default</Name>
+          <Title>default</Title>
+          <LegendURL width="74" height="20">
+             <Format>image/png</Format>
+             <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php?language=ita&amp;version=1.3.0&amp;service=WMS&amp;request=GetLegendGraphic&amp;sld_version=1.1.0&amp;layer=strade&amp;format=image/png&amp;STYLE=default"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>20</MinScaleDenominator>
+        <MaxScaleDenominator>40000</MaxScaleDenominator>
+    </Layer>
+    <Layer queryable="1" opaque="0" cascaded="0">
+        <Name>CP.CadastralParcel</Name>
+        <Title>Particelle</Title>
+        <Abstract>Il layer contiene le particelle catastali.
+Costituisce distinta particella catastale ogni porzione continua di terreno che sia della medesima qualità e classe o abbia la stessa destinazione d’uso, che sia situata in un medesimo comune ed appartenga allo stesso possessore.
+Le particelle, i fabbricati, le strade e le acque, in questo servizio presentati su layer separati, coprono l’intero territorio nazionale, ad eccezione dei territori nei quali il catasto è gestito, per delega dello Stato, dalle Province Autonome di Trento e di Bolzano. 
+Nel layer Particelle sono rappresentati anche i bordi dei fabbricati eventualmente presenti all’interno delle particelle.</Abstract>
+        <EX_GeographicBoundingBox>
+            <westBoundLongitude>2</westBoundLongitude>
+            <eastBoundLongitude>19</eastBoundLongitude>
+            <southBoundLatitude>33</southBoundLatitude>
+            <northBoundLatitude>48</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="EPSG:6706"
+                    minx="33" miny="2" maxx="48" maxy="19" />
+        <MetadataURL type="ISO19115:2003">
+          <Format>application/vnd.ogc.csw.capabilities.response_xml</Format>
+          <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://csw.cartografia.agenziaentrate.gov.it/age-inspire/srv/ita/csw?SERVICE=CSW&amp;VERSION=2.0.2&amp;REQUEST=GetRecordById&amp;ID=age:S_0000_ITALIA&amp;ElementSetName=full&amp;outputSchema=csw:IsoRecord"/>
+        </MetadataURL>
+        <Style>
+          <Name>default</Name>
+          <Title>default</Title>
+          <LegendURL width="89" height="20">
+             <Format>image/png</Format>
+             <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php?language=ita&amp;version=1.3.0&amp;service=WMS&amp;request=GetLegendGraphic&amp;sld_version=1.1.0&amp;layer=CP.CadastralParcel&amp;format=image/png&amp;STYLE=default"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>20</MinScaleDenominator>
+        <MaxScaleDenominator>5000</MaxScaleDenominator>
+    </Layer>
+    <Layer queryable="0" opaque="0" cascaded="0">
+        <Name>fabbricati</Name>
+        <Title>Fabbricati</Title>
+        <Abstract>I fabbricati - e ciascuna porzione di essi che avendo caratteristiche architettoniche e 
+costruttive proprie, costituisce distinta particella edilizia - 
+si rappresentano con le linee corrispondenti alla loro proiezione sul piano orizzontale. 
+Tale linea è continua e chiusa per le parti di fabbricato nelle quali la proiezione coincide con il loro 
+perimetro esterno sul terreno.</Abstract>
+        <EX_GeographicBoundingBox>
+            <westBoundLongitude>2</westBoundLongitude>
+            <eastBoundLongitude>19</eastBoundLongitude>
+            <southBoundLatitude>33</southBoundLatitude>
+            <northBoundLatitude>48</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="EPSG:6706"
+                    minx="33" miny="2" maxx="48" maxy="19" />
+        <MetadataURL type="ISO19115:2003">
+          <Format>application/vnd.ogc.csw.capabilities.response_xml</Format>
+          <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://csw.cartografia.agenziaentrate.gov.it/age-inspire/srv/ita/csw?SERVICE=CSW&amp;VERSION=2.0.2&amp;REQUEST=GetRecordById&amp;ID=age:S_0000_ITALIA&amp;ElementSetName=full&amp;outputSchema=csw:IsoRecord"/>
+        </MetadataURL>
+        <Style>
+          <Name>default</Name>
+          <Title>default</Title>
+          <LegendURL width="97" height="20">
+             <Format>image/png</Format>
+             <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php?language=ita&amp;version=1.3.0&amp;service=WMS&amp;request=GetLegendGraphic&amp;sld_version=1.1.0&amp;layer=fabbricati&amp;format=image/png&amp;STYLE=default"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>20</MinScaleDenominator>
+        <MaxScaleDenominator>5000</MaxScaleDenominator>
+    </Layer>
+    <Layer>
+      <Name>vestizioni</Name>
+      <Title>Vestizioni</Title>
+      <Abstract>vestizioni</Abstract>
+    <Style>
+       <Name>default</Name>
+       <Title>default</Title>
+       <LegendURL width="249" height="41">
+          <Format>image/png</Format>
+          <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php?language=ita&amp;version=1.3.0&amp;service=WMS&amp;request=GetLegendGraphic&amp;sld_version=1.1.0&amp;layer=vestizioni&amp;format=image/png&amp;STYLE=default"/>
+       </LegendURL>
+    </Style>
+      <Layer queryable="0" opaque="0" cascaded="0">
+        <Name>codice_plla</Name>
+        <Title>Codice particella</Title>
+        <Abstract>Il layer contiene la rappresentazione dell’etichetta con il numero o l’identificativo letterale della particella.</Abstract>
+        <EX_GeographicBoundingBox>
+            <westBoundLongitude>2</westBoundLongitude>
+            <eastBoundLongitude>19</eastBoundLongitude>
+            <southBoundLatitude>33</southBoundLatitude>
+            <northBoundLatitude>48</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="EPSG:6706"
+                    minx="33" miny="2" maxx="48" maxy="19" />
+        <MetadataURL type="ISO19115:2003">
+          <Format>application/vnd.ogc.csw.capabilities.response_xml</Format>
+          <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://csw.cartografia.agenziaentrate.gov.it/age-inspire/srv/ita/csw?SERVICE=CSW&amp;VERSION=2.0.2&amp;REQUEST=GetRecordById&amp;ID=age:S_0000_ITALIA&amp;ElementSetName=full&amp;outputSchema=csw:IsoRecord"/>
+        </MetadataURL>
+        <Style>
+          <Name>default</Name>
+          <Title>default</Title>
+          <LegendURL width="147" height="23">
+             <Format>image/png</Format>
+             <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php?language=ita&amp;version=1.3.0&amp;service=WMS&amp;request=GetLegendGraphic&amp;sld_version=1.1.0&amp;layer=codice_plla&amp;format=image/png&amp;STYLE=default"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>20</MinScaleDenominator>
+        <MaxScaleDenominator>2000</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="0" opaque="0" cascaded="0">
+        <Name>simbolo_graffa</Name>
+        <Title>Simbolo Graffa</Title>
+        <Abstract>Il layer contiene la rappresentazione dei segni convenzionali di graffa, usati per collegare aree adiacenti che costituiscono unica particella.</Abstract>
+        <EX_GeographicBoundingBox>
+            <westBoundLongitude>6</westBoundLongitude>
+            <eastBoundLongitude>19</eastBoundLongitude>
+            <southBoundLatitude>35</southBoundLatitude>
+            <northBoundLatitude>48</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="EPSG:6706"
+                    minx="35" miny="6" maxx="48" maxy="19" />
+        <MetadataURL type="ISO19115:2003">
+          <Format>application/vnd.ogc.csw.capabilities.response_xml</Format>
+          <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://csw.cartografia.agenziaentrate.gov.it/age-inspire/srv/ita/csw?SERVICE=CSW&amp;VERSION=2.0.2&amp;REQUEST=GetRecordById&amp;ID=age:S_0000_ITALIA&amp;ElementSetName=full&amp;outputSchema=csw:IsoRecord"/>
+        </MetadataURL>
+        <Style>
+          <Name>default</Name>
+          <Title>default</Title>
+          <LegendURL width="249" height="23">
+             <Format>image/png</Format>
+             <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php?language=ita&amp;version=1.3.0&amp;service=WMS&amp;request=GetLegendGraphic&amp;sld_version=1.1.0&amp;layer=simbolo_graffa&amp;format=image/png&amp;STYLE=default"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>20</MinScaleDenominator>
+        <MaxScaleDenominator>2000</MaxScaleDenominator>
+      </Layer>
+    </Layer>
+<!-- WARNING: This layer has its status set to DEFAULT and will always be displayed when doing a GetMap request even if it is not requested by the client. This is not in line with the expected behavior of a WMS server. Using status ON or OFF is recommended. -->
+    <Layer queryable="0" opaque="0" cascaded="0">
+        <Name>copyright</Name>
+        <Title>Copyright(c)</Title>
+        <Abstract>Agenzia delle Entrate - Servizio di consultazione della cartografia catastale WMS. Le informazioni sono allineate con la banca dati cartografica del Catasto, costantemente aggiornata in modalità automatica mediante gli atti tecnici predisposti dai professionisti abilitati. Licenza CC BY 4.0. L&#39;Agenzia è l&#39;amministrazione titolare dei dati. La citazione della titolarità è sempre obbligatoria in caso d&#39;uso.</Abstract>
+        <EX_GeographicBoundingBox>
+            <westBoundLongitude>2</westBoundLongitude>
+            <eastBoundLongitude>19</eastBoundLongitude>
+            <southBoundLatitude>33</southBoundLatitude>
+            <northBoundLatitude>48</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="EPSG:6706"
+                    minx="33" miny="2" maxx="48" maxy="19" />
+        <MetadataURL type="ISO19115:2003">
+          <Format>application/vnd.ogc.csw.capabilities.response_xml</Format>
+          <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://csw.cartografia.agenziaentrate.gov.it/age-inspire/srv/ita/csw?SERVICE=CSW&amp;VERSION=2.0.2&amp;REQUEST=GetRecordById&amp;ID=age:S_0000_ITALIA&amp;ElementSetName=full&amp;outputSchema=csw:IsoRecord"/>
+        </MetadataURL>
+        <Style>
+          <Name>default</Name>
+          <Title>default</Title>
+          <LegendURL width="92" height="23">
+             <Format>image/png</Format>
+             <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php?language=ita&amp;version=1.3.0&amp;service=WMS&amp;request=GetLegendGraphic&amp;sld_version=1.1.0&amp;layer=copyright&amp;format=image/png&amp;STYLE=default"/>
+          </LegendURL>
+        </Style>
+    </Layer>
+  </Layer>
+</Capability>
+</WMS_Capabilities>
