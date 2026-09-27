@@ -126,6 +126,12 @@
   text-decoration: none;
 }
 
+.ordt-link:disabled {
+  color: var(--ordt-muted);
+  cursor: default;
+  text-decoration: none;
+}
+
 .ordt-link:hover {
   text-decoration: underline;
 }

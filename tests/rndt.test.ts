@@ -12,7 +12,7 @@ import {
   preselectedName,
   supportsWebMercator,
 } from "../src/rndt/ogc";
-import { buildQuery, buildSearchUrl, clampBbox, emptyForm, type SearchForm } from "../src/rndt/query";
+import { buildCurlCommand, buildQuery, buildSearchUrl, clampBbox, emptyForm, type Bbox, type SearchForm } from "../src/rndt/query";
 import { extractServices, footprints, inferKind, parseSearchResponse } from "../src/rndt/records";
 
 const fixture = (name: string) => readFileSync(join(__dirname, "fixtures", name), "utf8");
@@ -52,6 +52,19 @@ describe("buildSearchUrl", () => {
 
   it("omits q for an empty form", () => {
     expect(new URL(buildSearchUrl(RNDT_BASE_URL, emptyForm(), 1, 20)).searchParams.has("q")).toBe(false);
+  });
+
+  it("builds a curl command with the same parameters", () => {
+    const form = { ...emptyForm(), text: "l'acqua", bbox: [12.95, 37.6, 14.3, 38.3] as Bbox, sort: "title:asc" };
+    const command = buildCurlCommand(RNDT_BASE_URL, form, 21, 20);
+    // Undo the shell quoting and compare with the URL the panel requests.
+    const pairs = [...command.matchAll(/--data-urlencode '((?:[^']|'\\'')*)'/g)].map((m) =>
+      m[1].replaceAll("'\\''", "'"),
+    );
+    const url = new URL(buildSearchUrl(RNDT_BASE_URL, form, 21, 20));
+    expect(pairs).toEqual([...url.searchParams].map(([k, v]) => `${k}=${v}`));
+    expect(command.startsWith(`curl -sG '${RNDT_BASE_URL}/rest/metadata/search'`)).toBe(true);
+    expect(command).toContain("'q=(l'\\''acqua)'");
   });
 
   it("clamps a zoomed-out view box", () => {

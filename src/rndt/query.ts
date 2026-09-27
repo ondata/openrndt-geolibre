@@ -197,16 +197,41 @@ export function buildQuery(form: SearchForm): BuiltQuery {
   return built;
 }
 
+/** REST parameters for a page of results (JSON format), in request order. */
+function searchParams(form: SearchForm, start: number, num: number): [string, string][] {
+  const built = buildQuery(form);
+  const params: [string, string][] = [];
+  if (built.q) params.push(["q", built.q]);
+  if (built.bbox) params.push(["bbox", built.bbox]);
+  if (built.spatialRel) params.push(["spatialRel", built.spatialRel]);
+  if (built.sort) params.push(["sort", built.sort]);
+  params.push(["start", String(start)], ["num", String(num)], ["f", "json"]);
+  return params;
+}
+
+function searchEndpoint(baseUrl: string): string {
+  return `${baseUrl.replace(/\/+$/, "")}/rest/metadata/search`;
+}
+
 /** Full search URL for a page of results (JSON format). */
 export function buildSearchUrl(baseUrl: string, form: SearchForm, start: number, num: number): string {
-  const built = buildQuery(form);
-  const params = new URLSearchParams();
-  if (built.q) params.set("q", built.q);
-  if (built.bbox) params.set("bbox", built.bbox);
-  if (built.spatialRel) params.set("spatialRel", built.spatialRel);
-  if (built.sort) params.set("sort", built.sort);
-  params.set("start", String(start));
-  params.set("num", String(num));
-  params.set("f", "json");
-  return `${baseUrl.replace(/\/+$/, "")}/rest/metadata/search?${params.toString()}`;
+  return `${searchEndpoint(baseUrl)}?${new URLSearchParams(searchParams(form, start, num)).toString()}`;
+}
+
+/** Single-quote a value for a POSIX shell. */
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, "'\\''")}'`;
+}
+
+/**
+ * A `curl` command that sends the same request as {@link buildSearchUrl}, for
+ * a POSIX shell. Values go through `--data-urlencode`, so the Lucene query
+ * stays readable instead of percent-encoded.
+ */
+export function buildCurlCommand(baseUrl: string, form: SearchForm, start: number, num: number): string {
+  const lines = [`curl -sG ${shellQuote(searchEndpoint(baseUrl))}`];
+  for (const [key, value] of searchParams(form, start, num)) {
+    lines.push(`--data-urlencode ${shellQuote(`${key}=${value}`)}`);
+  }
+  return lines.join(" \\\n  ");
 }

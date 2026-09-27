@@ -25,7 +25,7 @@ import {
   supportsWebMercator,
   upgradeToHttps,
 } from "./ogc";
-import { bboxError, buildSearchUrl, clampBbox, emptyForm, type Bbox, type ResourceKind, type SearchForm, type TextMode } from "./query";
+import { bboxError, buildCurlCommand, buildSearchUrl, clampBbox, emptyForm, type Bbox, type ResourceKind, type SearchForm, type TextMode } from "./query";
 import { footprints, parseSearchResponse, type RndtRecord, type RndtService } from "./records";
 
 type Child = Node | string | null | undefined | false;
@@ -259,6 +259,7 @@ export class RndtPanel {
   private expandedId: string | null = null;
   private requestSeq = 0;
   private lastForm: SearchForm | null = null;
+  private copyQueryEl!: HTMLButtonElement;
 
   constructor(private readonly app: RndtHost) {}
 
@@ -465,6 +466,18 @@ export class RndtPanel {
       ),
     );
 
+    this.copyQueryEl = h(
+      "button",
+      {
+        className: "ordt-link",
+        type: "button",
+        disabled: true,
+        title: "Copy a curl command that repeats this search in a terminal",
+        onclick: () => this.copyQuery(),
+      },
+      "Copy query",
+    );
+
     const form = h(
       "form",
       {
@@ -569,6 +582,7 @@ export class RndtPanel {
         h("button", { className: "ordt-link", type: "reset", onclick: () => setTimeout(() => this.afterReset(), 0) }, "Reset"),
         h("button", { className: "ordt-link", type: "button", onclick: () => this.clearResults() }, "Clear results"),
         h("button", { className: "ordt-link", type: "button", onclick: () => this.zoomToResults() }, "Zoom to results"),
+        this.copyQueryEl,
       ),
     );
     return form;
@@ -672,6 +686,7 @@ export class RndtPanel {
       this.records = page.records;
       this.total = page.total;
       this.start = start;
+      this.copyQueryEl.disabled = false;
       this.expandedId = null;
       this.footprintsOverlay()?.setData(footprints(page.records));
       this.renderResults();
@@ -687,10 +702,25 @@ export class RndtPanel {
     this.total = 0;
     this.lastForm = null;
     this.footprintsLayer?.clear();
+    if (this.copyQueryEl) this.copyQueryEl.disabled = true;
     if (!this.root) return;
     this.listEl.replaceChildren();
     this.pagerEl.replaceChildren();
     this.setStatus("Results cleared.");
+  }
+
+  /** Copy a curl command that repeats the search page on screen. */
+  private copyQuery(): void {
+    if (!this.lastForm) return;
+    const command = buildCurlCommand(RNDT_BASE_URL, this.lastForm, this.start, PAGE_SIZE);
+    const button = this.copyQueryEl;
+    void navigator.clipboard?.writeText(command).then(
+      () => {
+        button.textContent = "Copied";
+        setTimeout(() => (button.textContent = "Copy query"), 1500);
+      },
+      () => this.setStatus("Could not copy to the clipboard.", "error"),
+    );
   }
 
   private zoomToResults(): void {

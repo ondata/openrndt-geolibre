@@ -240,6 +240,25 @@ describe("RNDT panel", () => {
     expect(new URL(requested[0]).searchParams.get("bbox")).toBe("12.95,37.6,14.3,38.3");
   });
 
+  it("copies a curl command for the search on screen", async () => {
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    const { container } = await mountPanel(() => fixture("search-alberi.json"));
+    const copy = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(
+      (b) => b.textContent === "Copy query",
+    )!;
+    expect(copy.disabled).toBe(true);
+
+    container.querySelector<HTMLInputElement>('input[name="text"]')!.value = "alberi";
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    expect(copy.disabled).toBe(false);
+    copy.click();
+    await flush();
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining("--data-urlencode 'q=(alberi)'"));
+    expect(copy.textContent).toBe("Copied");
+  });
+
   it("shows form errors without calling the catalogue", async () => {
     const { requested, container } = await mountPanel(() => "{}");
     container.querySelector<HTMLSelectElement>('select[name="where"]')!.value = "box";
