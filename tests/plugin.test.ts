@@ -138,6 +138,110 @@ describe("RNDT panel", () => {
     expect(url.searchParams.get("spatialRel")).toBe("Intersects");
   });
 
+  it("toggles the search-mode help and runs an example", async () => {
+    const { requested, container } = await mountPanel(() =>
+      fixture("search-alberi.json"),
+    );
+    const toggle =
+      container.querySelector<HTMLButtonElement>(".ordt-help-toggle")!;
+    const help = container.querySelector<HTMLElement>(".ordt-help")!;
+    expect(toggle.getAttribute("aria-controls")).toBe(help.id);
+    expect(help.hidden).toBe(true);
+    toggle.click();
+    expect(help.hidden).toBe(false);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+
+    const example = Array.from(
+      help.querySelectorAll<HTMLButtonElement>(".ordt-example"),
+    ).find((b) => b.textContent === "catastale AND NOT comune")!;
+    example.click();
+    await flush();
+    expect(
+      container.querySelector<HTMLInputElement>('input[name="text"]')!.value,
+    ).toBe("catastale AND NOT comune");
+    expect(
+      container.querySelector<HTMLInputElement>(
+        'input[name="textMode"]:checked',
+      )!.value,
+    ).toBe("lucene");
+    expect(new URL(requested[0]).searchParams.get("q")).toBe(
+      "(catastale AND NOT comune)",
+    );
+
+    toggle.click();
+    expect(help.hidden).toBe(true);
+  });
+
+  it("explains every Search in option and runs its example", async () => {
+    const { requested, container } = await mountPanel(() =>
+      fixture("search-alberi.json"),
+    );
+    const toggle = container.querySelector<HTMLButtonElement>(
+      '[aria-label="Help on search fields"]',
+    )!;
+    const fieldHelp = Array.from(
+      container.querySelectorAll<HTMLElement>(".ordt-help"),
+    ).find((el) => el.id === toggle.getAttribute("aria-controls"))!;
+    expect(fieldHelp.hidden).toBe(true);
+    toggle.click();
+    expect(fieldHelp.hidden).toBe(false);
+
+    // One entry per option of the select.
+    const options = Array.from(
+      container.querySelectorAll<HTMLOptionElement>(
+        'select[name="field"] option',
+      ),
+    );
+    expect(fieldHelp.querySelectorAll("li")).toHaveLength(options.length);
+    for (const o of options)
+      expect(fieldHelp.textContent).toContain(o.textContent!);
+
+    Array.from(fieldHelp.querySelectorAll<HTMLButtonElement>(".ordt-example"))
+      .find((b) => b.textContent === "*CC*")!
+      .click();
+    await flush();
+    expect(
+      container.querySelector<HTMLSelectElement>('select[name="field"]')!.value,
+    ).toBe("apiso_AccessConstraints_s");
+    expect(new URL(requested[0]).searchParams.get("q")).toBe(
+      "apiso_AccessConstraints_s:(*CC*)",
+    );
+  });
+
+  it("explains every Where option and searches the example box", async () => {
+    const { requested, container } = await mountPanel(() =>
+      fixture("search-alberi.json"),
+    );
+    const toggle = container.querySelector<HTMLButtonElement>(
+      '[aria-label="Help on search areas"]',
+    )!;
+    const whereHelp = Array.from(
+      container.querySelectorAll<HTMLElement>(".ordt-help"),
+    ).find((el) => el.id === toggle.getAttribute("aria-controls"))!;
+    toggle.click();
+    expect(whereHelp.hidden).toBe(false);
+    const options = Array.from(
+      container.querySelectorAll<HTMLOptionElement>(
+        'select[name="where"] option',
+      ),
+    );
+    expect(whereHelp.querySelectorAll("li")).toHaveLength(options.length);
+    for (const o of options)
+      expect(whereHelp.textContent).toContain(o.textContent!);
+
+    whereHelp.querySelector<HTMLButtonElement>(".ordt-example")!.click();
+    await flush();
+    expect(
+      container.querySelector<HTMLSelectElement>('select[name="where"]')!.value,
+    ).toBe("box");
+    expect(
+      container.querySelector<HTMLInputElement>('input[name="box"]')!.hidden,
+    ).toBe(false);
+    expect(new URL(requested[0]).searchParams.get("bbox")).toBe(
+      "13.3,38.08,13.4,38.16",
+    );
+  });
+
   it("shows form errors without calling the catalogue", async () => {
     const { requested, container } = await mountPanel(() => "{}");
     container.querySelector<HTMLSelectElement>('select[name="where"]')!.value = "box";

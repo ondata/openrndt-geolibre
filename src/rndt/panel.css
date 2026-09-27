@@ -71,6 +71,11 @@
   border-radius: var(--ordt-radius);
 }
 
+.ordt-row > select.ordt-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .ordt-row > .ordt-input {
   width: auto;
 }
@@ -349,4 +354,55 @@
   .ordt-note[data-kind="busy"]::before {
     animation: ordt-pulse 1.6s ease-in-out infinite;
   }
+}
+
+.ordt-help-toggle {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--ordt-muted);
+  background: none;
+  border: 1px solid var(--ordt-border);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.ordt-help-toggle[aria-expanded="true"] {
+  color: var(--ordt-primary-fg);
+  background: var(--ordt-primary);
+  border-color: var(--ordt-primary);
+}
+
+.ordt-help-toggle:focus-visible {
+  outline: 2px solid var(--ordt-primary);
+  outline-offset: 1px;
+}
+
+.ordt-help {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--ordt-muted);
+  background: var(--ordt-accent);
+  border-radius: var(--ordt-radius);
+}
+
+.ordt-help p {
+  margin: 0;
+}
+
+.ordt-help ul {
+  margin: 6px 0;
+  padding-left: 16px;
+}
+
+.ordt-help li + li {
+  margin-top: 3px;
+}
+
+.ordt-example {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }

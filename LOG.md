@@ -1,5 +1,14 @@
 # LOG
 
+## 2026-09-27
+
+- **Aiuto su "Where"** (issue #4): terzo "?", una voce per scelta; esempio cliccabile di box su Palermo (`13.30, 38.08, 13.40, 38.16`). Un record esce se la sua estensione tocca l'area (Intersects): nel box di Palermo 726 record su 23.831, `catastale` 13, compresi i servizi catastali nazionali. Il repo non è formattato con Prettier: `prettier --write` riscrive tutto il file, non usarlo.
+- **Aiuto su "Search in"** (issue #4): secondo "?" accanto al menu, una voce per campo con esempio cliccabile (imposta anche il campo). Misure del 27/9 per `ortofoto`: ovunque 1.413, titolo 465, abstract 663, lineage 925. "Use limitation" (`apiso_AccessConstraints_s`) è un campo keyword a valore esatto e case-sensitive: `CC-BY` 1, `"CC BY 4.0"` 7.661, `*CC*` 10.880; l'aiuto suggerisce gli asterischi. In Lucene "Search in" è ignorato, come sul portale.
+- **Aiuto sulle modalità di ricerca** (issue #4): pulsante "?" accanto a All words / Any word / Lucene che apre un riquadro dentro il pannello, non un popup (il pannello è stretto e un popup coprirebbe mappa e ricerca). Cinque esempi cliccabili: riempiono testo e modalità e lanciano la ricerca. Solo inglese; l'italiano passa dalla #3. In jsdom `querySelector("#id")` non trovava il riquadro pur presente: nel test si usa la classe.
+- **PR a GeoLibre per `crs` in `addWmsLayer`**: opengeos/GeoLibre#2701. La #2695 (CRS proiettati, unita il 26/9, non ancora in release) non basta: `addWmsLayer` scrive sempre EPSG:3857 e un `addTileLayer` con GetMap fatto a mano è di tipo `xyz`, che il protocollo WMS nativo non tocca. Prova sul catasto AdE in GeoLibre Desktop: pulsante disattivato come previsto.
+- **Basilicata irraggiungibile**: i name server di `regione.basilicata.it` non rispondono (SERVFAIL anche da dns.google); non è un difetto del plugin.
+- **7.697 risultati per «catastale» + Agenzia delle Entrate**: corretti. L'AdE ha 7.699 record, di cui 7.691 schede "Cartografia catastale - Comune di ...", una per comune. Issue #2 per un comando "Copy query" con la chiamata curl.
+
 ## 2026-09-26 (0.1.0-alpha.1)
 
 - **Repo creato** da `opengeos/geolibre-plugin-template` come `ondata/openrndt-geolibre`, privato. Tolti i workflow del template (Pages, Docker, npm): il deploy su Pages partiva a ogni push su `main` (il primo è fallito solo perché Pages non era attivo).

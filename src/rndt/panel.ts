@@ -147,6 +147,94 @@ const TEXT_MODES: Option[] = [
   { value: "any", label: "Any word" },
   { value: "lucene", label: "Lucene" },
 ];
+
+/** A help example: clicking it fills text, mode and field, then searches. */
+interface SearchExample {
+  mode: TextMode;
+  text: string;
+  /** "Search in" value; "" is Anywhere. */
+  field?: string;
+  note: string;
+}
+
+const SEARCH_EXAMPLES: SearchExample[] = [
+  {
+    mode: "all",
+    text: "catastale comune misiliscemi",
+    note: "every word must appear",
+  },
+  {
+    mode: "any",
+    text: "idrografia fiumi",
+    note: "one word is enough: more results",
+  },
+  { mode: "lucene", text: '"comune di misiliscemi"', note: "exact phrase" },
+  { mode: "lucene", text: "catastale AND NOT comune", note: "exclude a word" },
+  { mode: "all", text: "misilis*", note: "* truncates a word, in every mode" },
+];
+
+/** One entry per "Search in" option, same order as SEARCH_FIELDS. */
+const FIELD_EXAMPLES: SearchExample[] = [
+  { mode: "all", text: "ortofoto", field: "", note: "the whole record" },
+  { mode: "all", text: "ortofoto", field: "title", note: "the title only" },
+  {
+    mode: "all",
+    text: "ortofoto",
+    field: "description",
+    note: "the abstract, the description of the resource",
+  },
+  {
+    mode: "all",
+    text: "ortofoto",
+    field: "apiso_Lineage_txt",
+    note: "how the data were produced: sources, methods, processing",
+  },
+  {
+    mode: "all",
+    text: "*CC*",
+    field: "apiso_AccessConstraints_s",
+    note: "conditions of use and access, e.g. the licence. The statement is stored as one exact, case-sensitive value: a plain word matches only if it is the whole statement, so surround words with *",
+  },
+];
+
+/** One entry per "Where" option, same order as WHERE_OPTIONS (defined below). */
+const WHERE_HELP: { value: Where; note: string; box?: string }[] = [
+  { value: "anywhere", note: "no area filter, the whole catalogue" },
+  {
+    value: "view",
+    note: "the part of the map visible when you press Search; moving the map afterwards does not search again",
+  },
+  {
+    value: "drawn",
+    note: "the rectangle around all the shapes drawn with GeoEditor, not their exact outline; a single point becomes a square of about 100 m. Choosing it turns GeoEditor on",
+  },
+  {
+    value: "box",
+    note: "four numbers in degrees (WGS84): west, south, east, north. Example, Palermo:",
+    box: "13.30, 38.08, 13.40, 38.16",
+  },
+];
+
+/** A "?" button that shows and hides `box`, an inline help panel. */
+function helpToggle(box: HTMLElement, label: string): HTMLButtonElement {
+  const button = h(
+    "button",
+    {
+      className: "ordt-help-toggle",
+      type: "button",
+      "aria-expanded": "false",
+      "aria-controls": box.id,
+      "aria-label": label,
+      title: label,
+      onclick: () => {
+        box.hidden = !box.hidden;
+        button.setAttribute("aria-expanded", String(!box.hidden));
+      },
+    },
+    "?",
+  );
+  return button;
+}
 const WHERE_OPTIONS: Option[] = [
   { value: "anywhere", label: "Anywhere" },
   { value: "view", label: "Current map view" },
@@ -216,6 +304,31 @@ export class RndtPanel {
 
   // ---------------------------------------------------------------- form
 
+  /** Search in a help example's box, keeping the rest of the form. */
+  private runBoxExample(box: string): void {
+    const where = this.formEl.querySelector<HTMLSelectElement>(
+      'select[name="where"]',
+    )!;
+    where.value = "box";
+    where.dispatchEvent(new Event("change"));
+    this.formEl.querySelector<HTMLInputElement>('input[name="box"]')!.value =
+      box;
+    this.formEl.requestSubmit();
+  }
+
+  /** Fill text, mode and "Search in" from a help example, then search. */
+  private runExample(example: SearchExample): void {
+    this.formEl.querySelector<HTMLInputElement>('input[name="text"]')!.value =
+      example.text;
+    this.formEl.querySelector<HTMLInputElement>(
+      `input[name="textMode"][value="${example.mode}"]`,
+    )!.checked = true;
+    this.formEl.querySelector<HTMLSelectElement>(
+      'select[name="field"]',
+    )!.value = example.field ?? "";
+    this.formEl.requestSubmit();
+  }
+
   private buildForm(): HTMLFormElement {
     const serviceTypes = h(
       "fieldset",
@@ -238,6 +351,7 @@ export class RndtPanel {
     });
     const whereSelect = select(WHERE_OPTIONS, "anywhere", {
       name: "where",
+      "aria-label": "Where",
       onchange: () => {
         boxInput.hidden = whereSelect.value !== "box";
         if (whereSelect.value === "drawn") void this.prepareDrawing();
@@ -245,6 +359,111 @@ export class RndtPanel {
     });
 
     const themes = select([{ value: "", label: "Any theme" }, ...INSPIRE_THEMES], "", { name: "theme" });
+
+    const exampleButton = (example: SearchExample) =>
+      h(
+        "button",
+        {
+          className: "ordt-link ordt-example",
+          type: "button",
+          onclick: () => this.runExample(example),
+        },
+        example.text,
+      );
+    const modeHelp = h(
+      "div",
+      { className: "ordt-help", id: "ordt-search-help", hidden: true },
+      h("p", {}, "Click an example to try it."),
+      h(
+        "ul",
+        {},
+        ...SEARCH_EXAMPLES.map((example) =>
+          h(
+            "li",
+            {},
+            exampleButton(example),
+            ` ${TEXT_MODES.find((o) => o.value === example.mode)!.label}: ${example.note}`,
+          ),
+        ),
+      ),
+      h(
+        "p",
+        {},
+        'Lucene sends the text as it is, so characters such as / : ( ) " are query syntax: 42/2004 works in All words but is an error in Lucene.',
+      ),
+    );
+    const fieldHelp = h(
+      "div",
+      { className: "ordt-help", id: "ordt-field-help", hidden: true },
+      h("p", {}, "Where the words are looked for. Click an example to try it."),
+      h(
+        "ul",
+        {},
+        ...FIELD_EXAMPLES.map((example) =>
+          h(
+            "li",
+            {},
+            h(
+              "strong",
+              {},
+              SEARCH_FIELDS.find((o) => o.value === example.field)!.label,
+            ),
+            `: ${example.note}. `,
+            exampleButton(example),
+          ),
+        ),
+      ),
+      h(
+        "p",
+        {},
+        "Lucene ignores this choice: write the field in the query, e.g. title:ortofoto.",
+      ),
+    );
+    const fieldSelect = select(SEARCH_FIELDS, "", {
+      name: "field",
+      "aria-label": "Search in",
+    });
+    const whereHelp = h(
+      "div",
+      { className: "ordt-help", id: "ordt-where-help", hidden: true },
+      h(
+        "ul",
+        {},
+        ...WHERE_HELP.map((entry) =>
+          h(
+            "li",
+            {},
+            h(
+              "strong",
+              {},
+              WHERE_OPTIONS.find((o) => o.value === entry.value)!.label,
+            ),
+            `: ${entry.note}`,
+            entry.box
+              ? h(
+                  "span",
+                  {},
+                  " ",
+                  h(
+                    "button",
+                    {
+                      className: "ordt-link ordt-example",
+                      type: "button",
+                      onclick: () => this.runBoxExample(entry.box!),
+                    },
+                    entry.box,
+                  ),
+                )
+              : null,
+          ),
+        ),
+      ),
+      h(
+        "p",
+        {},
+        "A record is found when its extent, a rectangle, touches the area: national and regional records show up too. In the Palermo box, catastale finds the Palermo cadastral map and the national cadastral services.",
+      ),
+    );
 
     const form = h(
       "form",
@@ -267,16 +486,39 @@ export class RndtPanel {
         }),
         h("button", { className: "ordt-button ordt-primary", type: "submit" }, "Search"),
       ),
-      h("div", { className: "ordt-row ordt-small" }, radioGroup("textMode", TEXT_MODES, "all", () => undefined)),
       h(
-        "label",
+        "div",
+        { className: "ordt-row ordt-small" },
+        radioGroup("textMode", TEXT_MODES, "all", () => undefined),
+        helpToggle(modeHelp, "Help on search modes"),
+      ),
+      modeHelp,
+      h(
+        "div",
         { className: "ordt-label" },
         "Search in",
-        select(SEARCH_FIELDS, "", { name: "field" }),
+        h(
+          "div",
+          { className: "ordt-row" },
+          fieldSelect,
+          helpToggle(fieldHelp, "Help on search fields"),
+        ),
       ),
+      fieldHelp,
       h("div", { className: "ordt-label" }, "Resources", radioGroup("kind", KIND_OPTIONS, "all", toggleServiceTypes)),
       serviceTypes,
-      h("label", { className: "ordt-label" }, "Where", whereSelect),
+      h(
+        "div",
+        { className: "ordt-label" },
+        "Where",
+        h(
+          "div",
+          { className: "ordt-row" },
+          whereSelect,
+          helpToggle(whereHelp, "Help on search areas"),
+        ),
+      ),
+      whereHelp,
       boxInput,
       h(
         "details",
