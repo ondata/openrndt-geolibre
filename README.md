@@ -4,7 +4,7 @@ A [GeoLibre](https://github.com/opengeos/GeoLibre) plugin to search the **RNDT**
 
 It is the GeoLibre counterpart of the [openrndt](https://github.com/ondata/openrndt) CLI and uses the same RNDT REST API (`https://geodati.gov.it/RNDT/rest/metadata/search`).
 
-Status: **alpha** (`0.1.0-alpha.1`).
+Status: **alpha** (`0.1.0-alpha.2`).
 
 ## What it does
 

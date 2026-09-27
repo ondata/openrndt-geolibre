@@ -1,6 +1,6 @@
 # LOG
 
-## 2026-09-27
+## 2026-09-27 (0.1.0-alpha.2)
 
 - **× nel campo Organisation** (#9): visibile solo quando il campo ha un valore; svuota il filtro e, se una ricerca è già stata fatta, la rilancia senza.
 - **Clic sull'ente** (issue #9): il nome dell'ente nei risultati è un pulsante ("Show only results from this organisation") che lo mette nel filtro Organisation, apre "More filters" e rilancia la ricerca tenendo gli altri filtri. Resta il "contiene" del campo: stesso conteggio che scrivendolo a mano (ISPRA 413 esatto e contiene; Regione Piemonte 612 esatto, 613 contiene). Nome mostrato e filtro usano lo stesso campo, `EnteResponsabile_s`.
