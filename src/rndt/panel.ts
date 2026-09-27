@@ -30,6 +30,7 @@ import {
 } from "./ogc";
 import { bboxError, buildCurlCommand, buildSearchUrl, clampBbox, emptyForm, type Bbox, type ResourceKind, type SearchForm, type TextMode } from "./query";
 import { footprints, parseSearchResponse, type RndtRecord, type RndtService } from "./records";
+import { findTitle, lookupLayerTitles, lookupOneLayerTitle, optionLabel, readableTitle } from "./layer-names";
 
 type Child = Node | string | null | undefined | false;
 type Where = "anywhere" | "view" | "drawn" | "box";
@@ -160,6 +161,9 @@ export function groupServices(services: RndtService[]): ServiceGroup[] {
   return Array.from(groups.values());
 }
 
+/** Layers above which the layer menu gets a filter field (Veneto WFS: 1,068). */
+const FILTER_THRESHOLD = 30;
+
 const KIND_OPTIONS: Option[] = [
   { value: "all", label: "All" },
   { value: "data", label: "Data" },
@@ -275,6 +279,8 @@ export class RndtPanel {
   private statusEl!: HTMLElement;
   private listEl!: HTMLElement;
   private pagerEl!: HTMLElement;
+  /** The same pager above the list (#12), so the next page needs no scrolling. */
+  private pagerTopEl!: HTMLElement;
   private footprintsLayer: FootprintsLayer | null = null;
   private records: RndtRecord[] = [];
   private total = 0;
@@ -299,7 +305,8 @@ export class RndtPanel {
       this.statusEl = h("div", { className: "ordt-status", role: "status", "aria-live": "polite" });
       this.listEl = h("ol", { className: "ordt-results" });
       this.pagerEl = h("div", { className: "ordt-pager" });
-      this.root.append(this.formEl, this.statusEl, this.listEl, this.pagerEl);
+      this.pagerTopEl = h("div", { className: "ordt-pager ordt-pager-top" });
+      this.root.append(this.formEl, this.statusEl, this.pagerTopEl, this.listEl, this.pagerEl);
       this.setStatus("Search the Italian national catalogue of spatial data (RNDT).");
     }
     container.append(this.root);
@@ -787,6 +794,7 @@ export class RndtPanel {
     if (!this.root) return;
     this.listEl.replaceChildren();
     this.pagerEl.replaceChildren();
+    this.pagerTopEl.replaceChildren();
     this.setStatus("Results cleared.");
   }
 
@@ -853,19 +861,32 @@ export class RndtPanel {
     );
     this.listEl.replaceChildren(...this.records.map((r) => this.renderRecord(r)));
 
-    const prev = h("button", {
-      className: "ordt-button",
-      type: "button",
-      disabled: this.start <= 1,
-      onclick: () => void this.search(Math.max(1, this.start - PAGE_SIZE), this.lastForm ?? undefined),
-    }, "Previous");
-    const next = h("button", {
-      className: "ordt-button",
-      type: "button",
-      disabled: end >= this.total,
-      onclick: () => void this.search(this.start + PAGE_SIZE, this.lastForm ?? undefined),
-    }, "Next");
-    this.pagerEl.replaceChildren(...(this.total > PAGE_SIZE ? [prev, next] : []));
+    const pages = this.total > PAGE_SIZE;
+    this.pagerTopEl.replaceChildren(...(pages ? this.pagerButtons(end) : []));
+    this.pagerEl.replaceChildren(...(pages ? this.pagerButtons(end) : []));
+  }
+
+  /** Previous/Next for the current page; built twice, for the top and the bottom pager. */
+  private pagerButtons(end: number): HTMLButtonElement[] {
+    const go = (start: number) =>
+      void this.search(start, this.lastForm ?? undefined).then(() =>
+        // The new page starts from its first record, wherever the click came from.
+        this.statusEl.scrollIntoView?.({ block: "nearest" }),
+      );
+    return [
+      h("button", {
+        className: "ordt-button",
+        type: "button",
+        disabled: this.start <= 1,
+        onclick: () => go(Math.max(1, this.start - PAGE_SIZE)),
+      }, "Previous"),
+      h("button", {
+        className: "ordt-button",
+        type: "button",
+        disabled: end >= this.total,
+        onclick: () => go(this.start + PAGE_SIZE),
+      }, "Next"),
+    ];
   }
 
   private focusRecord(id: string, scroll: boolean): void {
@@ -1015,6 +1036,99 @@ export class RndtPanel {
     area.replaceChildren(h("p", { className: "ordt-note", "data-kind": kind }, message));
   }
 
+  /**
+   * Layer menu for a WMS/WFS (#7). Each entry shows the layer name as the
+   * service gives it, with a readable name in brackets when there is one: the
+   * capabilities title if it reads as a name, else a title from RNDT, looked up
+   * in the background for the layers that still lack one; the labels update in
+   * place and the selected layer does not change. Above FILTER_THRESHOLD layers
+   * a filter field narrows the list.
+   */
+  private layerPicker(
+    layers: { name: string; title: string }[],
+    wanted: string | null,
+    serviceUrl: string,
+    ariaLabel: string,
+  ): { picker: HTMLSelectElement; controls: HTMLElement[]; nameOf: (name: string) => string } {
+    const readable = new Map(layers.map((l) => [l.name, readableTitle(l.name, l.title)]));
+    const picker = select(
+      layers.map((l) => ({ value: l.name, label: optionLabel(l.name, readable.get(l.name)!) })),
+      layers.some((l) => l.name === wanted) ? wanted! : layers[0].name,
+      { "aria-label": ariaLabel },
+    );
+    const controls: HTMLElement[] = [];
+
+    if (layers.length > FILTER_THRESHOLD) {
+      const filter = h("input", {
+        className: "ordt-input",
+        type: "search",
+        placeholder: `Filter ${layers.length.toLocaleString("en")} layers…`,
+        "aria-label": "Filter layers",
+      });
+      filter.addEventListener("input", () => {
+        const needle = filter.value.trim().toLowerCase();
+        let firstMatch: HTMLOptionElement | null = null;
+        for (const option of Array.from(picker.options)) {
+          const match = !needle || option.textContent!.toLowerCase().includes(needle) || option.value.toLowerCase().includes(needle);
+          option.hidden = !match;
+          if (match && !firstMatch) firstMatch = option;
+        }
+        // Keep a visible selection, so "Add" acts on something the user can see.
+        if (picker.selectedOptions[0]?.hidden && firstMatch) {
+          picker.value = firstMatch.value;
+          picker.dispatchEvent(new Event("change"));
+        }
+      });
+      controls.push(filter);
+    }
+
+    if (layers.some((l) => !readable.get(l.name))) {
+      const status = h("p", { className: "ordt-note", "data-kind": "busy" }, "Looking up readable names in RNDT…");
+      controls.push(status);
+      const setTitle = (option: HTMLOptionElement, title: string) => {
+        readable.set(option.value, title);
+        option.textContent = optionLabel(option.value, title);
+      };
+      void lookupLayerTitles(this.app, RNDT_BASE_URL, serviceUrl).then((lookup) => {
+        if (lookup.mode === "all") {
+          let found = 0;
+          for (const option of Array.from(picker.options)) {
+            if (readable.get(option.value)) continue;
+            const title = findTitle(lookup.found, option.value);
+            if (!title) continue;
+            setTitle(option, title);
+            found++;
+          }
+          if (found) {
+            status.dataset.kind = "info";
+            status.textContent = `Readable names from RNDT for ${found.toLocaleString("en")} of ${layers.length.toLocaleString("en")} layers.`;
+          } else {
+            status.remove();
+          }
+          return;
+        }
+        // Too many RNDT records to download: look up the selected layer only,
+        // now and on every change; each layer is asked once.
+        const asked = new Set<string>();
+        const lookupSelected = async () => {
+          const option = picker.selectedOptions[0];
+          if (!option || readable.get(option.value) || asked.has(option.value)) return;
+          asked.add(option.value);
+          status.dataset.kind = "busy";
+          status.textContent = "Looking up the readable name of the selected layer in RNDT…";
+          const title = await lookupOneLayerTitle(this.app, RNDT_BASE_URL, serviceUrl, option.value);
+          if (title) setTitle(option, title);
+          status.dataset.kind = "info";
+          status.textContent = "Readable names are looked up in RNDT for the selected layer only.";
+        };
+        picker.addEventListener("change", () => void lookupSelected());
+        void lookupSelected();
+      });
+    }
+
+    return { picker, controls, nameOf: (name) => optionLabel(name, readable.get(name) ?? null) };
+  }
+
   private async openWms(record: RndtRecord, service: ServiceGroup, area: HTMLElement): Promise<void> {
     this.note(area, "Reading the WMS capabilities…", "busy");
     try {
@@ -1026,11 +1140,7 @@ export class RndtPanel {
         return;
       }
       const wanted = service.layerHint ?? bestMatchingLayer(record.title, caps.layers);
-      const picker = select(
-        caps.layers.map((l) => ({ value: l.name, label: l.title === l.name ? l.name : `${l.title} (${l.name})` })),
-        caps.layers.some((l) => l.name === wanted) ? wanted! : caps.layers[0].name,
-        { "aria-label": "WMS layer" },
-      );
+      const { picker, controls, nameOf } = this.layerPicker(caps.layers, wanted, service.url, "WMS layer");
       const warning = h("p", { className: "ordt-note", "data-kind": "error", hidden: true });
       const add = h("button", { className: "ordt-button ordt-primary", type: "button" }, "Add layer");
       const check = () => {
@@ -1046,7 +1156,7 @@ export class RndtPanel {
       add.addEventListener("click", () => {
         const layer = caps.layers.find((l) => l.name === picker.value)!;
         try {
-          this.app.addWmsLayer!(layer.title, {
+          this.app.addWmsLayer!(nameOf(layer.name), {
             url: caps.getMapUrl,
             layers: layer.name,
             version: caps.version.startsWith("1.3") ? "1.3.0" : "1.1.1",
@@ -1061,7 +1171,7 @@ export class RndtPanel {
           warning.textContent = `Could not add the layer: ${errorMessage(error)}`;
         }
       });
-      area.replaceChildren(h("div", { className: "ordt-row" }, picker, add), warning);
+      area.replaceChildren(...controls.filter((c) => c.tagName === "INPUT"), h("div", { className: "ordt-row" }, picker, add), ...controls.filter((c) => c.tagName !== "INPUT"), warning);
       check();
     } catch (error) {
       this.note(area, `WMS error: ${errorMessage(error)}`, "error");
@@ -1084,11 +1194,7 @@ export class RndtPanel {
         return;
       }
       const wanted = service.layerHint ?? bestMatchingLayer(record.title, caps.featureTypes);
-      const picker = select(
-        caps.featureTypes.map((f) => ({ value: f.name, label: f.title === f.name ? f.name : `${f.title} (${f.name})` })),
-        caps.featureTypes.some((f) => f.name === wanted) ? wanted! : caps.featureTypes[0].name,
-        { "aria-label": "WFS feature type" },
-      );
+      const { picker, controls, nameOf } = this.layerPicker(caps.featureTypes, wanted, service.url, "WFS feature type");
       const inView = h("input", { type: "checkbox", checked: true });
       const add = h("button", { className: "ordt-button ordt-primary", type: "button" }, "Add features");
       const result = h("p", { className: "ordt-note", hidden: true });
@@ -1133,8 +1239,7 @@ export class RndtPanel {
                 : "The service returned no features.";
               return;
             }
-            const title = caps.featureTypes.find((f) => f.name === name)?.title ?? name;
-            this.app.addGeoJsonLayer!(title || record.title, fixAxisOrder(data));
+            this.app.addGeoJsonLayer!(nameOf(name) || record.title, fixAxisOrder(data));
             result.dataset.kind = "info";
             const added = data.features.length;
             result.textContent =
@@ -1157,7 +1262,9 @@ export class RndtPanel {
         })();
       });
       area.replaceChildren(
+        ...controls.filter((c) => c.tagName === "INPUT"),
         h("div", { className: "ordt-row" }, picker, add),
+        ...controls.filter((c) => c.tagName !== "INPUT"),
         h("label", { className: "ordt-check ordt-small" }, inView, "Only features in the current map view"),
         result,
       );

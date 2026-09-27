@@ -491,3 +491,121 @@ describe("zoom to a record", () => {
     expect(ctx.host.fitBounds).toHaveBeenLastCalledWith([6.62, 44.06, 9.21, 46.459999084472656]);
   });
 });
+
+describe("readable layer names (#7)", () => {
+  // A WFS whose titles are codes, like FVG RIFIUTI; 35 types so the filter shows.
+  const codes = ["TDLD8", "UCEM", "RAEER3", ...Array.from({ length: 32 }, (_, i) => `X${i}`)];
+  const wfsCaps = `<wfs:WFS_Capabilities xmlns:wfs="http://www.opengis.net/wfs/2.0" xmlns:ows="http://www.opengis.net/ows/1.1" xmlns:xlink="http://www.w3.org/1999/xlink" version="2.0.0">
+<ows:OperationsMetadata><ows:Operation name="GetFeature"><ows:DCP><ows:HTTP><ows:Get xlink:href="https://serviziogc.regione.fvg.it/geoserver/RIFIUTI/wfs"/></ows:HTTP></ows:DCP>
+<ows:Parameter name="outputFormat"><ows:AllowedValues><ows:Value>application/json</ows:Value></ows:AllowedValues></ows:Parameter></ows:Operation></ows:OperationsMetadata>
+<wfs:FeatureTypeList>${codes.map((c) => `<wfs:FeatureType><wfs:Name>RIFIUTI:${c}</wfs:Name><wfs:Title>${c}</wfs:Title></wfs:FeatureType>`).join("")}</wfs:FeatureTypeList></wfs:WFS_Capabilities>`;
+
+  async function openWfs() {
+    const ctx = await mountPanel((url) => {
+      if (url.includes("/rest/metadata/search") && url.includes("f=csw")) return fixture("csw-fvg-rifiuti.xml");
+      if (url.includes("/rest/metadata/search")) return fixture("search-alberi.json");
+      return wfsCaps;
+    });
+    ctx.container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const item = Array.from(ctx.container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
+      Array.from(li.querySelectorAll(".ordt-badge-service")).some((b) => b.textContent === "WFS"),
+    )!;
+    item.querySelector<HTMLButtonElement>(".ordt-result-title")!.click();
+    Array.from(item.querySelectorAll<HTMLButtonElement>("button"))
+      .filter((b) => b.textContent === "Add to map…")
+      .at(-1)!
+      .click();
+    await flush();
+    return { ...ctx, item };
+  }
+
+  it("shows the layer names first, then adds RNDT titles in brackets", async () => {
+    const { item } = await openWfs();
+    await flush();
+    const picker = item.querySelector<HTMLSelectElement>('select[aria-label="WFS feature type"]')!;
+    const labels = Array.from(picker.options).map((o) => o.textContent);
+    expect(labels).toContain("RIFIUTI:TDLD8 (Trattamento chimico-fisico e biologico di rifiuti liquidi D8 (TDLD8))");
+    expect(labels).toContain("RIFIUTI:RAEER3 (Recupero RAEE R3 (RAEER3))");
+    expect(labels).toContain("RIFIUTI:X0");
+    expect(item.textContent).toMatch(/Readable names from RNDT for 3 of 35 layers/);
+  });
+
+  it("above 1,000 RNDT records, looks up the selected layer only", async () => {
+    const big = fixture("csw-fvg-rifiuti.xml").replace('numberOfRecordsMatched="245"', 'numberOfRecordsMatched="1500"');
+    const ctx = await mountPanel((url) => {
+      if (url.includes("/rest/metadata/search") && url.includes("f=csw")) return big;
+      if (url.includes("/rest/metadata/search")) return fixture("search-alberi.json");
+      return wfsCaps;
+    });
+    ctx.container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const item = Array.from(ctx.container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
+      Array.from(li.querySelectorAll(".ordt-badge-service")).some((b) => b.textContent === "WFS"),
+    )!;
+    item.querySelector<HTMLButtonElement>(".ordt-result-title")!.click();
+    Array.from(item.querySelectorAll<HTMLButtonElement>("button")).filter((b) => b.textContent === "Add to map…").at(-1)!.click();
+    await flush();
+    await flush();
+    const picker = item.querySelector<HTMLSelectElement>('select[aria-label="WFS feature type"]')!;
+    picker.value = "RIFIUTI:UCEM";
+    picker.dispatchEvent(new Event("change"));
+    await flush();
+    const targeted = ctx.requested.filter((u) => u.includes("f=csw")).map((u) => new URL(u).searchParams.get("q"));
+    expect(targeted.some((q) => q?.endsWith("*UCEM*"))).toBe(true);
+    expect(picker.selectedOptions[0].textContent).toBe("RIFIUTI:UCEM (Utilizzo in cementifici R5 (UCEM))");
+    expect(item.textContent).toMatch(/looked up in RNDT for the selected layer only/);
+  });
+
+  it("filters a long list on name and readable name", async () => {
+    const { item } = await openWfs();
+    await flush();
+    const filter = item.querySelector<HTMLInputElement>('input[aria-label="Filter layers"]')!;
+    filter.value = "cementifici";
+    filter.dispatchEvent(new Event("input"));
+    const picker = item.querySelector<HTMLSelectElement>('select[aria-label="WFS feature type"]')!;
+    const visible = Array.from(picker.options).filter((o) => !o.hidden).map((o) => o.value);
+    expect(visible).toEqual(["RIFIUTI:UCEM"]);
+    expect(picker.value).toBe("RIFIUTI:UCEM");
+  });
+});
+
+describe("pager at the top of the list (#12)", () => {
+  const pagers = (container: HTMLElement) =>
+    Array.from(container.querySelectorAll<HTMLElement>(".ordt-pager")).map((p) =>
+      Array.from(p.querySelectorAll<HTMLButtonElement>("button")).map((b) => `${b.textContent}:${b.disabled ? "off" : "on"}`),
+    );
+
+  it("shows the same pager above and below the list", async () => {
+    // Fixture: 41 records in total, first page.
+    const { container } = await mountPanel(() => fixture("search-alberi.json"));
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const top = container.querySelector(".ordt-pager-top")!;
+    expect(top.nextElementSibling?.classList.contains("ordt-results")).toBe(true);
+    expect(pagers(container)).toEqual([
+      ["Previous:off", "Next:on"],
+      ["Previous:off", "Next:on"],
+    ]);
+  });
+
+  it("the top Next asks for the next page and both pagers follow", async () => {
+    const { container, requested } = await mountPanel(() => fixture("search-alberi.json"));
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    container.querySelector<HTMLElement>(".ordt-pager-top")!.querySelectorAll("button")[1].click();
+    await flush();
+    expect(new URL(requested.at(-1)!).searchParams.get("start")).toBe("21");
+    const [top, bottom] = pagers(container);
+    expect(top).toEqual(bottom);
+  });
+
+  it("has no pager on a single page", async () => {
+    const one = JSON.parse(fixture("search-alberi.json"));
+    one.total = 5;
+    const { container } = await mountPanel(() => JSON.stringify(one));
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    expect(pagers(container)).toEqual([[], []]);
+  });
+});

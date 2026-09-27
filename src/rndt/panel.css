@@ -450,3 +450,8 @@
   outline: 2px solid var(--ordt-primary);
   outline-offset: 1px;
 }
+
+/* No pager on a single page: an empty container would still take a gap (#12). */
+.ordt-pager:empty {
+  display: none;
+}
