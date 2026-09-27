@@ -45,6 +45,7 @@ export const plugin: Plugin = {
       label: "RNDT",
       items: [
         { id: "open", label: "Open search panel", onSelect: () => host.openRightPanel?.(PANEL_ID) },
+        { id: "footprints", label: "Hide or show footprints", onSelect: () => panel.toggleFootprints() },
         { id: "clear", label: "Clear results and footprints", onSelect: () => panel.clearResults() },
       ],
     });

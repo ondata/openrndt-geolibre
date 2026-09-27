@@ -1,11 +1,12 @@
 import type { FeatureCollection } from "geojson";
-import type { GeoJSONSource, Map as MapLibreMap, MapLayerMouseEvent } from "maplibre-gl";
+import type { ExpressionSpecification, GeoJSONSource, Map as MapLibreMap, MapLayerMouseEvent } from "maplibre-gl";
 
 const SOURCE_ID = "openrndt-geolibre-footprints";
 const FILL_ID = "openrndt-geolibre-footprints-fill";
 const LINE_ID = "openrndt-geolibre-footprints-line";
 const SELECTED_ID = "openrndt-geolibre-footprints-selected";
 const COLOR = "#d9480f";
+const LAYER_IDS = [FILL_ID, LINE_ID, SELECTED_ID];
 
 const EMPTY: FeatureCollection = { type: "FeatureCollection", features: [] };
 
@@ -18,6 +19,9 @@ const EMPTY: FeatureCollection = { type: "FeatureCollection", features: [] };
 export class FootprintsLayer {
   private data: FeatureCollection = EMPTY;
   private selectedId: string | null = null;
+  private visible = true;
+  /** Records whose footprint is hidden one by one; reset by `setData`. */
+  private readonly hiddenIds = new Set<string>();
   private lastMove = 0;
   private readonly onStyleData = () => this.ensure();
   private readonly onClick = (event: MapLayerMouseEvent) => {
@@ -59,6 +63,8 @@ export class FootprintsLayer {
         id: FILL_ID,
         type: "fill",
         source: SOURCE_ID,
+        layout: { visibility: this.visibility() },
+        filter: this.shownFilter(),
         // Many records share the same extent (a region, a municipality): the
         // stacked fills would tint the whole map when zoomed in, so the fill
         // fades out with zoom and only the outlines remain.
@@ -73,6 +79,8 @@ export class FootprintsLayer {
         id: LINE_ID,
         type: "line",
         source: SOURCE_ID,
+        layout: { visibility: this.visibility() },
+        filter: this.shownFilter(),
         paint: { "line-color": COLOR, "line-width": 1.2, "line-opacity": 0.8 },
       });
     }
@@ -81,8 +89,9 @@ export class FootprintsLayer {
         id: SELECTED_ID,
         type: "line",
         source: SOURCE_ID,
+        layout: { visibility: this.visibility() },
         paint: { "line-color": COLOR, "line-width": 3.5 },
-        filter: ["==", ["get", "id"], this.selectedId ?? ""],
+        filter: this.selectedFilter(),
       });
     }
     this.keepOnTop();
@@ -96,7 +105,7 @@ export class FootprintsLayer {
   private keepOnTop(): void {
     const map = this.map;
     const order = map.getLayersOrder();
-    const ours = [FILL_ID, LINE_ID, SELECTED_ID];
+    const ours = LAYER_IDS;
     if (order.slice(-ours.length).join() === ours.join()) return;
     // At most one move per second, so the plugin never fights the host's own
     // layer ordering in a loop of `styledata` events.
@@ -109,20 +118,62 @@ export class FootprintsLayer {
   setData(data: FeatureCollection): void {
     this.data = data;
     this.selectedId = null;
+    this.hiddenIds.clear();
     this.ensure();
     (this.map.getSource(SOURCE_ID) as GeoJSONSource | undefined)?.setData(data);
-    this.applySelection();
+    this.applyFilters();
+  }
+
+  /** Show or hide all footprints. Showing also brings back those hidden one by one. */
+  setVisible(visible: boolean): void {
+    this.visible = visible;
+    if (visible && this.hiddenIds.size) {
+      this.hiddenIds.clear();
+      this.applyFilters();
+    }
+    for (const id of LAYER_IDS) {
+      if (this.map.getLayer(id)) this.map.setLayoutProperty(id, "visibility", this.visibility());
+    }
+  }
+
+  isVisible(): boolean {
+    return this.visible;
+  }
+
+  /** Show or hide one record's footprint. */
+  setHidden(recordId: string, hidden: boolean): void {
+    if (hidden) this.hiddenIds.add(recordId);
+    else this.hiddenIds.delete(recordId);
+    this.applyFilters();
+  }
+
+  isHidden(recordId: string): boolean {
+    return this.hiddenIds.has(recordId);
+  }
+
+  private visibility(): "visible" | "none" {
+    return this.visible ? "visible" : "none";
+  }
+
+  /** Features not hidden one by one. */
+  private shownFilter(): ExpressionSpecification {
+    return ["!", ["in", ["get", "id"], ["literal", [...this.hiddenIds]]]];
+  }
+
+  private selectedFilter(): ExpressionSpecification {
+    return ["all", ["==", ["get", "id"], this.selectedId ?? ""], this.shownFilter()];
   }
 
   select(recordId: string | null): void {
     this.selectedId = recordId;
-    this.applySelection();
+    this.applyFilters();
   }
 
-  private applySelection(): void {
-    if (this.map.getLayer(SELECTED_ID)) {
-      this.map.setFilter(SELECTED_ID, ["==", ["get", "id"], this.selectedId ?? ""]);
-    }
+  private applyFilters(): void {
+    const map = this.map;
+    if (map.getLayer(FILL_ID)) map.setFilter(FILL_ID, this.shownFilter());
+    if (map.getLayer(LINE_ID)) map.setFilter(LINE_ID, this.shownFilter());
+    if (map.getLayer(SELECTED_ID)) map.setFilter(SELECTED_ID, this.selectedFilter());
   }
 
   clear(): void {

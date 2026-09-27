@@ -259,6 +259,49 @@ describe("RNDT panel", () => {
     expect(copy.textContent).toBe("Copied");
   });
 
+  it("hides footprints globally and one by one", async () => {
+    const order: string[] = [];
+    const sources = new Set<string>();
+    const map = {
+      on: () => undefined,
+      off: () => undefined,
+      getSource: (id: string) => (sources.has(id) ? { setData: () => undefined } : undefined),
+      addSource: (id: string) => sources.add(id),
+      getLayer: (id: string) => (order.includes(id) ? { id } : undefined),
+      addLayer: (layer: { id: string }) => order.push(layer.id),
+      getLayersOrder: () => [...order],
+      moveLayer: () => undefined,
+      setFilter: () => undefined,
+      setLayoutProperty: vi.fn(),
+      getCanvas: () => ({ style: {} }),
+    };
+    const { host, container } = await mountPanel(() => fixture("search-alberi.json"));
+    host.getMap = () => map as never;
+    const global = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(
+      (b) => b.textContent === "Hide footprints",
+    )!;
+    expect(global.disabled).toBe(true);
+
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    expect(global.disabled).toBe(false);
+    const single = container.querySelector<HTMLButtonElement>(".ordt-footprint-toggle")!;
+    expect(single.textContent).toBe("Hide footprint");
+
+    single.click();
+    expect(single.textContent).toBe("Show footprint");
+
+    global.click();
+    expect(global.textContent).toBe("Show footprints");
+    expect(single.disabled).toBe(true);
+    expect(map.setLayoutProperty).toHaveBeenCalledWith("openrndt-geolibre-footprints-fill", "visibility", "none");
+
+    global.click();
+    expect(global.textContent).toBe("Hide footprints");
+    expect(single.disabled).toBe(false);
+    expect(single.textContent).toBe("Hide footprint");
+  });
+
   it("shows form errors without calling the catalogue", async () => {
     const { requested, container } = await mountPanel(() => "{}");
     container.querySelector<HTMLSelectElement>('select[name="where"]')!.value = "box";
@@ -283,6 +326,19 @@ describe("groupServices", () => {
     ]);
     expect(groups).toHaveLength(2);
     expect(groups[0].layerHint).toBe("PPR:v_alberi_monumentali_e_notevoli");
+  });
+
+  it("merges the same endpoint declared as http and https, keeping https", async () => {
+    const { groupServices } = await import("../src/rndt/panel");
+    const groups = groupServices([
+      { kind: "WMS", url: "http://servizigis.regione.emilia-romagna.it/wms/rer2022_nir" },
+      {
+        kind: "WMS",
+        url: "https://servizigis.regione.emilia-romagna.it/wms/rer2022_nir?request=GetCapabilities&service=WMS",
+      },
+    ]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].url).toMatch(/^https:/);
   });
 });
 

@@ -27,6 +27,7 @@ function fakeMap() {
     }),
     getLayersOrder: () => [...order],
     setFilter: vi.fn(),
+    setLayoutProperty: vi.fn(),
     getCanvas: () => ({ style: {} }),
   };
   return map;
@@ -60,5 +61,58 @@ describe("FootprintsLayer", () => {
     map.fire("styledata");
     expect(map.getSource("openrndt-geolibre-footprints")).toBeDefined();
     expect(map.order).toContain("openrndt-geolibre-footprints-fill");
+  });
+
+  it("hides all footprints and shows them again, also those hidden one by one", () => {
+    const map = fakeMap();
+    const layer = new FootprintsLayer(map as unknown as MapLibreMap, () => undefined);
+    layer.setData({ type: "FeatureCollection", features: [] });
+
+    layer.setHidden("a", true);
+    expect(layer.isHidden("a")).toBe(true);
+    expect(map.setFilter).toHaveBeenLastCalledWith("openrndt-geolibre-footprints-selected", [
+      "all",
+      ["==", ["get", "id"], ""],
+      ["!", ["in", ["get", "id"], ["literal", ["a"]]]],
+    ]);
+
+    layer.setVisible(false);
+    expect(layer.isVisible()).toBe(false);
+    expect(map.setLayoutProperty).toHaveBeenCalledWith("openrndt-geolibre-footprints-fill", "visibility", "none");
+
+    layer.setVisible(true);
+    expect(map.setLayoutProperty).toHaveBeenLastCalledWith(
+      "openrndt-geolibre-footprints-selected",
+      "visibility",
+      "visible",
+    );
+    expect(layer.isHidden("a")).toBe(false);
+  });
+
+  it("keeps the global choice and resets single records on new data", () => {
+    const map = fakeMap();
+    const layer = new FootprintsLayer(map as unknown as MapLibreMap, () => undefined);
+    layer.setData({ type: "FeatureCollection", features: [] });
+    layer.setHidden("a", true);
+    layer.setVisible(false);
+    layer.setData({ type: "FeatureCollection", features: [] });
+    expect(layer.isVisible()).toBe(false);
+    expect(layer.isHidden("a")).toBe(false);
+  });
+
+  it("re-adds hidden layers hidden after a style reset", () => {
+    const map = fakeMap();
+    const added: { id: string; layout?: { visibility?: string } }[] = [];
+    map.addLayer = (l: { id: string; layout?: { visibility?: string } }) => {
+      added.push(l);
+      return map.order.push(l.id);
+    };
+    const layer = new FootprintsLayer(map as unknown as MapLibreMap, () => undefined);
+    layer.setData({ type: "FeatureCollection", features: [] });
+    layer.setVisible(false);
+    map.order.splice(0, map.order.length, "new-style-background");
+    added.length = 0;
+    map.fire("styledata");
+    expect(added.map((l) => l.layout?.visibility)).toEqual(["none", "none", "none"]);
   });
 });

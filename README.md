@@ -10,7 +10,7 @@ Status: **alpha** (`0.1.0-alpha.1`).
 
 - A right-side panel, "RNDT", opened from the Plugins menu (entry "RNDT catalogue"). Closing the panel with X turns the plugin off, so the Plugins menu stays in sync. A "RNDT" toolbar menu, shown while the plugin is on, brings the panel back when another plugin panel has taken its place, and clears results.
 - Search form modelled on the portal's "Ricerca Dettagliata": free text (all words, any word, raw Lucene), field (title, abstract, lineage, use limitation), resource type (data or services, with service type), area (map view, drawn shapes, typed box), INSPIRE theme, keywords, organisation, open data only, date range by creation/publication/revision date, sort order.
-- Results list with type, services, organisation and metadata date; result footprints drawn on the map, clickable.
+- Results list with type, services, organisation and metadata date; result footprints drawn on the map, clickable. "Hide footprints" hides them all (and "Show footprints" brings them all back); "Hide footprint" next to "Zoom to extent" hides a single record's. The results list stays as it is.
 - "?" buttons next to the search mode, "Search in" and "Where" open inline help with clickable examples.
 - "Copy query" copies a `curl` command (POSIX shell) that repeats the results page on screen, with the same parameters the panel sends to the catalogue.
 - For each record: add a **WMS** layer (layer picked from GetCapabilities, preselected from the record), add **WFS** features as GeoJSON (optionally only in the current map view, up to 5,000 features), add GeoJSON downloads, open or copy any link, open the metadata as HTML or ISO XML.
@@ -19,7 +19,7 @@ Status: **alpha** (`0.1.0-alpha.1`).
 
 - WMS layers not offered in `EPSG:3857` (for example the Agenzia delle Entrate cadastral WMS, `EPSG:6706` only) cannot be added: the GeoLibre plugin API has no `crs` option for `addWmsLayer` yet (proposed in opengeos/GeoLibre#2701). The panel says so instead of adding an empty layer.
 - WFS services without a GeoJSON output format cannot be added.
-- Footprints are a temporary map overlay, not a project layer: they are replaced on every search and removed with "Clear results" or when the plugin is turned off.
+- Footprints are a temporary map overlay, not a project layer: they are replaced on every search and removed with "Clear results" or when the plugin is turned off. Footprints hidden one by one come back with a new search; the global choice stays.
 - The footprints need the MapLibre renderer.
 
 ## Install for local testing (GeoLibre Desktop on Windows, building in WSL)

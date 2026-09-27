@@ -121,7 +121,9 @@ export function groupServices(services: RndtService[]): ServiceGroup[] {
     let key = service.url;
     if (["WMS", "WFS", "WCS", "WMTS"].includes(service.kind)) {
       try {
-        key = `${service.kind} ${serviceBaseUrl(service.url).toLowerCase()}`;
+        // The scheme is left out: a record may declare the same endpoint as
+        // http:// and https:// (Emilia-Romagna WMS, 2026-09-27).
+        key = `${service.kind} ${serviceBaseUrl(service.url).replace(/^https?:\/\//i, "").toLowerCase()}`;
       } catch {
         // Not a parseable URL: keep it on its own.
       }
@@ -130,6 +132,7 @@ export function groupServices(services: RndtService[]): ServiceGroup[] {
     const existing = groups.get(key);
     if (existing) {
       existing.layerHint ??= hint;
+      if (/^http:/i.test(existing.url) && /^https:/i.test(service.url)) existing.url = service.url;
     } else {
       groups.set(key, { ...service, layerHint: hint });
     }
@@ -260,6 +263,7 @@ export class RndtPanel {
   private requestSeq = 0;
   private lastForm: SearchForm | null = null;
   private copyQueryEl!: HTMLButtonElement;
+  private footprintsToggleEl!: HTMLButtonElement;
 
   constructor(private readonly app: RndtHost) {}
 
@@ -478,6 +482,12 @@ export class RndtPanel {
       "Copy query",
     );
 
+    this.footprintsToggleEl = h(
+      "button",
+      { className: "ordt-link", type: "button", disabled: true, onclick: () => this.toggleFootprints() },
+      "Hide footprints",
+    );
+
     const form = h(
       "form",
       {
@@ -582,6 +592,7 @@ export class RndtPanel {
         h("button", { className: "ordt-link", type: "reset", onclick: () => setTimeout(() => this.afterReset(), 0) }, "Reset"),
         h("button", { className: "ordt-link", type: "button", onclick: () => this.clearResults() }, "Clear results"),
         h("button", { className: "ordt-link", type: "button", onclick: () => this.zoomToResults() }, "Zoom to results"),
+        this.footprintsToggleEl,
         this.copyQueryEl,
       ),
     );
@@ -690,6 +701,7 @@ export class RndtPanel {
       this.expandedId = null;
       this.footprintsOverlay()?.setData(footprints(page.records));
       this.renderResults();
+      this.updateFootprintControls();
     } catch (error) {
       if (seq !== this.requestSeq) return;
       this.setStatus(`Search failed: ${errorMessage(error)}`, "error");
@@ -703,10 +715,40 @@ export class RndtPanel {
     this.lastForm = null;
     this.footprintsLayer?.clear();
     if (this.copyQueryEl) this.copyQueryEl.disabled = true;
+    if (this.footprintsToggleEl) this.updateFootprintControls();
     if (!this.root) return;
     this.listEl.replaceChildren();
     this.pagerEl.replaceChildren();
     this.setStatus("Results cleared.");
+  }
+
+  /** Hide all footprints, or show them all again (also those hidden one by one). */
+  toggleFootprints(): void {
+    const layer = this.footprintsLayer;
+    if (!layer) return;
+    layer.setVisible(!layer.isVisible());
+    this.updateFootprintControls();
+  }
+
+  private toggleFootprint(recordId: string): void {
+    const layer = this.footprintsLayer;
+    if (!layer) return;
+    layer.setHidden(recordId, !layer.isHidden(recordId));
+    this.updateFootprintControls();
+  }
+
+  /** Sync the global and per-record footprint links with the layer state. */
+  private updateFootprintControls(): void {
+    const layer = this.footprintsLayer;
+    const allVisible = layer?.isVisible() ?? true;
+    this.footprintsToggleEl.disabled = !layer || !this.records.some((r) => r.bbox);
+    this.footprintsToggleEl.textContent = allVisible ? "Hide footprints" : "Show footprints";
+    for (const button of Array.from(this.listEl.querySelectorAll<HTMLButtonElement>(".ordt-footprint-toggle"))) {
+      const id = button.dataset.id!;
+      button.textContent = layer?.isHidden(id) ? "Show footprint" : "Hide footprint";
+      button.disabled = !allVisible;
+      button.title = allVisible ? "" : "All footprints are hidden: use Show footprints first";
+    }
   }
 
   /** Copy a curl command that repeats the search page on screen. */
@@ -825,6 +867,19 @@ export class RndtPanel {
             "button",
             { className: "ordt-link", type: "button", onclick: () => this.app.fitBounds!(record.bbox!) },
             "Zoom to extent",
+          ),
+        record.bbox &&
+          this.footprintsLayer &&
+          h(
+            "button",
+            {
+              className: "ordt-link ordt-footprint-toggle",
+              type: "button",
+              "data-id": record.id,
+              disabled: !this.footprintsLayer.isVisible(),
+              onclick: () => this.toggleFootprint(record.id),
+            },
+            this.footprintsLayer.isHidden(record.id) ? "Show footprint" : "Hide footprint",
           ),
         h("a", { className: "ordt-link", href: record.htmlUrl, target: "_blank", rel: "noopener" }, "Metadata"),
         h("a", { className: "ordt-link", href: record.xmlUrl, target: "_blank", rel: "noopener" }, "ISO XML"),
