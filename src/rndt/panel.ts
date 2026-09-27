@@ -210,8 +210,8 @@ const WHERE_HELP: { value: Where; note: string; box?: string }[] = [
   },
   {
     value: "box",
-    note: "four numbers in degrees (WGS84): west, south, east, north. Example, Palermo:",
-    box: "13.30, 38.08, 13.40, 38.16",
+    note: "four numbers in degrees (WGS84): west, south, east, north. Example, the province of Palermo:",
+    box: "12.95, 37.60, 14.30, 38.30",
   },
 ];
 
@@ -461,7 +461,7 @@ export class RndtPanel {
       h(
         "p",
         {},
-        "A record is found when its extent, a rectangle, touches the area: national and regional records show up too. In the Palermo box, catastale finds the Palermo cadastral map and the national cadastral services.",
+        "A record is found when its extent, a rectangle, touches the area: national and regional records show up too. In the Palermo box, catastale finds the cadastral maps of more than a hundred municipalities (a rectangle also touches the neighbouring provinces) and the national cadastral services.",
       ),
     );
 

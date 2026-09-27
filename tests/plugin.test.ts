@@ -237,9 +237,7 @@ describe("RNDT panel", () => {
     expect(
       container.querySelector<HTMLInputElement>('input[name="box"]')!.hidden,
     ).toBe(false);
-    expect(new URL(requested[0]).searchParams.get("bbox")).toBe(
-      "13.3,38.08,13.4,38.16",
-    );
+    expect(new URL(requested[0]).searchParams.get("bbox")).toBe("12.95,37.6,14.3,38.3");
   });
 
   it("shows form errors without calling the catalogue", async () => {
