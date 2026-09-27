@@ -1,5 +1,11 @@
 # LOG
 
+## 2026-09-27 (0.1.0-alpha.3)
+
+- **Nomi leggibili dei layer** (issue #7): nel menu dei layer di WMS e WFS prima il nome come lo dà il servizio (quello citato da manuali e specifiche), poi tra parentesi un nome leggibile se c'è: il `Title` del capabilities quando non è un codice, altrimenti il titolo di un record RNDT che punta allo stesso servizio (nome del layer nel link, oppure codice tra parentesi in fondo al titolo, es. "Recupero RAEE R3 (RAEER3)"). Il menu compare subito, la ricerca nel RNDT gira in sottofondo con la rotellina e aggiorna le voci senza cambiare la selezione. Stessa etichetta nel pannello Layers. Filtro sopra i 30 layer. Indagine su 64 servizi: titoli leggibili 88% nei WMS, 50% nei WFS; dal vivo FVG RIFIUTI 80 nomi su 89, Veneto 797 su 1.068 (460 dal capabilities, 337 dal RNDT). QGIS mostra Name e Title affiancati; ArcGIS Pro usa il Title e tiene il Name nelle proprietà.
+- **Ricerca nel RNDT a fasce**: prima il conteggio (`num=0`, circa 0,2 s); 0 record, stop; fino a 1.000, una sola richiesta in CSW (Veneto 668 record, 1,2 MB, circa 1 s); oltre, solo il layer selezionato con `links_s:*host\/percorso*NOME*` (0,15-0,2 s). Limite 8 s, mai bloccante. In jsdom la lettura di 918 KB di CSW richiede 4,7 s, in Chromium 17 ms: i tempi dei test non sono quelli di GeoLibre.
+- **Paginazione anche in cima** (issue #12): Previous/Next sopra la lista, sotto la riga di stato, oltre che in fondo; dopo il cambio pagina la lista torna all'inizio.
+
 ## 2026-09-27 (0.1.0-alpha.2)
 
 - **× nel campo Organisation** (#9): visibile solo quando il campo ha un valore; svuota il filtro e, se una ricerca è già stata fatta, la rilancia senza.

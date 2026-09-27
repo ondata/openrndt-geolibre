@@ -4,7 +4,7 @@ A [GeoLibre](https://github.com/opengeos/GeoLibre) plugin to search the **RNDT**
 
 It is the GeoLibre counterpart of the [openrndt](https://github.com/ondata/openrndt) CLI and uses the same RNDT REST API (`https://geodati.gov.it/RNDT/rest/metadata/search`).
 
-Status: **alpha** (`0.1.0-alpha.2`).
+Status: **alpha** (`0.1.0-alpha.3`).
 
 ## What it does
 
@@ -13,6 +13,7 @@ Status: **alpha** (`0.1.0-alpha.2`).
 - Results list with type, services, organisation and metadata date; clicking an organisation name filters the current search on it; result footprints drawn on the map, clickable. "Hide footprints" hides them all (and "Show footprints" brings them all back); "Hide footprint" next to "Zoom to extent" hides a single record's. The results list stays as it is.
 - "?" buttons next to the search mode, "Search in" and "Where" open inline help with clickable examples.
 - "Copy query" copies a `curl` command (POSIX shell) that repeats the results page on screen, with the same parameters the panel sends to the catalogue.
+- Layer menus show each layer name as the service gives it, with a readable name in brackets when there is one: the capabilities title if it reads as a name, otherwise a title looked up in RNDT, in the background, from the records that link to the same service. A filter field appears above 30 layers.
 - For each record: add a **WMS** layer (layer picked from GetCapabilities, preselected from the record), add **WFS** features as GeoJSON (optionally only in the current map view; up to 10,000 features without asking, above that the panel shows the count and asks whether to download them all or only the first 10,000), add GeoJSON downloads, open or copy any link, open the metadata as HTML or ISO XML.
 
 ## Known limits
