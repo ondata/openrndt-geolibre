@@ -356,6 +356,15 @@ describe("RNDT panel", () => {
     const q = new URL(requested.at(-1)!).searchParams.get("q")!;
     expect(q).toContain("(alberi)");
     expect(q).toContain("EnteResponsabile_s:");
+
+    // The × empties the filter and searches again without it.
+    const clear = container.querySelector<HTMLButtonElement>(".ordt-clear")!;
+    expect(clear.hidden).toBe(false);
+    clear.click();
+    await flush();
+    expect(container.querySelector<HTMLInputElement>('input[name="organisation"]')!.value).toBe("");
+    expect(clear.hidden).toBe(true);
+    expect(new URL(requested.at(-1)!).searchParams.get("q")).toBe("(alberi)");
   });
 
   it("shows form errors without calling the catalogue", async () => {

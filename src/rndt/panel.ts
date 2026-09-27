@@ -335,6 +335,7 @@ export class RndtPanel {
    */
   private filterByOrganisation(name: string): void {
     this.field<HTMLInputElement>("organisation").value = name;
+    this.syncOrganisationClear();
     this.formEl.querySelector<HTMLDetailsElement>(".ordt-more")!.open = true;
     this.formEl.requestSubmit();
   }
@@ -585,10 +586,32 @@ export class RndtPanel {
           h("input", { className: "ordt-input", name: "keywords", placeholder: "opendata, Idrografia" }),
         ),
         h(
-          "label",
+          "div",
           { className: "ordt-label" },
           "Organisation",
-          h("input", { className: "ordt-input", name: "organisation", placeholder: "Regione Piemonte" }),
+          h(
+            "div",
+            { className: "ordt-row" },
+            h("input", {
+              className: "ordt-input ordt-grow",
+              name: "organisation",
+              placeholder: "Regione Piemonte",
+              "aria-label": "Organisation",
+              oninput: () => this.syncOrganisationClear(),
+            }),
+            h(
+              "button",
+              {
+                className: "ordt-clear",
+                type: "button",
+                hidden: true,
+                "aria-label": "Clear organisation",
+                title: "Clear organisation and search again",
+                onclick: () => this.clearOrganisation(),
+              },
+              "×",
+            ),
+          ),
         ),
         h(
           "label",
@@ -646,6 +669,21 @@ export class RndtPanel {
   private afterReset(): void {
     this.formEl.querySelector<HTMLElement>(".ordt-service-types")!.hidden = true;
     this.formEl.querySelector<HTMLElement>('input[name="box"]')!.hidden = true;
+    this.syncOrganisationClear();
+  }
+
+  /** Show the × of the Organisation field only when it has a value. */
+  private syncOrganisationClear(): void {
+    this.formEl.querySelector<HTMLElement>(".ordt-clear")!.hidden = !this.field<HTMLInputElement>("organisation").value.trim();
+  }
+
+  /** Empty the Organisation filter and, after a search, search again without it. */
+  private clearOrganisation(): void {
+    const input = this.field<HTMLInputElement>("organisation");
+    input.value = "";
+    this.syncOrganisationClear();
+    input.focus();
+    if (this.lastForm) this.formEl.requestSubmit();
   }
 
   private field<T extends HTMLInputElement | HTMLSelectElement>(name: string): T {
