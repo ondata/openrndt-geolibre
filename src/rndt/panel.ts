@@ -329,6 +329,16 @@ export class RndtPanel {
 
   // ---------------------------------------------------------------- form
 
+  /**
+   * Put an organisation in the Organisation filter and search again, keeping
+   * the other filters. "More filters" opens so the active filter is visible.
+   */
+  private filterByOrganisation(name: string): void {
+    this.field<HTMLInputElement>("organisation").value = name;
+    this.formEl.querySelector<HTMLDetailsElement>(".ordt-more")!.open = true;
+    this.formEl.requestSubmit();
+  }
+
   /** Search in a help example's box, keeping the rest of the form. */
   private runBoxExample(box: string): void {
     const where = this.formEl.querySelector<HTMLSelectElement>(
@@ -863,7 +873,17 @@ export class RndtPanel {
         { className: "ordt-meta" },
         record.type && h("span", { className: "ordt-badge" }, record.type),
         ...kinds.map((k) => h("span", { className: "ordt-badge ordt-badge-service" }, k)),
-        record.organisation && h("span", {}, record.organisation),
+        record.organisation &&
+          h(
+            "button",
+            {
+              className: "ordt-link ordt-org",
+              type: "button",
+              title: "Show only results from this organisation",
+              onclick: () => this.filterByOrganisation(record.organisation),
+            },
+            record.organisation,
+          ),
         record.modified && h("span", { className: "ordt-muted" }, record.modified),
       ),
       detail,

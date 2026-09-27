@@ -416,3 +416,12 @@
 .ordt-choices {
   margin-top: 6px;
 }
+
+.ordt-org {
+  color: inherit;
+  text-align: left;
+}
+
+.ordt-org:hover {
+  color: var(--ordt-primary);
+}

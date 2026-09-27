@@ -342,6 +342,22 @@ describe("RNDT panel", () => {
     expect(item.textContent).toContain("Added 1 of 22,521 features");
   });
 
+  it("filters on a record's organisation, keeping the other filters", async () => {
+    const { requested, container } = await mountPanel(() => fixture("search-alberi.json"));
+    container.querySelector<HTMLInputElement>('input[name="text"]')!.value = "alberi";
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const org = container.querySelector<HTMLButtonElement>(".ordt-org")!;
+    expect(org.title).toBe("Show only results from this organisation");
+    org.click();
+    await flush();
+    expect(container.querySelector<HTMLInputElement>('input[name="organisation"]')!.value).toBe(org.textContent);
+    expect(container.querySelector<HTMLDetailsElement>(".ordt-more")!.open).toBe(true);
+    const q = new URL(requested.at(-1)!).searchParams.get("q")!;
+    expect(q).toContain("(alberi)");
+    expect(q).toContain("EnteResponsabile_s:");
+  });
+
   it("shows form errors without calling the catalogue", async () => {
     const { requested, container } = await mountPanel(() => "{}");
     container.querySelector<HTMLSelectElement>('select[name="where"]')!.value = "box";
