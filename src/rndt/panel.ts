@@ -1028,7 +1028,7 @@ export class RndtPanel {
           result.dataset.kind = "busy";
           result.textContent = "Downloading features…";
           try {
-            const data = await fetchJson(this.app, url);
+            const data = await fetchJson(this.app, url, { download: true });
             if (!isFeatureCollection(data)) throw new Error("the response is not a GeoJSON FeatureCollection");
             if (!data.features.length) {
               result.dataset.kind = "info";
@@ -1046,7 +1046,12 @@ export class RndtPanel {
                 : `Added ${data.features.length} features.`;
           } catch (error) {
             result.dataset.kind = "error";
-            result.textContent = `WFS error: ${errorMessage(error)}`;
+            // A server that does not answer in time is usually sending a big
+            // layer: say what to try, not only what failed.
+            const message = errorMessage(error);
+            result.textContent = message.startsWith("cannot reach")
+              ? `WFS error: ${message}. Large layers can be slow: zoom in and keep "Only features in the current map view" checked.`
+              : `WFS error: ${message}`;
           } finally {
             add.disabled = false;
           }
@@ -1065,7 +1070,7 @@ export class RndtPanel {
   private async addGeoJson(record: RndtRecord, service: RndtService, area: HTMLElement): Promise<void> {
     this.note(area, "Downloading GeoJSON…", "busy");
     try {
-      const data = await fetchJson(this.app, service.url);
+      const data = await fetchJson(this.app, service.url, { download: true });
       if (!isFeatureCollection(data)) throw new Error("the file is not a GeoJSON FeatureCollection");
       this.app.addGeoJsonLayer!(record.title, fixAxisOrder(data));
       this.note(area, `Added ${data.features.length} features.`);

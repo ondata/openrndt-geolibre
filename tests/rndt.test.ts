@@ -209,6 +209,39 @@ describe("bestMatchingLayer", () => {
   });
 });
 
+describe("data downloads", () => {
+  const base = { addMapControl: () => true, removeMapControl: () => undefined };
+
+  it("uses the long-budget vector downloader for downloads when present", async () => {
+    const { fetchJson } = await import("../src/rndt/host");
+    const vector: string[] = [];
+    const small: string[] = [];
+    const host = {
+      ...base,
+      fetchVectorUrl: async (url: string) => {
+        vector.push(url);
+        return new File(['{"type":"FeatureCollection","features":[]}'], "x.json");
+      },
+      fetchArrayBuffer: async (url: string) => {
+        small.push(url);
+        return new TextEncoder().encode("{}").buffer as ArrayBuffer;
+      },
+    };
+    await fetchJson(host, "https://x.it/wfs?a=1", { download: true });
+    await fetchJson(host, "https://x.it/search");
+    expect(vector).toEqual(["https://x.it/wfs?a=1"]);
+    expect(small).toEqual(["https://x.it/search"]);
+  });
+
+  it("reports a download the host could not serve", async () => {
+    const { fetchJson } = await import("../src/rndt/host");
+    const host = { ...base, fetchVectorUrl: async () => null };
+    await expect(fetchJson(host, "https://x.it/wfs", { download: true })).rejects.toThrow(
+      /cannot reach x\.it: download failed/,
+    );
+  });
+});
+
 describe("HTTP to HTTPS", () => {
   it("tries https first for an http link, then falls back to http", async () => {
     const { fetchTextFrom } = await import("../src/rndt/host");
