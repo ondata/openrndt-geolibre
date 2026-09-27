@@ -302,6 +302,46 @@ describe("RNDT panel", () => {
     expect(single.textContent).toBe("Hide footprint");
   });
 
+  it("asks before downloading more WFS features than the limit", async () => {
+    const hits = '<wfs:FeatureCollection numberMatched="22521" numberReturned="0"/>';
+    const features = JSON.stringify({ type: "FeatureCollection", features: [{ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: [46, 13] } }] });
+    const { host, requested, container } = await mountPanel((url) =>
+      url.includes("/rest/metadata/search")
+        ? fixture("search-alberi.json")
+        : /RESULTTYPE=hits/i.test(url)
+          ? hits
+          : /REQUEST=GetFeature/i.test(url)
+            ? features
+            : fixture("wfs-fvg-200.xml"),
+    );
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const item = Array.from(container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
+      Array.from(li.querySelectorAll(".ordt-badge-service")).some((b) => b.textContent === "WFS"),
+    )!;
+    item.querySelector<HTMLButtonElement>(".ordt-result-title")!.click();
+    const areaButtons = () => Array.from(item.querySelectorAll<HTMLButtonElement>("button"));
+    const wfsRow = Array.from(item.querySelectorAll<HTMLElement>(".ordt-service")).find((row) =>
+      row.textContent!.includes("WFS"),
+    )!;
+    Array.from(wfsRow.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent === "Add to map…")!.click();
+    await flush();
+    areaButtons().find((b) => b.textContent === "Add features")!.click();
+    await flush();
+    await flush();
+
+    expect(item.textContent).toContain("22,521 features in this area");
+    expect(requested.some((u) => /REQUEST=GetFeature/i.test(u) && !/RESULTTYPE=hits/i.test(u))).toBe(false);
+
+    areaButtons().find((b) => b.textContent === "Download all")!.click();
+    await flush();
+    await flush();
+    const getFeature = new URL(requested.find((u) => /REQUEST=GetFeature/i.test(u) && !/RESULTTYPE=hits/i.test(u))!);
+    expect(getFeature.searchParams.get("COUNT")).toBe("22521");
+    expect(host.addGeoJsonLayer).toHaveBeenCalled();
+    expect(item.textContent).toContain("Added 1 of 22,521 features");
+  });
+
   it("shows form errors without calling the catalogue", async () => {
     const { requested, container } = await mountPanel(() => "{}");
     container.querySelector<HTMLSelectElement>('select[name="where"]')!.value = "box";

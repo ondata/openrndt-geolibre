@@ -337,6 +337,27 @@ export function buildGetFeatureUrl(
   return url.toString();
 }
 
+/**
+ * GetFeature URL that asks only how many features match (`resultType=hits`),
+ * or null for WFS 1.0.0, which has no such request.
+ */
+export function buildHitsUrl(caps: WfsCapabilities, typeName: string, bbox?: Bbox | null): string | null {
+  if (caps.version.startsWith("1.0")) return null;
+  const url = new URL(buildGetFeatureUrl(caps, typeName, { format: "", maxFeatures: 0, bbox }));
+  for (const key of ["OUTPUTFORMAT", "COUNT", "MAXFEATURES"]) url.searchParams.delete(key);
+  url.searchParams.set("RESULTTYPE", "hits");
+  return url.toString();
+}
+
+/**
+ * Feature count from a `resultType=hits` answer: `numberMatched` (WFS 2.0) or
+ * `numberOfFeatures` (1.1). Null when missing or "unknown".
+ */
+export function parseHitsCount(xml: string): number | null {
+  const match = /\snumberMatched="(\d+)"/.exec(xml) ?? /\snumberOfFeatures="(\d+)"/.exec(xml);
+  return match ? Number(match[1]) : null;
+}
+
 function firstPosition(geometry: Geometry | null): Position | null {
   if (!geometry) return null;
   if (geometry.type === "GeometryCollection") {

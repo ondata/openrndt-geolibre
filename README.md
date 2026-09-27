@@ -13,7 +13,7 @@ Status: **alpha** (`0.1.0-alpha.1`).
 - Results list with type, services, organisation and metadata date; result footprints drawn on the map, clickable. "Hide footprints" hides them all (and "Show footprints" brings them all back); "Hide footprint" next to "Zoom to extent" hides a single record's. The results list stays as it is.
 - "?" buttons next to the search mode, "Search in" and "Where" open inline help with clickable examples.
 - "Copy query" copies a `curl` command (POSIX shell) that repeats the results page on screen, with the same parameters the panel sends to the catalogue.
-- For each record: add a **WMS** layer (layer picked from GetCapabilities, preselected from the record), add **WFS** features as GeoJSON (optionally only in the current map view, up to 5,000 features), add GeoJSON downloads, open or copy any link, open the metadata as HTML or ISO XML.
+- For each record: add a **WMS** layer (layer picked from GetCapabilities, preselected from the record), add **WFS** features as GeoJSON (optionally only in the current map view; up to 10,000 features without asking, above that the panel shows the count and asks whether to download them all or only the first 10,000), add GeoJSON downloads, open or copy any link, open the metadata as HTML or ISO XML.
 
 ## Known limits
 

@@ -412,3 +412,7 @@
 .ordt-example {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
+
+.ordt-choices {
+  margin-top: 6px;
+}

@@ -4,8 +4,10 @@ import { describe, expect, it } from "vitest";
 import { RNDT_BASE_URL } from "../src/rndt/constants";
 import {
   buildGetFeatureUrl,
+  buildHitsUrl,
   capabilitiesUrl,
   fixAxisOrder,
+  parseHitsCount,
   parseWfsCapabilities,
   parseWmsCapabilities,
   pickJsonFormat,
@@ -168,6 +170,24 @@ describe("WFS capabilities", () => {
     expect(url.searchParams.get("TYPENAMES")).toBe("PPR:x");
     expect(url.searchParams.get("COUNT")).toBe("100");
     expect(url.searchParams.get("BBOX")).toBe("45.5,13,46,13.5,urn:ogc:def:crs:EPSG::4326");
+  });
+
+  it("builds a hits request with the same type and box, and no count or format", () => {
+    const url = new URL(buildHitsUrl(caps, "PPR:x", [13, 45.5, 13.5, 46])!);
+    expect(url.searchParams.get("RESULTTYPE")).toBe("hits");
+    expect(url.searchParams.get("TYPENAMES")).toBe("PPR:x");
+    expect(url.searchParams.get("BBOX")).toBe("45.5,13,46,13.5,urn:ogc:def:crs:EPSG::4326");
+    expect(url.searchParams.has("COUNT")).toBe(false);
+    expect(url.searchParams.has("OUTPUTFORMAT")).toBe(false);
+    expect(buildHitsUrl({ ...caps, version: "1.0.0" }, "PPR:x")).toBeNull();
+  });
+
+  it("reads the count of a hits answer, WFS 2.0 and 1.1", () => {
+    // Shapes of the FVG RIFIUTI:TDLD8 answers, 2026-09-27.
+    expect(parseHitsCount('<wfs:FeatureCollection next="https://x.it/wfs?COUNT=10" numberMatched="22521" numberReturned="0"/>')).toBe(22521);
+    expect(parseHitsCount('<wfs:FeatureCollection numberOfFeatures="22521" timeStamp="2026-09-27"/>')).toBe(22521);
+    expect(parseHitsCount('<wfs:FeatureCollection numberMatched="unknown"/>')).toBeNull();
+    expect(parseHitsCount("<ows:ExceptionReport/>")).toBeNull();
   });
 
   it("reads the preselected feature type from a GetFeature link", () => {

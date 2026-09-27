@@ -11,10 +11,12 @@ import {
   type Option,
 } from "./constants";
 import { FootprintsLayer } from "./footprints-layer";
-import { drawnBbox, fetchJson, fetchTextFrom, GEO_EDITOR_PLUGIN_ID, type RndtHost } from "./host";
+import { drawnBbox, fetchJson, fetchText, fetchTextFrom, GEO_EDITOR_PLUGIN_ID, type RndtHost } from "./host";
 import {
   bestMatchingLayer,
   buildGetFeatureUrl,
+  buildHitsUrl,
+  parseHitsCount,
   capabilitiesUrl,
   fixAxisOrder,
   parseWfsCapabilities,
@@ -24,6 +26,7 @@ import {
   serviceBaseUrl,
   supportsWebMercator,
   upgradeToHttps,
+  type WfsCapabilities,
 } from "./ogc";
 import { bboxError, buildCurlCommand, buildSearchUrl, clampBbox, emptyForm, type Bbox, type ResourceKind, type SearchForm, type TextMode } from "./query";
 import { footprints, parseSearchResponse, type RndtRecord, type RndtService } from "./records";
@@ -80,6 +83,23 @@ function radioGroup(name: string, options: Option[], value: string, onChange: ()
 
 function checkedValue(root: HTMLElement, name: string): string {
   return root.querySelector<HTMLInputElement>(`input[name="${name}"]:checked`)?.value ?? "";
+}
+
+/** Show a question with one button per choice inside `container`; resolves with the chosen value. */
+function askChoice(container: HTMLElement, message: string, choices: Option[]): Promise<string> {
+  return new Promise((resolve) => {
+    container.dataset.kind = "info";
+    container.replaceChildren(
+      message,
+      h(
+        "span",
+        { className: "ordt-row ordt-choices" },
+        ...choices.map((c) =>
+          h("button", { className: "ordt-button", type: "button", onclick: () => resolve(c.value) }, c.label),
+        ),
+      ),
+    );
+  });
 }
 
 function host(url: string): string {
@@ -1017,17 +1037,35 @@ export class RndtPanel {
       add.addEventListener("click", () => {
         void (async () => {
           const name = picker.value;
-          const bbox = inView.checked ? this.app.getViewBounds?.() ?? null : null;
-          const url = buildGetFeatureUrl(caps, name, {
-            format,
-            maxFeatures: WFS_MAX_FEATURES,
-            bbox: bbox ? clampBbox(bbox) : null,
-          });
+          const view = inView.checked ? this.app.getViewBounds?.() ?? null : null;
+          const bbox = view ? clampBbox(view) : null;
           add.disabled = true;
           result.hidden = false;
           result.dataset.kind = "busy";
-          result.textContent = "Downloading features…";
+          result.textContent = "Counting features…";
           try {
+            const total = await this.countFeatures(caps, name, bbox);
+            let limit = WFS_MAX_FEATURES;
+            if (total !== null && total > WFS_MAX_FEATURES) {
+              const choice = await askChoice(
+                result,
+                `${total.toLocaleString("en")} features in this area. Downloading them all can be slow and use a lot of memory.`,
+                [
+                  { value: "all", label: "Download all" },
+                  { value: "first", label: `First ${WFS_MAX_FEATURES.toLocaleString("en")} only` },
+                  { value: "cancel", label: "Cancel" },
+                ],
+              );
+              if (choice === "cancel") {
+                result.dataset.kind = "info";
+                result.textContent = "Download cancelled.";
+                return;
+              }
+              if (choice === "all") limit = total;
+            }
+            result.dataset.kind = "busy";
+            result.textContent = "Downloading features…";
+            const url = buildGetFeatureUrl(caps, name, { format, maxFeatures: limit, bbox });
             const data = await fetchJson(this.app, url, { download: true });
             if (!isFeatureCollection(data)) throw new Error("the response is not a GeoJSON FeatureCollection");
             if (!data.features.length) {
@@ -1040,10 +1078,13 @@ export class RndtPanel {
             const title = caps.featureTypes.find((f) => f.name === name)?.title ?? name;
             this.app.addGeoJsonLayer!(title || record.title, fixAxisOrder(data));
             result.dataset.kind = "info";
+            const added = data.features.length;
             result.textContent =
-              data.features.length >= WFS_MAX_FEATURES
-                ? `Added ${data.features.length} features: limit reached, zoom in for complete data.`
-                : `Added ${data.features.length} features.`;
+              total !== null && added < total
+                ? `Added ${added.toLocaleString("en")} of ${total.toLocaleString("en")} features: the map is incomplete, zoom in for the rest.`
+                : total === null && added >= limit
+                  ? `Added ${added.toLocaleString("en")} features: limit reached, the map may be incomplete; zoom in for the rest.`
+                  : `Added ${added.toLocaleString("en")} features.`;
           } catch (error) {
             result.dataset.kind = "error";
             // A server that does not answer in time is usually sending a big
@@ -1064,6 +1105,17 @@ export class RndtPanel {
       );
     } catch (error) {
       this.note(area, `WFS error: ${errorMessage(error)}`, "error");
+    }
+  }
+
+  /** How many features a download would match, or null when the server cannot tell. */
+  private async countFeatures(caps: WfsCapabilities, typeName: string, bbox: Bbox | null): Promise<number | null> {
+    const url = buildHitsUrl(caps, typeName, bbox);
+    if (!url) return null;
+    try {
+      return parseHitsCount(await fetchText(this.app, url));
+    } catch {
+      return null; // A failed count must not block the download.
     }
   }
 

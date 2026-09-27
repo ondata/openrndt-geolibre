@@ -12,8 +12,11 @@ export const RNDT_BASE_URL = "https://geodati.gov.it/RNDT";
 /** Results per page. */
 export const PAGE_SIZE = 20;
 
-/** Maximum features requested from a WFS GetFeature. */
-export const WFS_MAX_FEATURES = 5000;
+/**
+ * Features a WFS download takes without asking. Above it the panel asks the
+ * user whether to download them all (slow, memory) or only this many.
+ */
+export const WFS_MAX_FEATURES = 10000;
 
 export interface Option {
   value: string;
