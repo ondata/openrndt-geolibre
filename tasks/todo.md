@@ -133,19 +133,19 @@ Misure aggiuntive (2026-09-27): nessun record è privo di tutte e tre le date (0
 
 ## Fase 3 - Plugin (dopo il merge)
 
-Stato 2026-09-28: #2701, #2702 e #2707 unite, non ancora in release (ultima 3.1.0). Il maintainer non ha risposto sul rilevamento del supporto. Proposta: `typeof app.importLayerStyle === "function"` come segnale per entrambe (unite a un minuto di distanza); con host vecchio il pulsante resta disattivato come oggi.
+Stato 2026-09-28: #2701, #2702 e #2707 unite, non ancora in release (ultima 3.1.0). Il maintainer non ha risposto sul rilevamento del supporto. Deciso: `typeof app.importLayerStyle === "function"` come segnale per entrambe (unite a un minuto di distanza); con host vecchio il pulsante resta disattivato come oggi.
 
 - [ ] `crs?` in `WmsLayerOptions` (`host.ts`), `importLayerStyle?` nel tipo dell'app → verify: typecheck
 - [ ] stessa regola di `defaultWmsCrs` di #2707 (3857, poi geografici, poi primo EPSG), così plugin e dialog nativo scelgono lo stesso CRS → verify: test unitari
 - [ ] ordine di scelta: `EPSG:3857`, poi geografici della lista, poi altri EPSG; `CRS:84` solo con 1.3.0; evitare EPSG:3003 se c'è altro (scarto di circa 70 m, #2695)
-- [ ] rilevamento del supporto secondo la risposta del maintainer
+- [ ] rilevamento: `typeof app.importLayerStyle === "function"`; più avanti proposta upstream di una versione dell'API dei plugin → verify: test con host finto con e senza la funzione
 - [ ] verifica in GeoLibre Desktop: catasto AdE allineato al WFS, Basilicata quando il DNS torna
 
 ## Domande aperte
 
 - issue upstream prima, o PR diretta?
 - sul web: errore o solo doc?
-- rilevamento supporto `crs` da plugin: come?
+- ~~rilevamento supporto `crs` da plugin: come?~~ deciso (indizio `importLayerStyle`)
 
 ## Review
 
