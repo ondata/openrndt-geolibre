@@ -14,8 +14,13 @@ import { escapeTerm } from "./query";
  * Veneto publish one record per layer.
  */
 
-/** Budget for the RNDT lookup: 0.15-0.6 s usually, 3.6 s at most measured. */
-export const LOOKUP_TIMEOUT_MS = 8000;
+/**
+ * Budget for the RNDT lookup: 0.15-0.6 s usually, 3.6 s at most measured, but
+ * the bulk download of a large service (2.5 MB for Emilia-Romagna) failed at
+ * the 8 s native budget on 2026-09-27. The lookup runs in the background and
+ * never blocks the layer menu, so it can wait longer.
+ */
+export const LOOKUP_TIMEOUT_MS = 30000;
 /**
  * Up to this many records the lookup downloads them all in one request
  * (Veneto, 668 records: 1.2 MB, about 1 s); above it, it looks up only the
@@ -162,7 +167,8 @@ export async function lookupLayerTitles(
       perLayer = true;
       return;
     }
-    merge(found, parseLayerTitles(await fetchText(host, layerTitlesUrl(baseUrl, serviceUrl))));
+    // Up to 1,000 records with their ISO XML: several MB, so the long-budget path.
+    merge(found, parseLayerTitles(await fetchText(host, layerTitlesUrl(baseUrl, serviceUrl), { download: true })));
   };
   try {
     await withTimeout(work(), timeoutMs);

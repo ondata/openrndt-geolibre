@@ -108,6 +108,31 @@ export async function fetchTextFrom(
   throw new Error(`cannot reach ${new URL(url).host}${tried}: ${reason}`);
 }
 
+/** Budget of each browser reachability probe. */
+export const BROWSER_PROBE_TIMEOUT_MS = 5000;
+
+/**
+ * True when the browser cannot reach `httpsUrl` but reaches its http:// twin.
+ * GeoLibre draws WMS tiles through its native client (redirects followed, no
+ * CORS), but its feature identify (GetFeatureInfo) uses the browser's fetch.
+ * A server that answers https with a 301 to http and no CORS header
+ * (wms.pcn.minambiente.it, 2026-09-27) then shows its tiles while identify
+ * fails with "Failed to fetch". A manual-redirect fetch cannot tell this
+ * apart (it fails the CORS check too), so both schemes are simply tried.
+ */
+export async function browserNeedsHttp(httpsUrl: string): Promise<boolean> {
+  const reaches = async (url: string) => {
+    try {
+      await fetch(url, { signal: AbortSignal.timeout(BROWSER_PROBE_TIMEOUT_MS) });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  if (await reaches(httpsUrl)) return false;
+  return reaches(httpsUrl.replace(/^https:/i, "http:"));
+}
+
 export async function fetchText(host: RndtHost, url: string, options: FetchOptions = {}): Promise<string> {
   return (await fetchTextFrom(host, url, options)).text;
 }

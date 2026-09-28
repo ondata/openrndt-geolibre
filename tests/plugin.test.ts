@@ -107,6 +107,41 @@ describe("RNDT panel", () => {
     );
   });
 
+  for (const [httpsReachable, scheme] of [
+    [false, "http:"],
+    [true, "https:"],
+] as const) {
+    it(`keeps the ${scheme} GetMap URL when the browser ${httpsReachable ? "reaches" : "cannot reach"} https`, async () => {
+      // Record and capabilities both say http; the plugin guesses https first.
+      const toHttp = (text: string) => text.replaceAll("https://geomap", "http://geomap");
+      const { host, container } = await mountPanel((url) =>
+        toHttp(url.includes("/rest/metadata/search") ? fixture("search-services.json") : fixture("wms-piemonte-111.xml")),
+      );
+      const probes: string[] = [];
+      vi.stubGlobal("fetch", async (url: string) => {
+        probes.push(url);
+        if (url.startsWith("https:") && !httpsReachable) throw new TypeError("Failed to fetch");
+        return new Response("ok");
+      });
+      try {
+        container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+        await flush();
+        const item = Array.from(container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
+          li.querySelector(".ordt-badge-service")?.textContent === "WMS",
+        )!;
+        item.querySelector<HTMLButtonElement>(".ordt-result-title")!.click();
+        Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent === "Add to map…")!.click();
+        await flush();
+        Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent === "Add layer")!.click();
+        const options = vi.mocked(host.addWmsLayer!).mock.calls[0][1];
+        expect(new URL(options.url).protocol).toBe(scheme);
+        expect(probes[0]).toMatch(/^https:/);
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    });
+  }
+
   it("disables adding a WMS layer without EPSG:3857", async () => {
     const { container } = await mountPanel((url) =>
       url.includes("/rest/metadata/search") ? fixture("search-services.json") : fixture("wms-ade-130.xml"),
@@ -136,6 +171,45 @@ describe("RNDT panel", () => {
     const url = new URL(requested[0]);
     expect(url.searchParams.get("bbox")).toBe("12,41,13,42");
     expect(url.searchParams.get("spatialRel")).toBe("Intersects");
+  });
+
+  it("downloads search results through the long-budget path when the host has one", async () => {
+    const { host, requested, container } = await mountPanel(() => fixture("search-alberi.json"));
+    const vector: string[] = [];
+    Object.assign(host, {
+      fetchVectorUrl: async (url: string) => {
+        vector.push(url);
+        return new File([fixture("search-alberi.json")], "search.json");
+      },
+    });
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    expect(vector).toHaveLength(1);
+    expect(vector[0]).toContain("/rest/metadata/search");
+    expect(requested).toEqual([]);
+    expect(container.querySelectorAll(".ordt-result").length).toBeGreaterThan(0);
+  });
+
+  it("filters on the links a record offers, whatever its type", async () => {
+    const { requested, container } = await mountPanel(() => fixture("search-alberi.json"));
+    container.querySelector<HTMLInputElement>('input[name="availableAs"][value="WMS"]')!.checked = true;
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    expect(new URL(requested[0]).searchParams.get("q")).toBe("links_s:(http*wms* OR http*WMS* OR http*Wms*)");
+  });
+
+  it("offers inside the area once an area is chosen", async () => {
+    const { requested, container } = await mountPanel(() => fixture("search-alberi.json"));
+    const choice = container.querySelector<HTMLElement>(".ordt-spatial-rel")!;
+    expect(choice.hidden).toBe(true);
+    const where = container.querySelector<HTMLSelectElement>('select[name="where"]')!;
+    where.value = "view";
+    where.dispatchEvent(new Event("change"));
+    expect(choice.hidden).toBe(false);
+    container.querySelector<HTMLInputElement>('input[name="spatialRel"][value="Within"]')!.checked = true;
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    expect(new URL(requested[0]).searchParams.get("spatialRel")).toBe("Within");
   });
 
   it("toggles the search-mode help and runs an example", async () => {
@@ -367,6 +441,26 @@ describe("RNDT panel", () => {
     expect(new URL(requested.at(-1)!).searchParams.get("q")).toBe("(alberi)");
   });
 
+  it("hides a record's organisation with the Hide button", async () => {
+    const { requested, container } = await mountPanel(() => fixture("search-alberi.json"));
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const name = container.querySelector<HTMLButtonElement>(".ordt-org")!.textContent!;
+    container.querySelector<HTMLButtonElement>(".ordt-hide-org")!.click();
+    await flush();
+    const organisation = container.querySelector<HTMLInputElement>('input[name="organisation"]')!;
+    const invert = container.querySelector<HTMLInputElement>('input[name="invertOrganisation"]')!;
+    expect(organisation.value).toBe(name);
+    expect(invert.checked).toBe(true);
+    expect(new URL(requested.at(-1)!).searchParams.get("q")).toMatch(/^NOT EnteResponsabile_s:/);
+
+    // Clicking the name keeps only that organisation again.
+    container.querySelector<HTMLButtonElement>(".ordt-org")!.click();
+    await flush();
+    expect(invert.checked).toBe(false);
+    expect(new URL(requested.at(-1)!).searchParams.get("q")).toMatch(/^EnteResponsabile_s:/);
+  });
+
   it("shows form errors without calling the catalogue", async () => {
     const { requested, container } = await mountPanel(() => "{}");
     container.querySelector<HTMLSelectElement>('select[name="where"]')!.value = "box";
@@ -404,6 +498,16 @@ describe("groupServices", () => {
     ]);
     expect(groups).toHaveLength(1);
     expect(groups[0].url).toMatch(/^https:/);
+  });
+
+  it("merges a GeoServer endpoint declared as /ows and as /wms", async () => {
+    const { groupServices } = await import("../src/rndt/panel");
+    const groups = groupServices([
+      { kind: "WMS", url: "https://geoservizi.regione.liguria.it/geoserver/M1440/ows?service=WMS&" },
+      { kind: "WMS", url: "https://geoservizi.regione.liguria.it/geoserver/M1440/wms?version=1.3.0&request=getcapabilities" },
+      { kind: "WFS", url: "https://geoservizi.regione.liguria.it/geoserver/M1440/wfs" },
+    ]);
+    expect(groups.map((g) => g.kind)).toEqual(["WMS", "WFS"]);
   });
 });
 

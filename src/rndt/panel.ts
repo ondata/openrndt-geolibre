@@ -11,7 +11,7 @@ import {
   type Option,
 } from "./constants";
 import { FootprintsLayer } from "./footprints-layer";
-import { drawnBbox, fetchJson, fetchText, fetchTextFrom, GEO_EDITOR_PLUGIN_ID, type RndtHost } from "./host";
+import { browserNeedsHttp, drawnBbox, fetchJson, fetchText, fetchTextFrom, GEO_EDITOR_PLUGIN_ID, type RndtHost } from "./host";
 import {
   bestMatchingLayer,
   buildGetFeatureUrl,
@@ -28,7 +28,7 @@ import {
   upgradeToHttps,
   type WfsCapabilities,
 } from "./ogc";
-import { bboxError, buildCurlCommand, buildSearchUrl, clampBbox, emptyForm, type Bbox, type ResourceKind, type SearchForm, type TextMode } from "./query";
+import { bboxError, buildCurlCommand, buildSearchUrl, clampBbox, emptyForm, type Bbox, type ResourceKind, type LinkKind, type SearchForm, type SpatialRel, type TextMode } from "./query";
 import { footprints, parseSearchResponse, type RndtRecord, type RndtService } from "./records";
 import { findTitle, lookupLayerTitles, lookupOneLayerTitle, optionLabel, readableTitle } from "./layer-names";
 
@@ -143,8 +143,11 @@ export function groupServices(services: RndtService[]): ServiceGroup[] {
     if (["WMS", "WFS", "WCS", "WMTS"].includes(service.kind)) {
       try {
         // The scheme is left out: a record may declare the same endpoint as
-        // http:// and https:// (Emilia-Romagna WMS, 2026-09-27).
-        key = `${service.kind} ${serviceBaseUrl(service.url).replace(/^https?:\/\//i, "").toLowerCase()}`;
+        // http:// and https:// (Emilia-Romagna WMS, 2026-09-27). A final
+        // /ows, /wms, /wfs... is one GeoServer endpoint: Liguria records list
+        // both geoserver/M1440/ows?service=WMS and geoserver/M1440/wms.
+        const base = serviceBaseUrl(service.url).replace(/^https?:\/\//i, "").toLowerCase();
+        key = `${service.kind} ${base.replace(/\/(?:ows|wms|wfs|wcs|wmts)(?=$|\?)/, "/ows")}`;
       } catch {
         // Not a parseable URL: keep it on its own.
       }
@@ -164,6 +167,7 @@ export function groupServices(services: RndtService[]): ServiceGroup[] {
 /** Layers above which the layer menu gets a filter field (Veneto WFS: 1,068). */
 const FILTER_THRESHOLD = 30;
 
+const LINK_KINDS: LinkKind[] = ["WMS", "WFS"];
 const KIND_OPTIONS: Option[] = [
   { value: "all", label: "All" },
   { value: "data", label: "Data" },
@@ -197,6 +201,11 @@ const SEARCH_EXAMPLES: SearchExample[] = [
   },
   { mode: "lucene", text: '"comune di misiliscemi"', note: "exact phrase" },
   { mode: "lucene", text: "catastale AND NOT comune", note: "exclude a word" },
+  {
+    mode: "lucene",
+    text: 'catastale AND NOT EnteResponsabile_s:"Agenzia delle Entrate"',
+    note: "leave out an organisation (from about 8,100 records to about 440); the name must be exact, case included",
+  },
   { mode: "all", text: "misilis*", note: "* truncates a word, in every mode" },
 ];
 
@@ -262,11 +271,90 @@ function helpToggle(box: HTMLElement, label: string): HTMLButtonElement {
   );
   return button;
 }
+
+/** An inline help panel, hidden until its "?" is pressed. */
+function helpBox(id: string, ...children: (Node | string)[]): HTMLElement {
+  return h("div", { className: "ordt-help", id, hidden: true }, ...children);
+}
+
+/** A help panel made of plain paragraphs. */
+function textHelp(id: string, paragraphs: string[]): HTMLElement {
+  return helpBox(id, ...paragraphs.map((text) => h("p", {}, text)));
+}
+
+/** A "Label: explanation" list item, as in the "Where" help. */
+function termItem(term: string, note: string): HTMLElement {
+  return h("li", {}, h("strong", {}, term), `: ${note}`);
+}
+
+/*
+ * Figures in the help texts were measured on geodati.gov.it on 2026-09-27
+ * (23,831 records) and rounded, so they stay true as the catalogue grows.
+ */
+const RESOURCES_HELP: [string, string][] = [
+  ["All", "data and services"],
+  ["Data", "records describing datasets and dataset series, about 20,700"],
+  [
+    "Services",
+    "records describing a web service (WMS, WFS, ATOM and others), about 3,200; a menu lets you pick the service type. INSPIRE theme and Open data only do not apply to services",
+  ],
+];
+
+const RESOURCES_NOTE =
+  "This is the type of the record, not what you can do with it: a dataset record often links to a WMS or WFS too. The cadastral maps are about 7,700 dataset records, each with a WMS and a WFS, while the national cadastral service is a single service record. To find what you can add to the map, use Available as.";
+
+const AVAILABLE_AS_HELP = [
+  "Keeps the records that link to a WMS or WFS, the services this plugin can add to the map, whatever the record type. With both boxes ticked, one of the two is enough: idrografia finds about 1,130 records, 590 of them with a WMS or WFS.",
+  "The check looks for wms or wfs in the link address, so it matches the WMS and WFS badges of the results in about 99 cases out of 100.",
+];
+
+const THEME_HELP = [
+  "One of the 34 INSPIRE themes, as declared by the publisher. Almost every dataset has one; services have none, so with Services this filter is ignored.",
+];
+
+const KEYWORDS_HELP = [
+  "Keywords as the publisher wrote them. The match is exact and case-sensitive: opendata finds thousands of records, OpenData only a few.",
+  "Separate several keywords with commas: a record needs just one of them.",
+];
+
+const ORGANISATION_HELP = [
+  "The owner of the resource, with its name as in the IPA index of public administrations, not the metadata contact. Part of the name is enough and case does not matter: piemonte finds Regione Piemonte.",
+  "Data are listed under whoever published them: data commissioned by a municipality but published by its Region appear under the Region.",
+  "Separate several organisations with commas. Invert hides them instead: entrate hides Agenzia delle Entrate, which alone publishes about a third of the catalogue (its municipal cadastral maps).",
+  "In the results, clicking an organisation name keeps only that organisation; Hide next to it hides it.",
+];
+
+const OPEN_DATA_HELP = [
+  "Records whose publisher filled in the open data field. It is a declaration, not a check: the field may hold a licence (CC BY 4.0), just the words open data, or even a non-commercial licence.",
+  "Records that state an open licence only in another field are left out. Ignored with Services.",
+];
+
+const DATE_HELP: [string, string][] = [
+  ["Revision", "the last update of the resource"],
+  ["Publication", "when the resource was published"],
+  ["Creation", "when the resource was produced"],
+];
+
+const SORT_HELP: [string, string][] = [
+  ["Relevance", "the records that best match the words searched come first"],
+  ["Title", "alphabetical order"],
+  [
+    "Metadata date",
+    "when the record was last updated in the catalogue. It is not one of the three dates of the Date filter",
+  ],
+];
+
+const SORT_NOTE =
+  "The catalogue cannot sort by the resource dates (revision, publication, creation): it ignores that request.";
 const WHERE_OPTIONS: Option[] = [
   { value: "anywhere", label: "Anywhere" },
   { value: "view", label: "Current map view" },
   { value: "drawn", label: "Drawn shapes (GeoEditor)" },
   { value: "box", label: "Box (west, south, east, north)" },
+];
+const SPATIAL_RELS: Option[] = [
+  { value: "Intersects", label: "Touches the area" },
+  { value: "Within", label: "Inside the area" },
 ];
 
 /**
@@ -342,7 +430,22 @@ export class RndtPanel {
    */
   private filterByOrganisation(name: string): void {
     this.field<HTMLInputElement>("organisation").value = name;
-    this.syncOrganisationClear();
+    this.field<HTMLInputElement>("invertOrganisation").checked = false;
+    this.syncClearButtons();
+    this.formEl.querySelector<HTMLDetailsElement>(".ordt-more")!.open = true;
+    this.formEl.requestSubmit();
+  }
+
+  /** Hide an organisation (Organisation + Invert) and search again. */
+  private excludeOrganisation(name: string): void {
+    const input = this.field<HTMLInputElement>("organisation");
+    const invert = this.field<HTMLInputElement>("invertOrganisation");
+    // Already hiding: add to the list. Keeping some: switch to hiding this one.
+    const names = invert.checked ? input.value.split(",").map((n) => n.trim()).filter(Boolean) : [];
+    if (!names.some((n) => n.toLowerCase() === name.toLowerCase())) names.push(name);
+    input.value = names.join(", ");
+    invert.checked = true;
+    this.syncClearButtons();
     this.formEl.querySelector<HTMLDetailsElement>(".ordt-more")!.open = true;
     this.formEl.requestSubmit();
   }
@@ -392,16 +495,24 @@ export class RndtPanel {
       hidden: true,
       "aria-label": "Box as west, south, east, north",
     });
+    const spatialRel = radioGroup("spatialRel", SPATIAL_RELS, "Intersects", () => undefined);
+    spatialRel.classList.add("ordt-spatial-rel", "ordt-small");
+    spatialRel.hidden = true;
+    spatialRel.setAttribute("aria-label", "Records whose extent");
     const whereSelect = select(WHERE_OPTIONS, "anywhere", {
       name: "where",
       "aria-label": "Where",
       onchange: () => {
         boxInput.hidden = whereSelect.value !== "box";
+        spatialRel.hidden = whereSelect.value === "anywhere";
         if (whereSelect.value === "drawn") void this.prepareDrawing();
       },
     });
 
-    const themes = select([{ value: "", label: "Any theme" }, ...INSPIRE_THEMES], "", { name: "theme" });
+    const themes = select([{ value: "", label: "Any theme" }, ...INSPIRE_THEMES], "", {
+      name: "theme",
+      "aria-label": "INSPIRE theme",
+    });
 
     const exampleButton = (example: SearchExample) =>
       h(
@@ -504,8 +615,39 @@ export class RndtPanel {
       h(
         "p",
         {},
-        "A record is found when its extent, a rectangle, touches the area: national and regional records show up too. In the Palermo box, catastale finds the cadastral maps of more than a hundred municipalities (a rectangle also touches the neighbouring provinces) and the national cadastral services.",
+        "A record's extent is a rectangle. With Touches the area a record is found when its extent touches the area, so national and regional records show up too: in the Palermo box, catastale finds 125 records, the cadastral maps of the municipalities (a rectangle also touches the neighbouring provinces) and the national cadastral services.",
       ),
+      h(
+        "p",
+        {},
+        "With Inside the area only records whose extent lies entirely within the area are kept: catastale in the Palermo box finds 85, all municipal cadastral maps. Regional records that reach beyond the area are left out too.",
+      ),
+    );
+
+    const resourcesHelp = helpBox(
+      "ordt-resources-help",
+      h("ul", {}, ...RESOURCES_HELP.map(([term, note]) => termItem(term, note))),
+      h("p", {}, RESOURCES_NOTE),
+    );
+    const availableAsHelp = textHelp("ordt-available-as-help", AVAILABLE_AS_HELP);
+    const themeHelp = textHelp("ordt-theme-help", THEME_HELP);
+    const keywordsHelp = textHelp("ordt-keywords-help", KEYWORDS_HELP);
+    const organisationHelp = textHelp("ordt-organisation-help", ORGANISATION_HELP);
+    const openDataHelp = textHelp("ordt-open-data-help", OPEN_DATA_HELP);
+    const dateHelp = helpBox(
+      "ordt-date-help",
+      h("p", {}, "Dates of the resource, not of its metadata:"),
+      h("ul", {}, ...DATE_HELP.map(([term, note]) => termItem(term, note))),
+      h(
+        "p",
+        {},
+        "Publishers usually fill in only one of the three: depending on the type, 44% to 64% of the records lack it, and a date range leaves them out. If you get few results, try another date type. With both dates empty there is no date filter.",
+      ),
+    );
+    const sortHelp = helpBox(
+      "ordt-sort-help",
+      h("ul", {}, ...SORT_HELP.map(([term, note]) => termItem(term, note))),
+      h("p", {}, SORT_NOTE),
     );
 
     this.copyQueryEl = h(
@@ -566,8 +708,42 @@ export class RndtPanel {
         ),
       ),
       fieldHelp,
-      h("div", { className: "ordt-label" }, "Resources", radioGroup("kind", KIND_OPTIONS, "all", toggleServiceTypes)),
+      h(
+        "div",
+        { className: "ordt-label" },
+        "Record type",
+        h(
+          "div",
+          { className: "ordt-row" },
+          radioGroup("kind", KIND_OPTIONS, "all", toggleServiceTypes),
+          helpToggle(resourcesHelp, "Help on record types"),
+        ),
+      ),
+      resourcesHelp,
       serviceTypes,
+      h(
+        "div",
+        { className: "ordt-label" },
+        "Available as",
+        h(
+          "div",
+          { className: "ordt-row" },
+          h(
+            "div",
+            { className: "ordt-radios", role: "group", "aria-label": "Available as" },
+            ...LINK_KINDS.map((kind) =>
+              h(
+                "label",
+                { className: "ordt-radio" },
+                h("input", { type: "checkbox", name: "availableAs", value: kind }),
+                kind,
+              ),
+            ),
+          ),
+          helpToggle(availableAsHelp, "Help on available as"),
+        ),
+      ),
+      availableAsHelp,
       h(
         "div",
         { className: "ordt-label" },
@@ -581,21 +757,39 @@ export class RndtPanel {
       ),
       whereHelp,
       boxInput,
+      spatialRel,
       h(
         "details",
         { className: "ordt-more" },
         h("summary", {}, "More filters"),
-        h("label", { className: "ordt-label" }, "INSPIRE theme", themes),
-        h(
-          "label",
-          { className: "ordt-label" },
-          "Keywords (comma-separated, exact)",
-          h("input", { className: "ordt-input", name: "keywords", placeholder: "opendata, Idrografia" }),
-        ),
         h(
           "div",
           { className: "ordt-label" },
-          "Organisation",
+          "INSPIRE theme",
+          h("div", { className: "ordt-row" }, themes, helpToggle(themeHelp, "Help on INSPIRE themes")),
+        ),
+        themeHelp,
+        h(
+          "div",
+          { className: "ordt-label" },
+          "Keywords (comma-separated, exact)",
+          h(
+            "div",
+            { className: "ordt-row" },
+            h("input", {
+              className: "ordt-input ordt-grow",
+              name: "keywords",
+              placeholder: "opendata, Idrografia",
+              "aria-label": "Keywords",
+            }),
+            helpToggle(keywordsHelp, "Help on keywords"),
+          ),
+        ),
+        keywordsHelp,
+        h(
+          "div",
+          { className: "ordt-label" },
+          "Organisation (comma-separated)",
           h(
             "div",
             { className: "ordt-row" },
@@ -604,32 +798,37 @@ export class RndtPanel {
               name: "organisation",
               placeholder: "Regione Piemonte",
               "aria-label": "Organisation",
-              oninput: () => this.syncOrganisationClear(),
+              oninput: () => this.syncClearButtons(),
             }),
-            h(
-              "button",
-              {
-                className: "ordt-clear",
-                type: "button",
-                hidden: true,
-                "aria-label": "Clear organisation",
-                title: "Clear organisation and search again",
-                onclick: () => this.clearOrganisation(),
-              },
-              "×",
-            ),
+            this.clearButton("organisation", "organisation"),
+            helpToggle(organisationHelp, "Help on organisation"),
           ),
         ),
+        organisationHelp,
         h(
           "label",
           { className: "ordt-check" },
-          h("input", { type: "checkbox", name: "openData" }),
-          "Open data only",
+          h("input", { type: "checkbox", name: "invertOrganisation" }),
+          "Invert: hide these organisations",
         ),
+        h(
+          "div",
+          { className: "ordt-row" },
+          h(
+            "label",
+            { className: "ordt-check" },
+            h("input", { type: "checkbox", name: "openData" }),
+            "Open data only",
+          ),
+          helpToggle(openDataHelp, "Help on open data"),
+        ),
+        openDataHelp,
         h(
           "fieldset",
           { className: "ordt-fieldset" },
-          h("legend", {}, "Date"),
+          h("legend", {}, "Date ", helpToggle(dateHelp, "Help on dates")),
+          dateHelp,
+          h("p", { className: "ordt-note" }, "Often missing: most records carry only one of these three dates."),
           select(DATE_FIELDS, "apiso_RevisionDate_dt", { name: "dateField", "aria-label": "Date type" }),
           h(
             "div",
@@ -637,14 +836,19 @@ export class RndtPanel {
             h("input", { className: "ordt-input ordt-grow", type: "date", name: "dateFrom", "aria-label": "From" }),
             h("input", { className: "ordt-input ordt-grow", type: "date", name: "dateTo", "aria-label": "To" }),
           ),
+        ),
+        h(
+          "div",
+          { className: "ordt-label" },
+          "Sort by",
           h(
-            "label",
-            { className: "ordt-check" },
-            h("input", { type: "checkbox", name: "includeMissing", checked: true }),
-            "Include records without this date",
+            "div",
+            { className: "ordt-row" },
+            select(SORT_OPTIONS, "", { name: "sort", "aria-label": "Sort by" }),
+            helpToggle(sortHelp, "Help on sorting"),
           ),
         ),
-        h("label", { className: "ordt-label" }, "Sort by", select(SORT_OPTIONS, "", { name: "sort" })),
+        sortHelp,
       ),
       h(
         "div",
@@ -676,19 +880,39 @@ export class RndtPanel {
   private afterReset(): void {
     this.formEl.querySelector<HTMLElement>(".ordt-service-types")!.hidden = true;
     this.formEl.querySelector<HTMLElement>('input[name="box"]')!.hidden = true;
-    this.syncOrganisationClear();
+    this.formEl.querySelector<HTMLElement>(".ordt-spatial-rel")!.hidden = true;
+    this.syncClearButtons();
   }
 
-  /** Show the × of the Organisation field only when it has a value. */
-  private syncOrganisationClear(): void {
-    this.formEl.querySelector<HTMLElement>(".ordt-clear")!.hidden = !this.field<HTMLInputElement>("organisation").value.trim();
+  /** The × that empties a text field; hidden while the field is empty. */
+  private clearButton(field: string, label: string): HTMLButtonElement {
+    return h(
+      "button",
+      {
+        className: "ordt-clear",
+        type: "button",
+        hidden: true,
+        "data-field": field,
+        "aria-label": `Clear ${label}`,
+        title: `Clear ${label} and search again`,
+        onclick: () => this.clearField(field),
+      },
+      "×",
+    );
   }
 
-  /** Empty the Organisation filter and, after a search, search again without it. */
-  private clearOrganisation(): void {
-    const input = this.field<HTMLInputElement>("organisation");
+  /** Show each × only when its field has a value. */
+  private syncClearButtons(): void {
+    for (const button of this.formEl.querySelectorAll<HTMLElement>(".ordt-clear[data-field]")) {
+      button.hidden = !this.field<HTMLInputElement>(button.dataset.field!).value.trim();
+    }
+  }
+
+  /** Empty a filter field and, after a search, search again without it. */
+  private clearField(name: string): void {
+    const input = this.field<HTMLInputElement>(name);
     input.value = "";
-    this.syncOrganisationClear();
+    this.syncClearButtons();
     input.focus();
     if (this.lastForm) this.formEl.requestSubmit();
   }
@@ -704,6 +928,10 @@ export class RndtPanel {
     form.textMode = (checkedValue(this.formEl, "textMode") || "all") as TextMode;
     form.field = this.field<HTMLSelectElement>("field").value;
     form.kind = (checkedValue(this.formEl, "kind") || "all") as ResourceKind;
+    form.availableAs = Array.from(
+      this.formEl.querySelectorAll<HTMLInputElement>('input[name="availableAs"]:checked'),
+      (el) => el.value as LinkKind,
+    );
     form.serviceTypes = Array.from(
       this.formEl.querySelectorAll<HTMLInputElement>('input[name="serviceType"]:checked'),
       (el) => el.value,
@@ -712,13 +940,14 @@ export class RndtPanel {
     form.inspireThemes = theme ? [theme] : [];
     form.keywords = this.field<HTMLInputElement>("keywords").value;
     form.organisation = this.field<HTMLInputElement>("organisation").value;
+    form.invertOrganisation = this.field<HTMLInputElement>("invertOrganisation").checked;
     form.openDataOnly = this.field<HTMLInputElement>("openData").checked;
     form.dateField = this.field<HTMLSelectElement>("dateField").value;
     form.dateFrom = this.field<HTMLInputElement>("dateFrom").value;
     form.dateTo = this.field<HTMLInputElement>("dateTo").value;
-    form.includeMissingDates = this.field<HTMLInputElement>("includeMissing").checked;
     form.sort = this.field<HTMLSelectElement>("sort").value;
     form.bbox = this.readWhere(this.field<HTMLSelectElement>("where").value as Where);
+    form.spatialRel = (checkedValue(this.formEl, "spatialRel") || "Intersects") as SpatialRel;
     return form;
   }
 
@@ -766,7 +995,10 @@ export class RndtPanel {
     const seq = ++this.requestSeq;
     this.setStatus("Searching the RNDT catalogue…", "busy");
     try {
-      const page = parseSearchResponse(await fetchJson(this.app, url), RNDT_BASE_URL);
+      // A page of 20 results weighs about 1 MB (each carries its whole ISO XML,
+      // which the catalogue cannot leave out): past the 8 s native budget of
+      // the small-document path on a slow day (2026-09-27), so take the long one.
+      const page = parseSearchResponse(await fetchJson(this.app, url, { download: true }), RNDT_BASE_URL);
       if (seq !== this.requestSeq) return; // a newer search is running
       this.lastForm = current;
       this.records = page.records;
@@ -943,6 +1175,17 @@ export class RndtPanel {
             },
             record.organisation,
           ),
+        record.organisation &&
+          h(
+            "button",
+            {
+              className: "ordt-link ordt-hide-org",
+              type: "button",
+              title: "Hide the results from this organisation",
+              onclick: () => this.excludeOrganisation(record.organisation),
+            },
+            "Hide",
+          ),
         record.modified && h("span", { className: "ordt-muted" }, record.modified),
       ),
       detail,
@@ -956,7 +1199,27 @@ export class RndtPanel {
       abstract && h("p", { className: "ordt-abstract" }, abstract),
       record.services.length
         ? h("ul", { className: "ordt-services" }, ...groupServices(record.services).map((g) => this.renderService(record, g)))
-        : h("p", { className: "ordt-muted" }, "No services or downloads declared in this record."),
+        : !record.otherLinks.length && h("p", { className: "ordt-muted" }, "No services or downloads declared in this record."),
+      record.otherLinks.length > 0 &&
+        h(
+          "div",
+          { className: "ordt-other-links" },
+          h("p", { className: "ordt-muted" }, "Other links (web pages, folders: the plugin cannot add them to the map)"),
+          h(
+            "ul",
+            {},
+            ...record.otherLinks.map((url) => {
+              const parsed = new URL(url);
+              return h(
+                "li",
+                {},
+                h("a", { className: "ordt-link", href: url, target: "_blank", rel: "noopener" }, `${parsed.host}${parsed.pathname}`),
+                " ",
+                this.copyButton(url),
+              );
+            }),
+          ),
+        ),
       h(
         "div",
         { className: "ordt-row ordt-small" },
@@ -1134,7 +1397,14 @@ export class RndtPanel {
     try {
       const fetched = await fetchTextFrom(this.app, capabilitiesUrl(service.url, "WMS"));
       const caps = parseWmsCapabilities(fetched.text, fetched.url);
-      caps.getMapUrl = upgradeToHttps(caps.getMapUrl, fetched.url);
+      const declared = caps.getMapUrl;
+      caps.getMapUrl = upgradeToHttps(declared, fetched.url);
+      // https was our own guess (the record says http): keep the declared http
+      // URL when only that one is reachable from the browser, or GeoLibre's
+      // identify on the layer fails.
+      if (caps.getMapUrl !== declared && /^http:/i.test(service.url) && (await browserNeedsHttp(fetched.url))) {
+        caps.getMapUrl = declared;
+      }
       if (!caps.layers.length) {
         this.note(area, "The WMS lists no named layers.", "error");
         return;

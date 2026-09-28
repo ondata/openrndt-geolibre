@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { RNDT_BASE_URL } from "../src/rndt/constants";
 import {
   buildGetFeatureUrl,
@@ -15,7 +15,7 @@ import {
   supportsWebMercator,
 } from "../src/rndt/ogc";
 import { buildCurlCommand, buildQuery, buildSearchUrl, clampBbox, emptyForm, type Bbox, type SearchForm } from "../src/rndt/query";
-import { extractServices, footprints, inferKind, parseSearchResponse } from "../src/rndt/records";
+import { extractOtherLinks, extractServices, footprints, inferKind, parseSearchResponse } from "../src/rndt/records";
 
 const fixture = (name: string) => readFileSync(join(__dirname, "fixtures", name), "utf8");
 
@@ -120,6 +120,30 @@ describe("search results", () => {
       type: "Polygon",
       coordinates: [[[6.62, 44.06], [9.21, 44.06], [9.21, 46.459999084472656], [6.62, 46.459999084472656], [6.62, 44.06]]],
     });
+  });
+});
+
+describe("extractOtherLinks", () => {
+  it("keeps web links that are not services, without home pages or duplicates", () => {
+    // links_s of PCM:MaGIC1_06_40:20160630:145000 (MaGIC Foglio 40 Cirò), plus a WMS.
+    const result = {
+      _source: {
+        links_s: [
+          "http://www.protezionecivile.gov.it",
+          "http://www.protezionecivile.gov.it",
+          "http://www.magicproject.it/index.php/it/",
+          "www.protezionecivile.gov.it",
+          "https://github.com/pcm-dpc/MaGIC/tree/master/MaGIC-1/fogli/dati/40-Ciro/grid",
+          "https://x.it/geoserver/ows?service=WMS",
+        ],
+      },
+    };
+    const services = extractServices(result);
+    expect(services.map((s) => s.kind)).toEqual(["WMS"]);
+    expect(extractOtherLinks(result, services)).toEqual([
+      "http://www.magicproject.it/index.php/it/",
+      "https://github.com/pcm-dpc/MaGIC/tree/master/MaGIC-1/fogli/dati/40-Ciro/grid",
+    ]);
   });
 });
 
@@ -259,6 +283,27 @@ describe("data downloads", () => {
     await expect(fetchJson(host, "https://x.it/wfs", { download: true })).rejects.toThrow(
       /cannot reach x\.it: download failed/,
     );
+  });
+});
+
+describe("browserNeedsHttp", () => {
+  it("is true only when https fails in the browser and http answers", async () => {
+    const { browserNeedsHttp } = await import("../src/rndt/host");
+    const cases: [boolean, boolean, boolean][] = [
+      [true, true, false],
+      [true, false, false],
+      [false, true, true],
+      [false, false, false],
+    ];
+    for (const [httpsOk, httpOk, expected] of cases) {
+      vi.stubGlobal("fetch", async (url: string) => {
+        const ok = url.startsWith("https:") ? httpsOk : httpOk;
+        if (!ok) throw new TypeError("Failed to fetch");
+        return new Response("");
+      });
+      expect(await browserNeedsHttp("https://x.it/wms?service=WMS")).toBe(expected);
+    }
+    vi.unstubAllGlobals();
   });
 });
 

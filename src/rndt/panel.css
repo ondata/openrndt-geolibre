@@ -71,8 +71,10 @@
   border-radius: var(--ordt-radius);
 }
 
+/* Basis 0, not auto: auto is the width of the longest option, and a long
+   INSPIRE theme name would push the "?" beside the menu to a new line. */
 .ordt-row > select.ordt-input {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-width: 0;
 }
 
@@ -166,6 +168,10 @@
   padding: 0 4px;
   font-size: 12px;
   color: var(--ordt-muted);
+}
+
+.ordt-fieldset legend .ordt-help-toggle {
+  vertical-align: middle;
 }
 
 .ordt-more {
@@ -400,6 +406,10 @@
   margin: 0;
 }
 
+.ordt-help p + p {
+  margin-top: 6px;
+}
+
 .ordt-help ul {
   margin: 6px 0;
   padding-left: 16px;
@@ -454,4 +464,15 @@
 /* No pager on a single page: an empty container would still take a gap (#12). */
 .ordt-pager:empty {
   display: none;
+}
+
+.ordt-other-links ul {
+  margin: 4px 0;
+  padding-left: 16px;
+  font-size: 12px;
+}
+
+/* Long GitHub paths would widen the panel. */
+.ordt-other-links a {
+  overflow-wrap: anywhere;
 }

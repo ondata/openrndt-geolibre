@@ -141,21 +141,7 @@
       }
     },
     {
-      "name": "creation date range, excluding records without the date (issue #9 case)",
-      "form": {
-        "text": "incendi",
-        "dateField": "apiso_CreationDate_dt",
-        "dateFrom": "2024-01-01",
-        "dateTo": "2026-07-18",
-        "includeMissingDates": false
-      },
-      "expected": {
-        "q": "(incendi) AND apiso_CreationDate_dt:[2024-01-01 TO 2026-07-18]"
-      },
-      "liveTotal": 15
-    },
-    {
-      "name": "creation date range, including records without the date",
+      "name": "creation date range (issue #9 case)",
       "form": {
         "text": "incendi",
         "dateField": "apiso_CreationDate_dt",
@@ -163,15 +149,14 @@
         "dateTo": "2026-07-18"
       },
       "expected": {
-        "q": "(incendi) AND (apiso_CreationDate_dt:[2024-01-01 TO 2026-07-18] OR (NOT _exists_:apiso_CreationDate_dt))"
+        "q": "(incendi) AND apiso_CreationDate_dt:[2024-01-01 TO 2026-07-18]"
       },
-      "liveTotal": 111
+      "liveTotal": 15
     },
     {
       "name": "open-ended date range",
       "form": {
-        "dateFrom": "2025-01-01",
-        "includeMissingDates": false
+        "dateFrom": "2025-01-01"
       },
       "expected": {
         "q": "apiso_RevisionDate_dt:[2025-01-01 TO 2100-12-31]"
@@ -197,12 +182,99 @@
       }
     },
     {
+      "name": "box inside the province of Palermo (Within)",
+      "form": {
+        "text": "catastale",
+        "bbox": [
+          12.95,
+          37.6,
+          14.3,
+          38.3
+        ],
+        "spatialRel": "Within"
+      },
+      "expected": {
+        "q": "(catastale)",
+        "bbox": "12.95,37.6,14.3,38.3",
+        "spatialRel": "Within"
+      },
+      "liveTotal": 85
+    },
+    {
+      "name": "available as WMS or WFS, any record type",
+      "form": {
+        "text": "idrografia",
+        "availableAs": [
+          "WMS",
+          "WFS"
+        ]
+      },
+      "expected": {
+        "q": "(idrografia) AND links_s:(http*wms* OR http*WMS* OR http*Wms* OR http*wfs* OR http*WFS* OR http*Wfs*)"
+      },
+      "liveTotal": 588
+    },
+    {
+      "name": "available as WFS, with data records",
+      "form": {
+        "text": "catastale",
+        "kind": "data",
+        "availableAs": [
+          "WFS"
+        ]
+      },
+      "expected": {
+        "q": "(catastale) AND links_s:(http*wfs* OR http*WFS* OR http*Wfs*) AND apiso_Type_s:(dataset OR series)"
+      }
+    },
+    {
+      "name": "several organisations kept",
+      "form": {
+        "organisation": "ispra, torino"
+      },
+      "expected": {
+        "q": "EnteResponsabile_s:(/.*[iI][sS][pP][rR][aA].*/ OR /.*[tT][oO][rR][iI][nN][oO].*/)"
+      },
+      "liveTotal": 517
+    },
+    {
+      "name": "organisations inverted, several, with text",
+      "form": {
+        "text": "catastale",
+        "organisation": "entrate, , ambiente",
+        "invertOrganisation": true
+      },
+      "expected": {
+        "q": "(catastale) AND NOT EnteResponsabile_s:(/.*[eE][nN][tT][rR][aA][tT][eE].*/ OR /.*[aA][mM][bB][iI][eE][nN][tT][eE].*/)"
+      }
+    },
+    {
+      "name": "only an inverted organisation, inside the Messina strait box",
+      "form": {
+        "bbox": [
+          15.0929,
+          37.8064,
+          15.8849,
+          38.437
+        ],
+        "spatialRel": "Within",
+        "organisation": "Agenzia delle Entrate",
+        "invertOrganisation": true
+      },
+      "expected": {
+        "q": "NOT EnteResponsabile_s:/.*[aA][gG][eE][nN][zZ][iI][aA] [dD][eE][lL][lL][eE] [eE][nN][tT][rR][aA][tT][eE].*/",
+        "bbox": "15.0929,37.8064,15.8849,38.437",
+        "spatialRel": "Within"
+      },
+      "liveTotal": 2
+    },
+    {
       "name": "full form (portal replay, see advanced-search-form.md)",
       "form": {
         "kind": "data",
         "text": "alberi monumentali",
         "field": "title",
-        "dateField": "apiso_RevisionDate_dt",
+        "dateField": "apiso_CreationDate_dt",
         "dateFrom": "2020-01-01",
         "dateTo": "2026-12-31",
         "bbox": [
@@ -214,7 +286,7 @@
         "sort": "title:asc"
       },
       "expected": {
-        "q": "title:(alberi AND monumentali) AND (apiso_RevisionDate_dt:[2020-01-01 TO 2026-12-31] OR (NOT _exists_:apiso_RevisionDate_dt)) AND apiso_Type_s:(dataset OR series)",
+        "q": "title:(alberi AND monumentali) AND apiso_CreationDate_dt:[2020-01-01 TO 2026-12-31] AND apiso_Type_s:(dataset OR series)",
         "bbox": "11.4,40.7,14.1,42.9",
         "spatialRel": "Intersects",
         "sort": "title:asc"

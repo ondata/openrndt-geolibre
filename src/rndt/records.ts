@@ -20,6 +20,8 @@ export interface RndtRecord {
   modified: string;
   bbox: Bbox | null;
   services: RndtService[];
+  /** Web links the plugin cannot open (a GitHub folder, a project page). */
+  otherLinks: string[];
   htmlUrl: string;
   xmlUrl: string;
 }
@@ -126,6 +128,40 @@ export function extractServices(result: Json): RndtService[] {
   return services;
 }
 
+/**
+ * The record's web links that are neither services nor recognised downloads,
+ * deduplicated. Bare home pages (no path, no query) are left out: they are the
+ * publisher's site, repeated in most records. MaGIC records keep their data in
+ * a GitHub folder this way (756 records link to github.com, 2026-09-27).
+ */
+export function extractOtherLinks(result: Json, services: RndtService[]): string[] {
+  const source = asObject(result._source);
+  const taken = new Set(services.map((s) => linkKey(s.url)));
+  const links: string[] = [];
+  const candidates = [
+    ...(Array.isArray(result.links) ? result.links : [])
+      .map(asObject)
+      .filter((link) => !NON_RESOURCE_RELS.has(String(link.rel)))
+      .map((link) => asString(link.href)),
+    ...asStringList(source.links_s),
+  ];
+  for (const url of candidates) {
+    if (!/^https?:\/\//i.test(url) || inferKind(url) !== "link") continue;
+    const parsed = new URL(url);
+    if ((parsed.pathname === "/" || parsed.pathname === "") && !parsed.search) continue;
+    const key = linkKey(url);
+    if (taken.has(key)) continue;
+    taken.add(key);
+    links.push(url);
+  }
+  return links;
+}
+
+/** Same link whatever the scheme, case or trailing slash. */
+function linkKey(url: string): string {
+  return url.replace(/^https?:\/\//i, "").replace(/\/+$/, "").toLowerCase();
+}
+
 function parseBbox(value: unknown): Bbox | null {
   const b = asObject(value);
   const box = [b.xmin, b.ymin, b.xmax, b.ymax].map(Number) as Bbox;
@@ -136,6 +172,7 @@ export function parseRecord(result: Json, baseUrl: string): RndtRecord {
   const source = asObject(result._source);
   const id = asString(result.id) || asString(source.fileid);
   const itemUrl = `${baseUrl.replace(/\/+$/, "")}/rest/metadata/item/${encodeURIComponent(id)}`;
+  const services = extractServices(result);
   return {
     id,
     title: asString(result.title) || asString(source.title) || id,
@@ -144,7 +181,8 @@ export function parseRecord(result: Json, baseUrl: string): RndtRecord {
     organisation: asString(source.EnteResponsabile_s),
     modified: asString(source.apiso_Modified_dt).slice(0, 10),
     bbox: parseBbox(result.bbox),
-    services: extractServices(result),
+    services,
+    otherLinks: extractOtherLinks(result, services),
     htmlUrl: `${itemUrl}/html`,
     xmlUrl: `${itemUrl}/xml`,
   };

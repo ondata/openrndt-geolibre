@@ -10,25 +10,37 @@
  *   metadata contact, not the responsible party: for "Regione Piemonte" it
  *   misses 249 of 612 records whose contact is CSI Piemonte (2026-09-26);
  * - INSPIRE themes and "open data only" apply to "All" too, not only to "Data";
+ * - a date range keeps only records that have the chosen date: there is no
+ *   "include empty values" option. Most records carry only one of the three
+ *   dates, so with it a range let in about half of the catalogue;
  * - words typed in "all"/"any" mode are escaped, so `:` or `-` cannot break the
  *   query; `*` and `?` stay usable as wildcards. "Lucene" mode passes text as is.
  */
 
 export type ResourceKind = "all" | "data" | "services";
+/** Link types a record can offer, whatever its record type. */
+export type LinkKind = "WMS" | "WFS";
 export type TextMode = "all" | "any" | "lucene";
+/** Intersects: the record's extent touches the box; Within: it lies entirely inside. */
+export type SpatialRel = "Intersects" | "Within";
 /** [west, south, east, north] in WGS84 degrees. */
 export type Bbox = [number, number, number, number];
 
 export interface SearchForm {
   kind: ResourceKind;
   serviceTypes: string[];
+  /** Keep records linking to any of these, datasets and services alike. */
+  availableAs: LinkKind[];
   text: string;
   textMode: TextMode;
   /** Field prefix for the free text; "" searches everywhere. */
   field: string;
   /** Comma-separated keywords, matched exactly on `keywords_s`. */
   keywords: string;
+  /** Comma-separated organisations, each a case-insensitive "contains" match. */
   organisation: string;
+  /** Leave the organisations out instead of keeping only them. */
+  invertOrganisation: boolean;
   /** Italian INSPIRE theme labels, as stored in `INSPIRETheme_s`. */
   inspireThemes: string[];
   openDataOnly: boolean;
@@ -36,17 +48,16 @@ export interface SearchForm {
   /** yyyy-mm-dd or "". */
   dateFrom: string;
   dateTo: string;
-  /** Keep records that have no value in `dateField`. */
-  includeMissingDates: boolean;
-  /** Intersecting box, or null for anywhere. */
+  /** Search area, or null for anywhere. */
   bbox: Bbox | null;
+  spatialRel: SpatialRel;
   sort: string;
 }
 
 export interface BuiltQuery {
   q: string | null;
   bbox?: string;
-  spatialRel?: "Intersects";
+  spatialRel?: SpatialRel;
   sort?: string;
 }
 
@@ -54,18 +65,20 @@ export function emptyForm(): SearchForm {
   return {
     kind: "all",
     serviceTypes: [],
+    availableAs: [],
     text: "",
     textMode: "all",
     field: "",
     keywords: "",
     organisation: "",
+    invertOrganisation: false,
     inspireThemes: [],
     openDataOnly: false,
     dateField: "apiso_RevisionDate_dt",
     dateFrom: "",
     dateTo: "",
-    includeMissingDates: true,
     bbox: null,
+    spatialRel: "Intersects",
     sort: "",
   };
 }
@@ -99,6 +112,14 @@ export function containsIgnoreCase(value: string): string {
     })
     .join("");
   return `/.*${body}.*/`;
+}
+
+/** The non-empty, trimmed items of a comma-separated list. */
+function splitList(value: string): string[] {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function quotedOr(values: string[]): string {
@@ -146,8 +167,7 @@ function dateClause(form: SearchForm): string | null {
   for (const value of [from, to]) {
     if (value && !DATE_RE.test(value)) throw new Error(`Invalid date "${value}": use yyyy-mm-dd.`);
   }
-  const range = `${form.dateField}:[${from || "1900-01-01"} TO ${to || "2100-12-31"}]`;
-  return form.includeMissingDates ? `(${range} OR (NOT _exists_:${form.dateField}))` : range;
+  return `${form.dateField}:[${from || "1900-01-01"} TO ${to || "2100-12-31"}]`;
 }
 
 /**
@@ -161,18 +181,32 @@ export function buildQuery(form: SearchForm): BuiltQuery {
   const text = textClause(form);
   if (text) clauses.push(text);
 
-  const keywords = form.keywords
-    .split(",")
-    .map((k) => k.trim())
-    .filter(Boolean);
+  const keywords = splitList(form.keywords);
   if (keywords.length) clauses.push(`keywords_s:(${quotedOr(keywords)})`);
 
-  const organisation = form.organisation.trim();
-  if (organisation) clauses.push(`EnteResponsabile_s:${containsIgnoreCase(organisation)}`);
+  const organisations = splitList(form.organisation).map(containsIgnoreCase);
+  if (organisations.length) {
+    const match = organisations.length === 1 ? organisations[0] : `(${organisations.join(" OR ")})`;
+    clauses.push(`${form.invertOrganisation ? "NOT " : ""}EnteResponsabile_s:${match}`);
+  }
 
   if (form.kind !== "services") {
     if (form.inspireThemes.length) clauses.push(`INSPIRETheme_s:(${quotedOr(form.inspireThemes)})`);
     if (form.openDataOnly) clauses.push("_exists_:isOpendata");
+  }
+
+  // links_s holds the records' URLs; the "wms"/"wfs" substring matches the
+  // plugin's WMS/WFS badges on 99% of a 2,400-record sample (2026-09-27).
+  // Wildcards are case-sensitive, so the three spellings in use are listed
+  // ("Wms" is ArcGIS's WmsServer: 53 records have no other spelling). The
+  // http prefix leaves out relative links such as "/layer_r1/wms?...", which
+  // the plugin cannot open (Monte Argentario, San Giovanni Valdarno).
+  if (form.availableAs.length) {
+    const patterns = form.availableAs.flatMap((kind) => {
+      const lower = kind.toLowerCase();
+      return [lower, kind, `${lower[0].toUpperCase()}${lower.slice(1)}`].map((k) => `http*${k}*`);
+    });
+    clauses.push(`links_s:(${patterns.join(" OR ")})`);
   }
 
   const date = dateClause(form);
@@ -191,7 +225,7 @@ export function buildQuery(form: SearchForm): BuiltQuery {
     const error = bboxError(form.bbox);
     if (error) throw new Error(error);
     built.bbox = form.bbox.map(round).join(",");
-    built.spatialRel = "Intersects";
+    built.spatialRel = form.spatialRel;
   }
   if (form.sort) built.sort = form.sort;
   return built;
