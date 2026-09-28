@@ -1,5 +1,9 @@
 # LOG
 
+## 2026-09-28
+
+- **PR GeoLibre unite** (27/9, non ancora in release, ultima 3.1.0): #2701 `crs` in `addWmsLayer`, #2702 `importLayerStyle`, #2707 selettore CRS nel dialog WMS desktop. Annotate in #1, #10, #14, #15; piani per #1 e #10 in `tasks/todo.md`.
+
 ## 2026-09-27
 
 - **Filtro Date senza "Include records without this date"**: con quella casella (default del portale, "Considera valori vuoti") un intervallo lasciava passare circa metà del catalogo. Misure su 23.831 record: nessuno è privo di tutte e tre le date, ma il 73% ne ha una sola (solo revisione 9.313, solo creazione 4.725, solo pubblicazione 3.325, tutte e tre 1.840); Revision dal 2024 dava 6.517 record stretti e circa 17.000 con la casella. Ora con una data il filtro è stretto; nota fissa sopra la select ("Often missing") e "?" con il significato delle tre date. Scartata l'opzione "Any date" (OR sulle tre). Il fixture "full form" passa a Creation: il record atteso ("Alberi monumentali") ha solo la data di creazione.

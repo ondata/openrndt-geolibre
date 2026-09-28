@@ -133,6 +133,10 @@ Misure aggiuntive (2026-09-27): nessun record è privo di tutte e tre le date (0
 
 ## Fase 3 - Plugin (dopo il merge)
 
+Stato 2026-09-28: #2701, #2702 e #2707 unite, non ancora in release (ultima 3.1.0). Il maintainer non ha risposto sul rilevamento del supporto. Proposta: `typeof app.importLayerStyle === "function"` come segnale per entrambe (unite a un minuto di distanza); con host vecchio il pulsante resta disattivato come oggi.
+
+- [ ] `crs?` in `WmsLayerOptions` (`host.ts`), `importLayerStyle?` nel tipo dell'app → verify: typecheck
+- [ ] stessa regola di `defaultWmsCrs` di #2707 (3857, poi geografici, poi primo EPSG), così plugin e dialog nativo scelgono lo stesso CRS → verify: test unitari
 - [ ] ordine di scelta: `EPSG:3857`, poi geografici della lista, poi altri EPSG; `CRS:84` solo con 1.3.0; evitare EPSG:3003 se c'è altro (scarto di circa 70 m, #2695)
 - [ ] rilevamento del supporto secondo la risposta del maintainer
 - [ ] verifica in GeoLibre Desktop: catasto AdE allineato al WFS, Basilicata quando il DNS torna
@@ -147,3 +151,20 @@ Misure aggiuntive (2026-09-27): nessun record è privo di tutte e tre le date (0
 
 - PR aperta: opengeos/GeoLibre#2701 (branch `feat/plugin-wms-crs` sul fork). Test frontend 10079 ok, typecheck ok, eslint e oxfmt sui file toccati ok (`docs/plugin-api.md` aveva già problemi oxfmt, non toccati). `pre-commit` sul lint dell'intero repo va in out of memory in WSL.
 - Non provata in una build desktop.
+
+---
+
+# Piano - stile SLD dei WFS (issue #10)
+
+Sbloccata da opengeos/GeoLibre#2702 (`importLayerStyle(layerId, text)`, SLD/QML/Mapbox GL), unita il 2026-09-27, non ancora in release.
+
+## Fase 1 - Plugin
+
+- [ ] dopo `addGeoJsonLayer`, WMS `GetStyles` sullo stesso GeoServer (`layers=<nome>`) → verify: test con fixture SLD Liguria `M5:L4`
+- [ ] passare il testo a `importLayerStyle`; se manca l'API, o GetStyles fallisce, o l'esito è `unsupported-layer`, resta lo stile di default senza errore → verify: test UI
+- [ ] prova in GeoLibre Desktop (build da `main`): Liguria `M5:L4`, 33 classi su `classe` → verify: screenshot
+
+## Domande aperte
+
+- GetStyles sempre, o solo se il capabilities WMS dello stesso host ha il layer?
+- `minZoom: 12` dalla SLD: tenerlo (il layer sparisce a scala piccola) o toglierlo?
