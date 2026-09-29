@@ -476,3 +476,106 @@
 .ordt-other-links a {
   overflow-wrap: anywhere;
 }
+
+.ordt-result.ordt-hovered {
+  border-color: #1971c2;
+}
+
+/* Footprint chooser and tooltip live in the map container, outside the panel:
+   same host tokens, set again here. */
+.ordt-footprint-menu,
+.ordt-footprint-tooltip {
+  position: absolute;
+  z-index: 5;
+  font-size: 12px;
+  line-height: 1.4;
+  color: hsl(var(--foreground, 222 84% 5%));
+  background: hsl(var(--background, 0 0% 100%));
+  border: 1px solid hsl(var(--border, 220 15% 88%));
+  border-radius: var(--radius, 0.375rem);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.18);
+}
+
+.ordt-footprint-tooltip {
+  max-width: 280px;
+  padding: 3px 6px;
+  pointer-events: none;
+}
+
+/* Block layout, not a flex column: in a flex column with max-height the
+   items shrink to fit and their lines overlap instead of scrolling. */
+.ordt-footprint-menu {
+  display: block;
+  width: 300px;
+  max-height: 260px;
+  padding: 4px;
+  overflow-y: auto;
+}
+
+.ordt-footprint-menu-head {
+  padding: 2px 6px 4px;
+  color: hsl(var(--muted-foreground, 215 16% 40%));
+}
+
+.ordt-footprint-menu-head {
+  display: block;
+}
+
+.ordt-footprint-menu-item {
+  display: block;
+  width: 100%;
+  height: auto;
+  padding: 4px 6px;
+  line-height: 1.4;
+  overflow: hidden;
+  font: inherit;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: var(--radius, 0.375rem);
+  cursor: pointer;
+}
+
+.ordt-footprint-menu-item:hover,
+.ordt-footprint-menu-item:focus-visible {
+  background: hsl(var(--accent, 220 16% 94%));
+  outline: none;
+}
+
+/* Search bar and results header stay put while the panel scrolls (the host
+   container is the scroller). Both span the panel's side padding. */
+.ordt-search-bar,
+.ordt-results-head {
+  position: sticky;
+  z-index: 2;
+  margin: 0 -12px;
+  padding: 6px 12px;
+  background: var(--ordt-bg);
+}
+
+.ordt-search-bar {
+  top: 0;
+}
+
+.ordt-results-head {
+  top: var(--ordt-bar-h, 46px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-bottom: 1px solid var(--ordt-border);
+}
+
+.ordt-result {
+  scroll-margin-top: calc(var(--ordt-bar-h, 46px) + var(--ordt-head-h, 90px));
+}
+
+.ordt-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  color: var(--ordt-muted);
+}

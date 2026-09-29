@@ -686,7 +686,9 @@ describe("pager at the top of the list (#12)", () => {
     container.querySelector<HTMLFormElement>("form")!.requestSubmit();
     await flush();
     const top = container.querySelector(".ordt-pager-top")!;
-    expect(top.nextElementSibling?.classList.contains("ordt-results")).toBe(true);
+    // In the sticky results header, right above the list.
+    expect(top.parentElement?.classList.contains("ordt-results-head")).toBe(true);
+    expect(top.parentElement?.nextElementSibling?.classList.contains("ordt-results")).toBe(true);
     expect(pagers(container)).toEqual([
       ["Previous:off", "Next:on"],
       ["Previous:off", "Next:on"],
@@ -711,5 +713,53 @@ describe("pager at the top of the list (#12)", () => {
     container.querySelector<HTMLFormElement>("form")!.requestSubmit();
     await flush();
     expect(pagers(container)).toEqual([[], []]);
+  });
+});
+
+describe("folded filters after a search", () => {
+  it("folds the form into a summary of the filters, and unfolds it on request", async () => {
+    const { container } = await mountPanel(() => fixture("search-alberi.json"));
+    const form = container.querySelector<HTMLFormElement>("form")!;
+    const summary = container.querySelector<HTMLElement>(".ordt-summary")!;
+    const actions = container.querySelector<HTMLElement>(".ordt-result-actions")!;
+    expect(summary.hidden).toBe(true);
+    expect(actions.hidden).toBe(true);
+
+    // The text box lives in the search bar, outside the form, and still counts.
+    const text = container.querySelector<HTMLInputElement>('.ordt-search-bar input[name="text"]')!;
+    expect(form.contains(text)).toBe(false);
+    text.value = "alberi";
+    container.querySelector<HTMLInputElement>('input[name="organisation"]')!.value = "Regione Piemonte";
+    container.querySelector<HTMLInputElement>('input[name="invertOrganisation"]')!.checked = true;
+    container.querySelector<HTMLInputElement>('input[name="availableAs"][value="WMS"]')!.checked = true;
+    form.requestSubmit();
+    await flush();
+
+    expect(form.hidden).toBe(true);
+    expect(actions.hidden).toBe(false);
+    expect(summary.hidden).toBe(false);
+    expect(summary.querySelector(".ordt-summary-text")!.textContent).toBe(
+      "Filters: as WMS · hiding Regione Piemonte",
+    );
+    const toggle = summary.querySelector<HTMLButtonElement>("button")!;
+    toggle.click();
+    expect(form.hidden).toBe(false);
+    expect(toggle.textContent).toBe("Hide filters");
+
+    container.querySelector<HTMLButtonElement>(".ordt-result-actions button")!.click(); // Clear results
+    expect(form.hidden).toBe(false);
+    expect(summary.hidden).toBe(true);
+    expect(actions.hidden).toBe(true);
+  });
+
+  it("keeps the filters as they are when changing page", async () => {
+    const { container } = await mountPanel(() => fixture("search-alberi.json"));
+    const form = container.querySelector<HTMLFormElement>("form")!;
+    form.requestSubmit();
+    await flush();
+    container.querySelector<HTMLButtonElement>(".ordt-summary button")!.click();
+    container.querySelector<HTMLElement>(".ordt-pager-top")!.querySelectorAll("button")[1].click();
+    await flush();
+    expect(form.hidden).toBe(false);
   });
 });

@@ -346,6 +346,9 @@ const SORT_HELP: [string, string][] = [
 
 const SORT_NOTE =
   "The catalogue cannot sort by the resource dates (revision, publication, creation): it ignores that request.";
+/** The search bar's text box and button join the form through this id. */
+const FORM_ID = "ordt-search-form";
+
 const WHERE_OPTIONS: Option[] = [
   { value: "anywhere", label: "Anywhere" },
   { value: "view", label: "Current map view" },
@@ -369,6 +372,15 @@ export class RndtPanel {
   private pagerEl!: HTMLElement;
   /** The same pager above the list (#12), so the next page needs no scrolling. */
   private pagerTopEl!: HTMLElement;
+  /** Text box and Search button, kept at the top while the panel scrolls. */
+  private searchBarEl!: HTMLElement;
+  /** One line with the filters of the last search, shown while the form is folded. */
+  private summaryEl!: HTMLElement;
+  private summaryTextEl!: HTMLElement;
+  private summaryToggleEl!: HTMLButtonElement;
+  /** Status, pager and result actions, kept below the search bar. */
+  private resultsHeadEl!: HTMLElement;
+  private resultActionsEl!: HTMLElement;
   private footprintsLayer: FootprintsLayer | null = null;
   private records: RndtRecord[] = [];
   private total = 0;
@@ -390,11 +402,21 @@ export class RndtPanel {
     if (!this.root) {
       this.root = h("div", { className: "ordt-panel" });
       this.formEl = this.buildForm();
+      this.searchBarEl = this.buildSearchBar();
+      this.summaryEl = this.buildSummary();
       this.statusEl = h("div", { className: "ordt-status", role: "status", "aria-live": "polite" });
       this.listEl = h("ol", { className: "ordt-results" });
       this.pagerEl = h("div", { className: "ordt-pager" });
       this.pagerTopEl = h("div", { className: "ordt-pager ordt-pager-top" });
-      this.root.append(this.formEl, this.statusEl, this.pagerTopEl, this.listEl, this.pagerEl);
+      this.resultsHeadEl = h(
+        "div",
+        { className: "ordt-results-head" },
+        this.statusEl,
+        this.pagerTopEl,
+        this.resultActionsEl,
+      );
+      this.root.append(this.searchBarEl, this.formEl, this.summaryEl, this.resultsHeadEl, this.listEl, this.pagerEl);
+      this.trackStickyHeights();
       this.setStatus("Search the Italian national catalogue of spatial data (RNDT).");
     }
     container.append(this.root);
@@ -417,7 +439,13 @@ export class RndtPanel {
   private footprintsOverlay(): FootprintsLayer | null {
     if (!this.footprintsLayer) {
       const map = this.app.getMap?.();
-      if (map) this.footprintsLayer = new FootprintsLayer(map, (id) => this.focusRecord(id, true));
+      if (map) {
+        this.footprintsLayer = new FootprintsLayer(
+          map,
+          (id) => this.focusRecord(id, true),
+          (id) => this.markHovered(id),
+        );
+      }
     }
     return this.footprintsLayer;
   }
@@ -464,8 +492,7 @@ export class RndtPanel {
 
   /** Fill text, mode and "Search in" from a help example, then search. */
   private runExample(example: SearchExample): void {
-    this.formEl.querySelector<HTMLInputElement>('input[name="text"]')!.value =
-      example.text;
+    this.field<HTMLInputElement>("text").value = example.text;
     this.formEl.querySelector<HTMLInputElement>(
       `input[name="textMode"][value="${example.mode}"]`,
     )!.checked = true;
@@ -672,23 +699,12 @@ export class RndtPanel {
       "form",
       {
         className: "ordt-form",
+        id: FORM_ID,
         onsubmit: (event: Event) => {
           event.preventDefault();
           void this.search(1);
         },
       },
-      h(
-        "div",
-        { className: "ordt-row" },
-        h("input", {
-          className: "ordt-input ordt-grow",
-          name: "text",
-          type: "search",
-          placeholder: "Search titles, abstracts, keywords…",
-          "aria-label": "Free text",
-        }),
-        h("button", { className: "ordt-button ordt-primary", type: "submit" }, "Search"),
-      ),
       h(
         "div",
         { className: "ordt-row ordt-small" },
@@ -854,13 +870,100 @@ export class RndtPanel {
         "div",
         { className: "ordt-row ordt-small" },
         h("button", { className: "ordt-link", type: "reset", onclick: () => setTimeout(() => this.afterReset(), 0) }, "Reset"),
-        h("button", { className: "ordt-link", type: "button", onclick: () => this.clearResults() }, "Clear results"),
-        h("button", { className: "ordt-link", type: "button", onclick: () => this.zoomToResults() }, "Zoom to results"),
-        this.footprintsToggleEl,
-        this.copyQueryEl,
       ),
     );
+    this.resultActionsEl = h(
+      "div",
+      { className: "ordt-row ordt-small ordt-result-actions", hidden: true },
+      h("button", { className: "ordt-link", type: "button", onclick: () => this.clearResults() }, "Clear results"),
+      h("button", { className: "ordt-link", type: "button", onclick: () => this.zoomToResults() }, "Zoom to results"),
+      this.footprintsToggleEl,
+      this.copyQueryEl,
+    );
     return form;
+  }
+
+  /** Text box and Search button: outside the form so they can stay on top, tied to it by `form`. */
+  private buildSearchBar(): HTMLElement {
+    return h(
+      "div",
+      { className: "ordt-row ordt-search-bar" },
+      h("input", {
+        className: "ordt-input ordt-grow",
+        name: "text",
+        type: "search",
+        form: FORM_ID,
+        placeholder: "Search titles, abstracts, keywords…",
+        "aria-label": "Free text",
+      }),
+      h("button", { className: "ordt-button ordt-primary", type: "submit", form: FORM_ID }, "Search"),
+    );
+  }
+
+  private buildSummary(): HTMLElement {
+    this.summaryTextEl = h("span", { className: "ordt-summary-text" });
+    this.summaryToggleEl = h(
+      "button",
+      { className: "ordt-link", type: "button", onclick: () => this.showFilters(this.formEl.hidden === true) },
+      "Edit filters",
+    );
+    return h("div", { className: "ordt-summary ordt-small", hidden: true }, this.summaryTextEl, this.summaryToggleEl);
+  }
+
+  /** Unfold or fold the filters; the summary line stays as their handle. */
+  private showFilters(show: boolean): void {
+    this.formEl.hidden = !show;
+    this.summaryToggleEl.textContent = show ? "Hide filters" : "Edit filters";
+  }
+
+  /**
+   * The results header sticks just below the search bar, and a record scrolled
+   * into view must clear both: their heights go into CSS variables.
+   */
+  private trackStickyHeights(): void {
+    if (typeof ResizeObserver === "undefined") return;
+    const update = () => {
+      this.root!.style.setProperty("--ordt-bar-h", `${this.searchBarEl.offsetHeight}px`);
+      this.root!.style.setProperty("--ordt-head-h", `${this.resultsHeadEl.offsetHeight}px`);
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(this.searchBarEl);
+    observer.observe(this.resultsHeadEl);
+  }
+
+  /** The filters of the form in words, for the summary line. The text itself is in the search bar. */
+  private describeFilters(): string {
+    const selected = (name: string) => this.field<HTMLSelectElement>(name).selectedOptions[0]?.text ?? "";
+    const checked = (name: string) =>
+      Array.from(this.formEl.querySelectorAll<HTMLInputElement>(`input[name="${name}"]:checked`), (el) =>
+        el.closest("label")!.textContent!.trim(),
+      );
+    const parts: string[] = [];
+    const mode = checkedValue(this.formEl, "textMode");
+    if (mode && mode !== "all") parts.push(checked("textMode")[0]);
+    if (this.field("field").value) parts.push(`in ${selected("field")}`);
+    if (checkedValue(this.formEl, "kind") !== "all") parts.push(checked("kind")[0]);
+    parts.push(...checked("serviceType"));
+    const availableAs = checked("availableAs");
+    if (availableAs.length) parts.push(`as ${availableAs.join("/")}`);
+    const where = this.field("where").value;
+    if (where !== "anywhere") {
+      const area = where === "box" ? `box ${this.field("box").value.trim()}` : selected("where");
+      parts.push(`${checkedValue(this.formEl, "spatialRel") === "Within" ? "inside" : "touching"} ${area}`);
+    }
+    if (this.field("theme").value) parts.push(selected("theme"));
+    const keywords = this.field("keywords").value.trim();
+    if (keywords) parts.push(`keywords ${keywords}`);
+    const organisation = this.field("organisation").value.trim();
+    if (organisation) {
+      parts.push(`${this.field<HTMLInputElement>("invertOrganisation").checked ? "hiding" : "only"} ${organisation}`);
+    }
+    if (this.field<HTMLInputElement>("openData").checked) parts.push("open data only");
+    const from = this.field("dateFrom").value;
+    const to = this.field("dateTo").value;
+    if (from || to) parts.push(`${selected("dateField")} ${from || "…"} to ${to || "…"}`);
+    if (this.field("sort").value) parts.push(`sorted by ${selected("sort")}`);
+    return parts.length ? `Filters: ${parts.join(" · ")}` : "No filters";
   }
 
   /** Turn on GeoEditor when "Drawn shapes" is picked and nothing is drawn yet. */
@@ -918,7 +1021,8 @@ export class RndtPanel {
   }
 
   private field<T extends HTMLInputElement | HTMLSelectElement>(name: string): T {
-    return this.formEl.querySelector<T>(`[name="${name}"]`)!;
+    // The text box sits outside the <form> (in the search bar), tied to it by `form`.
+    return this.root!.querySelector<T>(`[name="${name}"]`)!;
   }
 
   /** Read the form. Throws with a user-facing message on invalid input. */
@@ -1001,6 +1105,12 @@ export class RndtPanel {
       const page = parseSearchResponse(await fetchJson(this.app, url, { download: true }), RNDT_BASE_URL);
       if (seq !== this.requestSeq) return; // a newer search is running
       this.lastForm = current;
+      if (!form) {
+        // A search from the form: fold the filters so the results get the room.
+        this.summaryTextEl.textContent = this.describeFilters();
+        this.summaryEl.hidden = false;
+        this.showFilters(false);
+      }
       this.records = page.records;
       this.total = page.total;
       this.start = start;
@@ -1027,6 +1137,9 @@ export class RndtPanel {
     this.listEl.replaceChildren();
     this.pagerEl.replaceChildren();
     this.pagerTopEl.replaceChildren();
+    this.resultActionsEl.hidden = true;
+    this.summaryEl.hidden = true;
+    this.showFilters(true);
     this.setStatus("Results cleared.");
   }
 
@@ -1092,6 +1205,7 @@ export class RndtPanel {
         : `${this.start}-${end} of ${this.total.toLocaleString("en")} records`,
     );
     this.listEl.replaceChildren(...this.records.map((r) => this.renderRecord(r)));
+    this.resultActionsEl.hidden = false;
 
     const pages = this.total > PAGE_SIZE;
     this.pagerTopEl.replaceChildren(...(pages ? this.pagerButtons(end) : []));
@@ -1103,7 +1217,7 @@ export class RndtPanel {
     const go = (start: number) =>
       void this.search(start, this.lastForm ?? undefined).then(() =>
         // The new page starts from its first record, wherever the click came from.
-        this.statusEl.scrollIntoView?.({ block: "nearest" }),
+        this.listEl.firstElementChild?.scrollIntoView?.({ block: "start" }),
       );
     return [
       h("button", {
@@ -1130,6 +1244,13 @@ export class RndtPanel {
       const detail = li.querySelector<HTMLElement>(".ordt-detail");
       if (detail) detail.hidden = !isTarget;
       if (isTarget && scroll) li.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }
+
+  /** Mark the result whose footprint is hovered on the map. */
+  private markHovered(id: string | null): void {
+    for (const li of Array.from(this.listEl.children) as HTMLElement[]) {
+      li.classList.toggle("ordt-hovered", li.dataset.id === id);
     }
   }
 
@@ -1190,6 +1311,10 @@ export class RndtPanel {
       ),
       detail,
     );
+    if (record.bbox) {
+      li.addEventListener("mouseenter", () => this.footprintsLayer?.highlight(record.id));
+      li.addEventListener("mouseleave", () => this.footprintsLayer?.highlight(null));
+    }
     return li;
   }
 

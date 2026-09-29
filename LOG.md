@@ -1,5 +1,11 @@
 # LOG
 
+## 2026-09-29
+
+- **Pannello: ricerca e risultati fissi, filtri riassunti**: con "More filters" aperto il form occupava quasi tutta l'altezza e dei risultati si vedeva una scheda. Ora casella di testo e Search stanno in una barra sticky in cima (fuori dal `<form>`, associati con l'attributo `form`); dopo una ricerca lanciata dal form i filtri si chiudono in una riga di riepilogo ("Filters: as WMS · hiding Regione Piemonte", link "Edit filters"); stato, Previous/Next, Clear results, Zoom to results, Hide footprints e Copy query formano una testata sticky sotto la barra. Reset resta in fondo ai filtri. Il cambio pagina non richiude i filtri; Clear results li riapre. Altezze delle barre in variabili CSS (`ResizeObserver`) per `scroll-margin-top` delle schede.
+
+- **Footprint sovrapposti**: il click prendeva `features[0]`, il box disegnato più in alto, così dentro il box di Palermo vinceva sempre un extent regionale o nazionale. Ora il click raccoglie tutti i footprint sotto il cursore (senza doppioni tra tessere), ordinati per area crescente: con uno solo lo seleziona, con più di uno apre un menu con i titoli dal più piccolo (hover su una voce evidenzia il box; Esc, click fuori o movimento della mappa lo chiudono). Nuovo layer di evidenziazione blu, distinto dalla selezione. Hover in entrambe le direzioni: scheda della lista → box evidenziato; box sulla mappa → etichetta con il titolo ("+N, click to choose") e scheda bordata. Menu ed etichetta sono DOM propri nel contenitore della mappa, non `maplibregl.Popup` (niente seconda copia di maplibre nel bundle).
+
 ## 2026-09-28
 
 - **PR GeoLibre unite** (27/9, non ancora in release, ultima 3.1.0): #2701 `crs` in `addWmsLayer`, #2702 `importLayerStyle`, #2707 selettore CRS nel dialog WMS desktop. Annotate in #1, #10, #14, #15; piani per #1 e #10 in `tasks/todo.md`.

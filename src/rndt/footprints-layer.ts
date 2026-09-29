@@ -1,12 +1,20 @@
 import type { FeatureCollection } from "geojson";
-import type { ExpressionSpecification, GeoJSONSource, Map as MapLibreMap, MapLayerMouseEvent } from "maplibre-gl";
+import type {
+  ExpressionSpecification,
+  GeoJSONSource,
+  Map as MapLibreMap,
+  MapGeoJSONFeature,
+  MapLayerMouseEvent,
+} from "maplibre-gl";
 
 const SOURCE_ID = "openrndt-geolibre-footprints";
 const FILL_ID = "openrndt-geolibre-footprints-fill";
 const LINE_ID = "openrndt-geolibre-footprints-line";
+const HOVER_ID = "openrndt-geolibre-footprints-hover";
 const SELECTED_ID = "openrndt-geolibre-footprints-selected";
 const COLOR = "#d9480f";
-const LAYER_IDS = [FILL_ID, LINE_ID, SELECTED_ID];
+const HOVER_COLOR = "#1971c2";
+const LAYER_IDS = [FILL_ID, LINE_ID, HOVER_ID, SELECTED_ID];
 
 const EMPTY: FeatureCollection = { type: "FeatureCollection", features: [] };
 
@@ -19,30 +27,140 @@ const EMPTY: FeatureCollection = { type: "FeatureCollection", features: [] };
 export class FootprintsLayer {
   private data: FeatureCollection = EMPTY;
   private selectedId: string | null = null;
+  private hoverId: string | null = null;
+  /** Chooser shown when a click hits several footprints. */
+  private menu: HTMLElement | null = null;
+  private tooltip: HTMLElement | null = null;
   private visible = true;
   /** Records whose footprint is hidden one by one; reset by `setData`. */
   private readonly hiddenIds = new Set<string>();
   private lastMove = 0;
   private readonly onStyleData = () => this.ensure();
   private readonly onClick = (event: MapLayerMouseEvent) => {
-    const id = event.features?.[0]?.properties?.id;
-    if (typeof id === "string") this.onSelect(id);
+    const hits = this.hitsAt(event.features);
+    if (hits.length === 1) this.onSelect(hits[0].id);
+    else if (hits.length > 1) this.openMenu(hits, event.point);
   };
-  private readonly onEnter = () => {
+  private readonly onMove = (event: MapLayerMouseEvent) => {
     this.map.getCanvas().style.cursor = "pointer";
+    if (this.menu) return;
+    const hits = this.hitsAt(event.features);
+    this.setHover(hits[0]?.id ?? null);
+    this.showTooltip(hits, event.point);
   };
   private readonly onLeave = () => {
     this.map.getCanvas().style.cursor = "";
+    if (this.menu) return;
+    this.setHover(null);
+    this.hideTooltip();
+  };
+  private readonly closeMenu = () => {
+    if (!this.menu) return;
+    this.menu.remove();
+    this.menu = null;
+    this.setHover(null);
+    this.map.off("movestart", this.closeMenu);
+    document.removeEventListener("keydown", this.onKey);
+    document.removeEventListener("pointerdown", this.onOutside, true);
+  };
+  private readonly onKey = (event: KeyboardEvent) => {
+    if (event.key === "Escape") this.closeMenu();
+  };
+  private readonly onOutside = (event: Event) => {
+    if (this.menu && !this.menu.contains(event.target as Node)) this.closeMenu();
   };
 
   constructor(
     private readonly map: MapLibreMap,
     private readonly onSelect: (recordId: string) => void,
+    /** A footprint is hovered on the map (null: none), to mark its result. */
+    private readonly onHover: (recordId: string | null) => void = () => undefined,
   ) {
     map.on("styledata", this.onStyleData);
     map.on("click", FILL_ID, this.onClick);
-    map.on("mouseenter", FILL_ID, this.onEnter);
+    map.on("mousemove", FILL_ID, this.onMove);
     map.on("mouseleave", FILL_ID, this.onLeave);
+  }
+
+  /**
+   * The footprints under the cursor, once each, smallest first: a click inside
+   * a small extent means that record, not the regional or national extents
+   * around it, which win by drawing order alone.
+   */
+  private hitsAt(features: MapGeoJSONFeature[] | undefined): { id: string; title: string }[] {
+    const hits = new Map<string, { id: string; title: string; area: number }>();
+    for (const feature of features ?? []) {
+      const id = feature.properties?.id;
+      if (typeof id !== "string" || hits.has(id) || this.hiddenIds.has(id)) continue;
+      const title = String(feature.properties?.title ?? id);
+      hits.set(id, { id, title, area: this.areaOf(id) });
+    }
+    return [...hits.values()].sort((a, b) => a.area - b.area);
+  }
+
+  /** Extent area in square degrees, from the source data (tiles clip the rendered geometry). */
+  private areaOf(recordId: string): number {
+    const feature = this.data.features.find((f) => f.properties?.id === recordId);
+    if (feature?.geometry.type !== "Polygon") return Infinity;
+    const [[w, s], , [e, n]] = feature.geometry.coordinates[0];
+    return Math.abs((e - w) * (n - s));
+  }
+
+  private openMenu(hits: { id: string; title: string }[], point: { x: number; y: number }): void {
+    this.closeMenu();
+    this.hideTooltip();
+    const menu = document.createElement("div");
+    menu.className = "ordt-footprint-menu";
+    menu.setAttribute("role", "menu");
+    const head = document.createElement("div");
+    head.className = "ordt-footprint-menu-head";
+    head.textContent = `${hits.length} footprints here, smallest first`;
+    menu.append(head);
+    for (const hit of hits) {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "ordt-footprint-menu-item";
+      item.setAttribute("role", "menuitem");
+      item.textContent = hit.title;
+      item.title = hit.title;
+      item.addEventListener("mouseenter", () => this.setHover(hit.id));
+      item.addEventListener("focus", () => this.setHover(hit.id));
+      item.addEventListener("click", () => {
+        this.closeMenu();
+        this.onSelect(hit.id);
+      });
+      menu.append(item);
+    }
+    const container = this.map.getContainer();
+    container.append(menu);
+    // Keep the menu inside the map: open it left or above the click when needed.
+    const x = Math.min(point.x, container.clientWidth - menu.offsetWidth - 4);
+    const y = Math.min(point.y, container.clientHeight - menu.offsetHeight - 4);
+    menu.style.left = `${Math.max(4, x)}px`;
+    menu.style.top = `${Math.max(4, y)}px`;
+    this.menu = menu;
+    this.setHover(hits[0].id);
+    this.map.on("movestart", this.closeMenu);
+    document.addEventListener("keydown", this.onKey);
+    document.addEventListener("pointerdown", this.onOutside, true);
+  }
+
+  private showTooltip(hits: { title: string }[], point: { x: number; y: number }): void {
+    if (!hits.length) return this.hideTooltip();
+    if (!this.tooltip) {
+      this.tooltip = document.createElement("div");
+      this.tooltip.className = "ordt-footprint-tooltip";
+      this.map.getContainer().append(this.tooltip);
+    }
+    const more = hits.length > 1 ? ` (+${hits.length - 1}, click to choose)` : "";
+    this.tooltip.textContent = `${hits[0].title}${more}`;
+    this.tooltip.style.left = `${point.x + 12}px`;
+    this.tooltip.style.top = `${point.y + 12}px`;
+  }
+
+  private hideTooltip(): void {
+    this.tooltip?.remove();
+    this.tooltip = null;
   }
 
   private ensure(): void {
@@ -84,6 +202,16 @@ export class FootprintsLayer {
         paint: { "line-color": COLOR, "line-width": 1.2, "line-opacity": 0.8 },
       });
     }
+    if (!map.getLayer(HOVER_ID)) {
+      map.addLayer({
+        id: HOVER_ID,
+        type: "line",
+        source: SOURCE_ID,
+        layout: { visibility: this.visibility() },
+        paint: { "line-color": HOVER_COLOR, "line-width": 3 },
+        filter: this.hoverFilter(),
+      });
+    }
     if (!map.getLayer(SELECTED_ID)) {
       map.addLayer({
         id: SELECTED_ID,
@@ -116,8 +244,11 @@ export class FootprintsLayer {
   }
 
   setData(data: FeatureCollection): void {
+    this.closeMenu();
+    this.hideTooltip();
     this.data = data;
     this.selectedId = null;
+    this.hoverId = null;
     this.hiddenIds.clear();
     this.ensure();
     (this.map.getSource(SOURCE_ID) as GeoJSONSource | undefined)?.setData(data);
@@ -127,6 +258,10 @@ export class FootprintsLayer {
   /** Show or hide all footprints. Showing also brings back those hidden one by one. */
   setVisible(visible: boolean): void {
     this.visible = visible;
+    if (!visible) {
+      this.closeMenu();
+      this.hideTooltip();
+    }
     if (visible && this.hiddenIds.size) {
       this.hiddenIds.clear();
       this.applyFilters();
@@ -164,6 +299,24 @@ export class FootprintsLayer {
     return ["all", ["==", ["get", "id"], this.selectedId ?? ""], this.shownFilter()];
   }
 
+  private hoverFilter(): ExpressionSpecification {
+    return ["all", ["==", ["get", "id"], this.hoverId ?? ""], this.shownFilter()];
+  }
+
+  /** Highlight one footprint (a result hovered in the list), or none. */
+  highlight(recordId: string | null): void {
+    if (this.hoverId === recordId) return;
+    this.hoverId = recordId;
+    if (this.map.getLayer(HOVER_ID)) this.map.setFilter(HOVER_ID, this.hoverFilter());
+  }
+
+  /** Map-side hover: highlight and tell the panel. */
+  private setHover(recordId: string | null): void {
+    if (this.hoverId === recordId) return;
+    this.highlight(recordId);
+    this.onHover(recordId);
+  }
+
   select(recordId: string | null): void {
     this.selectedId = recordId;
     this.applyFilters();
@@ -173,6 +326,7 @@ export class FootprintsLayer {
     const map = this.map;
     if (map.getLayer(FILL_ID)) map.setFilter(FILL_ID, this.shownFilter());
     if (map.getLayer(LINE_ID)) map.setFilter(LINE_ID, this.shownFilter());
+    if (map.getLayer(HOVER_ID)) map.setFilter(HOVER_ID, this.hoverFilter());
     if (map.getLayer(SELECTED_ID)) map.setFilter(SELECTED_ID, this.selectedFilter());
   }
 
@@ -182,11 +336,13 @@ export class FootprintsLayer {
 
   remove(): void {
     const map = this.map;
+    this.closeMenu();
+    this.hideTooltip();
     map.off("styledata", this.onStyleData);
     map.off("click", FILL_ID, this.onClick);
-    map.off("mouseenter", FILL_ID, this.onEnter);
+    map.off("mousemove", FILL_ID, this.onMove);
     map.off("mouseleave", FILL_ID, this.onLeave);
-    for (const id of [SELECTED_ID, LINE_ID, FILL_ID]) {
+    for (const id of [SELECTED_ID, HOVER_ID, LINE_ID, FILL_ID]) {
       if (map.getLayer(id)) map.removeLayer(id);
     }
     if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);

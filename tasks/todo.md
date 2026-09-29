@@ -1,3 +1,56 @@
+# Piano - pannello: ricerca e risultati fissi, filtri riassunti
+
+## Contesto (2026-09-29)
+
+Con "More filters" aperto il form occupa quasi tutta l'altezza del pannello: dei risultati si vede una scheda.
+
+## Fase 1 - Layout
+
+- [x] barra fissa in cima (sticky): casella di testo e Search, fuori dal `<form>` ma associati con l'attributo `form` → verify: test esistenti su submit e reset
+- [x] dopo una ricerca lanciata dal form i filtri si chiudono; al loro posto una riga di riepilogo dei filtri attivi con "Edit filters" / "Hide filters" → verify: test del riepilogo
+- [x] testata dei risultati fissa sotto la barra: stato, Previous/Next, Clear results, Zoom to results, Hide footprints, Copy query; Reset resta in fondo ai filtri → verify: test, prova in GeoLibre Desktop
+- [x] cambio pagina e selezione dalla mappa: la scheda non finisce sotto le barre fisse (`scroll-margin-top`) → verify: prova in GeoLibre Desktop
+
+## Fase 2 - Chiusura
+
+- [x] `npm test`, typecheck, lint, LOG.md, copia in %APPDATA%
+- [ ] prova in GeoLibre Desktop (sticky, riepilogo, scroll al cambio pagina)
+
+## Domande aperte
+
+- sticky funziona solo se il contenitore che scorre è quello di GeoLibre, senza `overflow: hidden` in mezzo: da vedere in Desktop
+
+---
+
+# Piano - scelta dei footprint sovrapposti e hover mappa/lista
+
+## Contesto (2026-09-29)
+
+Il click sulla mappa prende `features[0]`, il rettangolo disegnato più in alto: dentro un box piccolo (Palermo) si seleziona sempre uno dei box grandi che lo contengono.
+
+## Fase 1 - Click
+
+- [x] al click, tutti i footprint sotto il cursore (senza doppioni), ordinati per area crescente → verify: test con box annidati
+- [x] uno solo: selezione diretta; più di uno: menu con i titoli sulla mappa, dal più piccolo; hover su una voce evidenzia il box; Esc, click fuori o movimento della mappa lo chiudono → verify: test, prova in GeoLibre Desktop
+
+## Fase 2 - Hover
+
+- [x] layer di evidenziazione (linea) separato dalla selezione → verify: test filtri
+- [x] hover su una scheda della lista → box evidenziato → verify: prova in GeoLibre Desktop
+- [x] hover su un box → tooltip con il titolo (il più piccolo sotto il cursore, "+N" se ce ne sono altri) e scheda evidenziata nella lista → verify: prova in GeoLibre Desktop
+
+## Fase 3 - Chiusura
+
+- [x] `npm test`, typecheck, lint, LOG.md
+- [ ] prova in GeoLibre Desktop (plugin copiato in %APPDATA%)
+
+## Domande aperte
+
+- tooltip: etichetta propria nel contenitore della mappa (il `title` nativo compare con ritardo e non si aggiorna mentre il mouse si muove)
+- menu fatto a mano nel contenitore della mappa, non `maplibregl.Popup` (eviterebbe una seconda copia di maplibre nel bundle)
+
+---
+
 # Piano - filtri tematici della Ricerca Dettagliata del portale
 
 ## Contesto (2026-09-27, misure su geodati.gov.it, 23.831 record)
