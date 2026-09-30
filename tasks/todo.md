@@ -1,3 +1,67 @@
+# Plan - make the repo public for testers (no GeoLibre plugin registry submission yet)
+
+## Context (2026-09-30)
+
+The repo is private; two friends will test the plugin and open issues. The README exists but describes the panel as it was before today (organisation name click, "Copy query", layer menus) and speaks to developers. Nothing from today is committed. Checked: no secrets in the history (only `${{ secrets.GITHUB_TOKEN }}` in an old template workflow), no tags, no GitHub releases.
+
+## Phase 1 - Commit
+
+- [ ] commit the state the testers have, then the detail view → verify: `git diff --cached --stat` matches the work; `npm test` green on each commit
+
+## Phase 2 - Welcome page for testers
+
+- [ ] README top part for testers: what the plugin does in a few lines, a screenshot from GeoLibre Desktop, install from the release zip (Manage Plugins > Settings > Install from file, or the plugins folder per OS), how to report a problem (issue with GeoLibre version, OS, record, URL, Diagnostics); current features and known limits updated; development section below → verify: read it as a tester
+- [ ] repo description in English, topics (geolibre, rndt, inspire, wms, wfs, open-data, italy)
+- [ ] issue templates: bug report and idea → verify: "New issue" shows them
+
+## Phase 3 - Release and visibility
+
+- [ ] version 0.1.0-alpha.4, pre-release on GitHub with the zip attached → verify: download and install the zip
+- [ ] repo public (only after an explicit go) → verify: open the URL logged out
+
+## Open questions
+
+- screenshot: one from GeoLibre Desktop, taken by the user?
+- template leftovers (Dockerfile, examples/, index.html dev page): keep or remove?
+
+---
+
+# Plan - detail view (mockup 1c)
+
+## Context (2026-09-30)
+
+Phase 3 of the panel redesign. State before starting saved in `tmp/pre-detail.patch`; the zip sent to two testers is `tmp/sent-to-friends-2026-09-30.zip` (uncommitted tree, labelled 0.1.0-alpha.3).
+
+## Step A - Dedicated view
+
+- [x] clicking a result title (or a footprint on the map) opens a view with "← N results", title, type and formats, organisation, "Metadata updated <date>", full abstract, services, other links, and Zoom to extent / Metadata / ⋯ (ISO XML, Copy id, Hide footprint) → verify: tests through one `openDetail` helper
+- [x] while it is open: form, help, settings, chips, results header, list and pager hidden; search bar and footer stay → verify: test
+- [x] "← N results" closes it and scrolls the card back into view; every search, page change, sort, chip ×, Clear all and Clear results closes it first → verify: tests
+- [x] the inline expanded card goes away (no dead code); footprint toggles are synced in the whole panel, not only in the list → verify: footprint test
+
+## Step B - Layer checklist
+
+- [x] WMS/WFS capabilities are read when the view opens, one block per service: "<n> layers · host", Open, Copy URL → verify: tests
+- [x] WMS: checklist (readable title, code below in monospace), filter above 30 layers (hidden rows stay checked; the button title says so), layers not in EPSG:3857 disabled with the reason; "Add to map (N)" adds each checked layer, named with the readable title (code as fallback); a failing layer is reported by name → verify: tests
+- [x] WFS: same list with single choice (radio), because each add is a download with count, limit and confirmation; "Only features in the current map view" and the rest of the flow unchanged → verify: WFS tests
+- [x] RNDT readable-name lookups: the bulk one when the block renders, the per-code one only after the first pointer or focus on the list (as with the old menu) → verify: lookup tests
+- [x] every error keeps "Copy error report" and the error log → verify: report tests
+
+## Not done
+
+- tile errors next to the added layer: in GeoLibre 3.1.0 `addWmsLayer` returns a store layer id and serves tiles through the native protocol; the MapLibre source id and its error events are not exposed to plugins, so the count cannot be tied to the layer without guessing
+
+## Wrap-up
+
+- [x] tests, typecheck, lint, headless screenshots at 320 and 380 px, LOG.md, build, copy to %APPDATA%; the testers' zip is not rebuilt unless asked
+- [ ] test in GeoLibre Desktop
+
+## Open questions
+
+- none for now
+
+---
+
 # Plan - plugin settings and log of failing URLs
 
 ## Context (2026-09-30)

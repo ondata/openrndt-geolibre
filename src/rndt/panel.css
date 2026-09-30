@@ -217,11 +217,6 @@
   border-radius: var(--ordt-radius);
 }
 
-.ordt-result.ordt-expanded {
-  border-color: var(--ordt-border);
-  background: var(--ordt-accent);
-}
-
 .ordt-result-title {
   display: block;
   width: 100%;
@@ -264,13 +259,6 @@
 .ordt-badge-service {
   color: var(--ordt-primary);
   border-color: var(--ordt-primary);
-}
-
-.ordt-detail {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
 }
 
 .ordt-abstract {
@@ -926,6 +914,12 @@
 .ordt-footer-links {
   display: inline-flex;
   gap: 12px;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.ordt-footer {
+  flex-wrap: wrap;
 }
 
 .ordt-settings {
@@ -942,4 +936,119 @@
   margin: 0;
   font-size: 12px;
   font-weight: 600;
+}
+
+/* Detail view: one record in place of filters and list; search bar and footer stay. */
+.ordt-in-detail > :is(.ordt-form, .ordt-help-all, .ordt-settings, .ordt-summary, .ordt-results-head, .ordt-results, .ordt-pager) {
+  display: none !important;
+}
+
+.ordt-detail-view {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ordt-back {
+  align-self: flex-start;
+  font-size: 12px;
+}
+
+.ordt-detail-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.ordt-detail-view .ordt-meta {
+  margin-top: 0;
+}
+
+.ordt-detail-actions {
+  gap: 14px;
+}
+
+a.ordt-menu-item {
+  text-decoration: none;
+}
+
+/* Service block in the detail view: kind, layer count, host, actions; then the layer list. */
+.ordt-service-head {
+  flex-wrap: wrap;
+}
+
+.ordt-layer-count {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ordt-layer-count:empty {
+  display: none;
+}
+
+.ordt-service-actions {
+  margin-left: auto;
+  gap: 10px;
+}
+
+.ordt-layers {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--ordt-border);
+  border-radius: var(--ordt-radius);
+}
+
+.ordt-layer {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.ordt-layer + .ordt-layer {
+  border-top: 1px solid var(--ordt-border);
+}
+
+.ordt-layer:hover {
+  background: var(--ordt-accent);
+}
+
+.ordt-layer input {
+  flex: none;
+  margin: 2px 0 0;
+}
+
+.ordt-layer:has(input:disabled) {
+  cursor: default;
+  color: var(--ordt-muted);
+}
+
+.ordt-layer-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ordt-layer-title {
+  overflow-wrap: anywhere;
+}
+
+.ordt-layer-code {
+  overflow: hidden;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--ordt-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ordt-layer-reason {
+  font-size: 11px;
+  color: var(--ordt-error);
 }

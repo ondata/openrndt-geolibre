@@ -50,15 +50,6 @@ export function readableTitle(name: string, title: string): string | null {
 }
 
 /**
- * Menu label: the layer name as the service gives it (the one a manual or a
- * specification refers to), then the readable name in brackets when there is
- * one: `RIFIUTI:TDLD8 (Trattamento chimico-fisico … D8 (TDLD8))`.
- */
-export function optionLabel(name: string, readable: string | null): string {
-  return readable ? `${name} (${readable})` : name;
-}
-
-/**
  * Key that matches every link to the same service: host and path without the
  * last segment (`…/geoserver/RIFIUTI/wfs` → `…/geoserver/RIFIUTI`), so WMS,
  * WFS and OWS links of one workspace all count.

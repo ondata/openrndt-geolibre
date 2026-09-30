@@ -11,7 +11,6 @@ import {
   lookupLayerTitleByCode,
   lookupLayerTitles,
   lookupOneLayerTitle,
-  optionLabel,
   parseLayerTitles,
   readableTitle,
   serviceKey,
@@ -38,9 +37,9 @@ describe("readable titles", () => {
     expect(isReadableTitle(name, title)).toBe(expected);
   });
 
-  it("keeps the layer name first and adds the readable one in brackets", () => {
-    expect(optionLabel("M2185:L7015", readableTitle("M2185:L7015", "Ciclovie"))).toBe("M2185:L7015 (Ciclovie)");
-    expect(optionLabel("RIFIUTI:ADM", readableTitle("RIFIUTI:ADM", "ADM"))).toBe("RIFIUTI:ADM");
+  it("gives the capabilities title only when it reads as a name", () => {
+    expect(readableTitle("M2185:L7015", "Ciclovie")).toBe("Ciclovie");
+    expect(readableTitle("RIFIUTI:ADM", "ADM")).toBeNull();
   });
 });
 

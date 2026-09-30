@@ -13,6 +13,12 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 const searchHelpToggle = (container: HTMLElement) =>
   Array.from(container.querySelectorAll<HTMLButtonElement>(".ordt-footer button")).find((b) => b.textContent === "Search help")!;
 
+/** Open a result's detail view from its title; returns the view. */
+const openDetail = (card: HTMLElement) => {
+  card.querySelector<HTMLButtonElement>(".ordt-result-title")!.click();
+  return card.closest(".ordt-panel")!.querySelector<HTMLElement>(".ordt-detail-view")!;
+};
+
 const chipLabels = (container: HTMLElement) =>
   Array.from(container.querySelectorAll(".ordt-chip"), (c) => c.firstChild!.textContent);
 
@@ -91,19 +97,16 @@ describe("RNDT panel", () => {
     expect(container.querySelectorAll(".ordt-result")).toHaveLength(5);
 
     // Open the first record with a WMS and add its layer.
-    const item = Array.from(container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
+    const card = Array.from(container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
       li.querySelector(".ordt-badge-service")?.textContent === "WMS",
     )!;
-    item.querySelector<HTMLButtonElement>(".ordt-result-title")!.click();
-    expect(item.querySelector<HTMLElement>(".ordt-detail")!.hidden).toBe(false);
-    const addButton = Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find(
-      (b) => b.textContent === "Add to map…",
-    )!;
-    addButton.click();
+    const item = openDetail(card);
+    expect(item.hidden).toBe(false);
+    // The capabilities are read as the view opens: no "Add to map…" step.
     await flush();
-    expect(requested.at(-1)).toMatch(/REQUEST=GetCapabilities/);
+    expect(requested.some((u) => /REQUEST=GetCapabilities/.test(u))).toBe(true);
     const addLayer = Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find(
-      (b) => b.textContent === "Add layer",
+      (b) => b.textContent === "Add to map (1)",
     )!;
     expect(addLayer.disabled).toBe(false);
     addLayer.click();
@@ -132,13 +135,12 @@ describe("RNDT panel", () => {
       try {
         container.querySelector<HTMLFormElement>("form")!.requestSubmit();
         await flush();
-        const item = Array.from(container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
+        const card = Array.from(container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
           li.querySelector(".ordt-badge-service")?.textContent === "WMS",
         )!;
-        item.querySelector<HTMLButtonElement>(".ordt-result-title")!.click();
-        Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent === "Add to map…")!.click();
+        const item = openDetail(card);
         await flush();
-        Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent === "Add layer")!.click();
+        Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent === "Add to map (1)")!.click();
         const options = vi.mocked(host.addWmsLayer!).mock.calls[0][1];
         expect(new URL(options.url).protocol).toBe(scheme);
         expect(probes[0]).toMatch(/^https:/);
@@ -154,19 +156,17 @@ describe("RNDT panel", () => {
     );
     container.querySelector<HTMLFormElement>("form")!.requestSubmit();
     await flush();
-    const item = Array.from(container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
+    const card = Array.from(container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
       li.querySelector(".ordt-badge-service")?.textContent === "WMS",
     )!;
-    item.querySelector<HTMLButtonElement>(".ordt-result-title")!.click();
-    Array.from(item.querySelectorAll<HTMLButtonElement>("button"))
-      .find((b) => b.textContent === "Add to map…")!
-      .click();
+    const item = openDetail(card);
     await flush();
-    const addLayer = Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find(
-      (b) => b.textContent === "Add layer",
-    )!;
+    const addLayer = item.querySelector<HTMLButtonElement>(".ordt-service .ordt-primary")!;
     expect(addLayer.disabled).toBe(true);
-    expect(item.textContent).toContain("not offered in EPSG:3857");
+    expect(addLayer.textContent).toBe("Select a layer");
+    expect(Array.from(item.querySelectorAll<HTMLInputElement>(".ordt-layer input")).every((i) => i.disabled)).toBe(true);
+    expect(item.textContent).toContain("Not offered in EPSG:3857");
+    expect(item.textContent).toContain("No layer of this WMS is offered in EPSG:3857");
   });
 
   it("uses the map view as search box", async () => {
@@ -389,15 +389,11 @@ describe("RNDT panel", () => {
     );
     container.querySelector<HTMLFormElement>("form")!.requestSubmit();
     await flush();
-    const item = Array.from(container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
+    const card = Array.from(container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
       Array.from(li.querySelectorAll(".ordt-badge-service")).some((b) => b.textContent === "WFS"),
     )!;
-    item.querySelector<HTMLButtonElement>(".ordt-result-title")!.click();
+    const item = openDetail(card);
     const areaButtons = () => Array.from(item.querySelectorAll<HTMLButtonElement>("button"));
-    const wfsRow = Array.from(item.querySelectorAll<HTMLElement>(".ordt-service")).find((row) =>
-      row.textContent!.includes("WFS"),
-    )!;
-    Array.from(wfsRow.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent === "Add to map…")!.click();
     await flush();
     areaButtons().find((b) => b.textContent === "Add features")!.click();
     await flush();
@@ -600,6 +596,15 @@ describe("zoom to a record", () => {
 });
 
 describe("readable layer names (#7)", () => {
+  /** Title and code of each row of the WFS list, as "title | code" (code only when a title was found). */
+  const rows = (item: HTMLElement) =>
+    Array.from(item.querySelectorAll<HTMLElement>('[aria-label="WFS feature types"] .ordt-layer'), (row) => {
+      const code = row.querySelector<HTMLElement>(".ordt-layer-code")!;
+      return code.hidden ? row.querySelector(".ordt-layer-title")!.textContent : `${row.querySelector(".ordt-layer-title")!.textContent} | ${code.textContent}`;
+    });
+  const checkedValue = (item: HTMLElement) =>
+    item.querySelector<HTMLInputElement>('[aria-label="WFS feature types"] input:checked')?.value;
+
   // A WFS whose titles are codes, like FVG RIFIUTI; 35 types so the filter shows.
   const codes = ["TDLD8", "UCEM", "RAEER3", ...Array.from({ length: 32 }, (_, i) => `X${i}`)];
   const wfsCaps = `<wfs:WFS_Capabilities xmlns:wfs="http://www.opengis.net/wfs/2.0" xmlns:ows="http://www.opengis.net/ows/1.1" xmlns:xlink="http://www.w3.org/1999/xlink" version="2.0.0">
@@ -615,30 +620,27 @@ describe("readable layer names (#7)", () => {
     });
     ctx.container.querySelector<HTMLFormElement>("form")!.requestSubmit();
     await flush();
-    const item = Array.from(ctx.container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
+    const card = Array.from(ctx.container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
       Array.from(li.querySelectorAll(".ordt-badge-service")).some((b) => b.textContent === "WFS"),
     )!;
-    item.querySelector<HTMLButtonElement>(".ordt-result-title")!.click();
-    Array.from(item.querySelectorAll<HTMLButtonElement>("button"))
-      .filter((b) => b.textContent === "Add to map…")
-      .at(-1)!
-      .click();
+    const item = openDetail(card);
     await flush();
     return { ...ctx, item };
   }
 
-  it("shows the layer names first, then adds RNDT titles in brackets", async () => {
+  it("shows the codes first, then RNDT titles with the code below", async () => {
     const { item } = await openWfs();
     await flush();
-    const picker = item.querySelector<HTMLSelectElement>('select[aria-label="WFS feature type"]')!;
-    const labels = Array.from(picker.options).map((o) => o.textContent);
-    expect(labels).toContain("RIFIUTI:TDLD8 (Trattamento chimico-fisico e biologico di rifiuti liquidi D8 (TDLD8))");
-    expect(labels).toContain("RIFIUTI:RAEER3 (Recupero RAEE R3 (RAEER3))");
+    const labels = rows(item);
+    expect(labels).toContain("Trattamento chimico-fisico e biologico di rifiuti liquidi D8 (TDLD8) | RIFIUTI:TDLD8");
+    expect(labels).toContain("Recupero RAEE R3 (RAEER3) | RIFIUTI:RAEER3");
     expect(labels).toContain("RIFIUTI:X0");
+    // A WFS takes one feature type at a time.
+    expect(item.querySelectorAll('[aria-label="WFS feature types"] input[type="radio"]')).toHaveLength(35);
     expect(item.textContent).toMatch(/Readable names from RNDT for 3 of 35 layers/);
   });
 
-  it("on opening the menu, searches RNDT for each layer still without a name", async () => {
+  it("on reaching the list, searches RNDT for each layer still without a name", async () => {
     const byCode = (q: string) =>
       `<csw:GetRecordsResponse xmlns:csw="http://www.opengis.net/cat/csw/2.0.2" xmlns:dc="http://purl.org/dc/elements/1.1/"><csw:SearchResults numberOfRecordsMatched="1">${
         q.endsWith(" AND X5") ? "<csw:Record><dc:title>Readable X5</dc:title></csw:Record>" : ""
@@ -652,28 +654,21 @@ describe("readable layer names (#7)", () => {
     });
     ctx.container.querySelector<HTMLFormElement>("form")!.requestSubmit();
     await flush();
-    const item = Array.from(ctx.container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
+    const card = Array.from(ctx.container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
       Array.from(li.querySelectorAll(".ordt-badge-service")).some((b) => b.textContent === "WFS"),
     )!;
-    item.querySelector<HTMLButtonElement>(".ordt-result-title")!.click();
-    Array.from(item.querySelectorAll<HTMLButtonElement>("button")).filter((b) => b.textContent === "Add to map…").at(-1)!.click();
+    const item = openDetail(card);
     await flush();
     await flush();
     const byCodeCalls = () => ctx.requested.filter((u) => (new URL(u).searchParams.get("q") ?? "").includes(" AND "));
-    expect(byCodeCalls()).toHaveLength(0); // nothing until the menu is opened
+    expect(byCodeCalls()).toHaveLength(0); // nothing until the user reaches the list
 
-    const picker = item.querySelector<HTMLSelectElement>('select[aria-label="WFS feature type"]')!;
-    picker.dispatchEvent(new Event("pointerdown"));
-    picker.dispatchEvent(new Event("focus")); // the same opening: no second round
+    const list = item.querySelector<HTMLElement>('[aria-label="WFS feature types"]')!;
+    list.dispatchEvent(new Event("pointerenter"));
+    list.dispatchEvent(new Event("focusin")); // the same visit: no second round
     for (let i = 0; i < 12; i++) await flush();
     expect(byCodeCalls()).toHaveLength(32);
-    expect(Array.from(picker.options).map((o) => o.textContent)).toContain("RIFIUTI:X5 (Readable X5)");
-    // Long labels are cut by the native menu: the full one is the tooltip.
-    const x5 = Array.from(picker.options).find((o) => o.value === "RIFIUTI:X5")!;
-    expect(x5.title).toBe("RIFIUTI:X5 (Readable X5)");
-    picker.value = "RIFIUTI:X5";
-    picker.dispatchEvent(new Event("change"));
-    expect(picker.title).toBe("RIFIUTI:X5 (Readable X5)");
+    expect(rows(item)).toContain("Readable X5 | RIFIUTI:X5");
     expect(item.textContent).toMatch(/Readable names from RNDT for 4 of 35 layers/);
   });
 
@@ -686,20 +681,19 @@ describe("readable layer names (#7)", () => {
     });
     ctx.container.querySelector<HTMLFormElement>("form")!.requestSubmit();
     await flush();
-    const item = Array.from(ctx.container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
+    const card = Array.from(ctx.container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
       Array.from(li.querySelectorAll(".ordt-badge-service")).some((b) => b.textContent === "WFS"),
     )!;
-    item.querySelector<HTMLButtonElement>(".ordt-result-title")!.click();
-    Array.from(item.querySelectorAll<HTMLButtonElement>("button")).filter((b) => b.textContent === "Add to map…").at(-1)!.click();
+    const item = openDetail(card);
     await flush();
     await flush();
-    const picker = item.querySelector<HTMLSelectElement>('select[aria-label="WFS feature type"]')!;
-    picker.value = "RIFIUTI:UCEM";
-    picker.dispatchEvent(new Event("change"));
+    const ucem = item.querySelector<HTMLInputElement>('[aria-label="WFS feature types"] input[value="RIFIUTI:UCEM"]')!;
+    ucem.checked = true;
+    ucem.dispatchEvent(new Event("change", { bubbles: true }));
     await flush();
     const targeted = ctx.requested.filter((u) => u.includes("f=csw")).map((u) => new URL(u).searchParams.get("q"));
     expect(targeted.some((q) => q?.endsWith("*UCEM*"))).toBe(true);
-    expect(picker.selectedOptions[0].textContent).toBe("RIFIUTI:UCEM (Utilizzo in cementifici R5 (UCEM))");
+    expect(rows(item)).toContain("Utilizzo in cementifici R5 (UCEM) | RIFIUTI:UCEM");
     expect(item.textContent).toMatch(/looked up in RNDT for the selected layer only/);
   });
 
@@ -709,10 +703,12 @@ describe("readable layer names (#7)", () => {
     const filter = item.querySelector<HTMLInputElement>('input[aria-label="Filter layers"]')!;
     filter.value = "cementifici";
     filter.dispatchEvent(new Event("input"));
-    const picker = item.querySelector<HTMLSelectElement>('select[aria-label="WFS feature type"]')!;
-    const visible = Array.from(picker.options).filter((o) => !o.hidden).map((o) => o.value);
+    const visible = Array.from(item.querySelectorAll<HTMLElement>('[aria-label="WFS feature types"] .ordt-layer'))
+      .filter((row) => !row.hidden)
+      .map((row) => row.querySelector("input")!.value);
     expect(visible).toEqual(["RIFIUTI:UCEM"]);
-    expect(picker.value).toBe("RIFIUTI:UCEM");
+    // One choice only: it moves to the row left in sight.
+    expect(checkedValue(item)).toBe("RIFIUTI:UCEM");
   });
 });
 
@@ -919,11 +915,10 @@ describe("Report the error", () => {
     });
     container.querySelector<HTMLFormElement>("form")!.requestSubmit();
     await flush();
-    const item = Array.from(container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
+    const card = Array.from(container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
       Array.from(li.querySelectorAll(".ordt-badge-service")).some((b) => b.textContent === "WMS"),
     )!;
-    item.querySelector<HTMLButtonElement>(".ordt-result-title")!.click();
-    Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent === "Add to map…")!.click();
+    const item = openDetail(card);
     await flush();
     await flush();
 
@@ -934,7 +929,7 @@ describe("Report the error", () => {
     await flush();
     expect(button.textContent).toBe("Copied: paste it into a new email");
     const text = (writeText.mock.calls[0] as unknown as [string])[0];
-    const title = item.querySelector(".ordt-result-title")!.textContent!;
+    const title = item.querySelector(".ordt-detail-title")!.textContent!;
     expect(text).toMatch(/^A: [^@\s]+@\S+\nCc: info@rndt\.gov\.it\n/);
     expect(text).toContain(`\nOggetto: Errore nel caricamento del servizio WMS - ${title}\n\nBuongiorno,\n\nvi scrivo come referenti`);
     expect(text).toContain("Metto in copia il RNDT.");
@@ -995,11 +990,10 @@ describe("Settings and the error log", () => {
     });
     ctx.container.querySelector<HTMLFormElement>("form")!.requestSubmit();
     await flush();
-    const item = Array.from(ctx.container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
+    const card = Array.from(ctx.container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
       Array.from(li.querySelectorAll(".ordt-badge-service")).some((b) => b.textContent === "WMS"),
     )!;
-    item.querySelector<HTMLButtonElement>(".ordt-result-title")!.click();
-    Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent === "Add to map…")!.click();
+    openDetail(card);
     await flush();
     await flush();
     return ctx;
@@ -1070,5 +1064,89 @@ describe("Settings and the error log", () => {
     expect(readErrorLog()).toEqual([]);
     spy.mockRestore();
     set.mockRestore();
+  });
+});
+
+describe("Detail view", () => {
+  it("shows one record in place of the list, and goes back to it", async () => {
+    const { container } = await mountPanel(() => fixture("search-alberi.json"));
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const panel = container.querySelector<HTMLElement>(".ordt-panel")!;
+    const card = container.querySelectorAll<HTMLElement>(".ordt-result")[1];
+    const title = card.querySelector(".ordt-result-title")!.textContent;
+    const view = openDetail(card);
+
+    expect(view.hidden).toBe(false);
+    expect(panel.classList.contains("ordt-in-detail")).toBe(true);
+    expect(view.querySelector(".ordt-detail-title")!.textContent).toBe(title);
+    const back = view.querySelector<HTMLButtonElement>(".ordt-back")!;
+    expect(back.textContent).toBe("← 41 results");
+    // Services and links live only in the view, not in the cards.
+    expect(container.querySelector(".ordt-results .ordt-services")).toBeNull();
+
+    back.click();
+    expect(view.hidden).toBe(true);
+    expect(view.childElementCount).toBe(0);
+    expect(panel.classList.contains("ordt-in-detail")).toBe(false);
+  });
+
+  it("gives way to Settings and Search help, whose boxes live outside it", async () => {
+    const { container } = await mountPanel(() => fixture("search-alberi.json"));
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const view = openDetail(container.querySelector<HTMLElement>(".ordt-result")!);
+    searchHelpToggle(container).click();
+    expect(view.hidden).toBe(true);
+    expect(container.querySelector(".ordt-panel")!.classList.contains("ordt-in-detail")).toBe(false);
+  });
+
+  it("closes when a new page or search arrives", async () => {
+    const { container } = await mountPanel(() => fixture("search-alberi.json"));
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const view = openDetail(container.querySelector<HTMLElement>(".ordt-result")!);
+    expect(view.hidden).toBe(false);
+    container.querySelector<HTMLElement>(".ordt-pager-top")!.querySelectorAll("button")[1].click();
+    await flush();
+    expect(view.hidden).toBe(true);
+    expect(container.querySelector(".ordt-panel")!.classList.contains("ordt-in-detail")).toBe(false);
+  });
+});
+
+describe("WMS layer checklist", () => {
+  it("adds every ticked layer, named with its title, and says which one failed", async () => {
+    const { host, container } = await mountPanel((url) =>
+      url.includes("/rest/metadata/search") ? fixture("search-services.json") : fixture("wms-piemonte-111.xml"),
+    );
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const card = Array.from(container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
+      li.querySelector(".ordt-badge-service")?.textContent === "WMS",
+    )!;
+    const item = openDetail(card);
+    await flush();
+    await flush();
+    const boxes = Array.from(item.querySelectorAll<HTMLInputElement>('[aria-label="WMS layers"] input[type="checkbox"]:not(:disabled)'));
+    expect(boxes.length).toBeGreaterThan(1);
+    expect(boxes.filter((b) => b.checked)).toHaveLength(1);
+    const second = boxes.find((b) => !b.checked)!;
+    second.checked = true;
+    second.dispatchEvent(new Event("change", { bubbles: true }));
+    const add = Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent === "Add to map (2)")!;
+    expect(add).toBeDefined();
+
+    vi.mocked(host.addWmsLayer!).mockImplementationOnce(() => "wms-1").mockImplementationOnce(() => {
+      throw new Error("bad bounds");
+    });
+    add.click();
+    const calls = vi.mocked(host.addWmsLayer!).mock.calls;
+    expect(calls).toHaveLength(2);
+    const secondRow = second.closest(".ordt-layer")!;
+    const secondTitle = secondRow.querySelector(".ordt-layer-title")!.textContent;
+    expect(calls[1][0]).toBe(secondTitle);
+    expect(calls[1][1].layers).toBe(second.value);
+    expect(item.textContent).toContain("Added 1 of 2 layers");
+    expect(item.textContent).toContain(`Could not add ${secondTitle}: bad bounds`);
   });
 });
