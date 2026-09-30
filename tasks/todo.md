@@ -6,13 +6,13 @@ The repo is private; two friends will test the plugin and open issues. The READM
 
 ## Phase 1 - Commit
 
-- [ ] commit the state the testers have, then the detail view → verify: `git diff --cached --stat` matches the work; `npm test` green on each commit
+- [x] commit the state the testers have, then the detail view → verify: `git diff --cached --stat` matches the work; `npm test` green on each commit
 
 ## Phase 2 - Welcome page for testers
 
-- [ ] README top part for testers: what the plugin does in a few lines, a screenshot from GeoLibre Desktop, install from the release zip (Manage Plugins > Settings > Install from file, or the plugins folder per OS), how to report a problem (issue with GeoLibre version, OS, record, URL, Diagnostics); current features and known limits updated; development section below → verify: read it as a tester
-- [ ] repo description in English, topics (geolibre, rndt, inspire, wms, wfs, open-data, italy)
-- [ ] issue templates: bug report and idea → verify: "New issue" shows them
+- [x] README top part for testers: what the plugin does in a few lines, a screenshot from GeoLibre Desktop, install from the release zip (Manage Plugins > Settings > Install from file, or the plugins folder per OS), how to report a problem (issue with GeoLibre version, OS, record, URL, Diagnostics); current features and known limits updated; development section below → verify: read it as a tester
+- [x] repo description in English, topics (geolibre, rndt, inspire, wms, wfs, open-data, italy)
+- [x] issue templates: bug report and idea → verify: "New issue" shows them
 
 ## Phase 3 - Release and visibility
 
@@ -21,8 +21,7 @@ The repo is private; two friends will test the plugin and open issues. The READM
 
 ## Open questions
 
-- screenshot: one from GeoLibre Desktop, taken by the user?
-- template leftovers (Dockerfile, examples/, index.html dev page): keep or remove?
+- none: screenshot from the user; template leftovers removed on request
 
 ---
 

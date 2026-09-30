@@ -1,0 +1,34 @@
+name: Problem
+description: Something in the plugin does not work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got instead.
+    validations:
+      required: true
+  - type: input
+    id: record
+    attributes:
+      label: Record
+      description: Title of the RNDT record, or its id (detail view, ⋯ menu, Copy id).
+  - type: textarea
+    id: error
+    attributes:
+      label: Error and Diagnostics
+      description: The message shown in the panel, and the related lines of GeoLibre Diagnostics (bottom right).
+      render: text
+  - type: input
+    id: geolibre
+    attributes:
+      label: GeoLibre version and operating system
+      placeholder: GeoLibre Desktop 3.1.0, Windows 11
+    validations:
+      required: true
+  - type: input
+    id: plugin
+    attributes:
+      label: Plugin version
+      description: The version in the zip name, e.g. 0.1.0-alpha.4.

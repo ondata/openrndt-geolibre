@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: A broken service or wrong metadata in the RNDT catalogue
+    url: https://geodati.gov.it/geoportale/
+    about: Problems of a record or of a publisher's server go to the publisher or to RNDT; the plugin's "Copy error report" prepares that email.

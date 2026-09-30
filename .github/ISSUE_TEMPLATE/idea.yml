@@ -1,0 +1,16 @@
+name: Idea
+description: Something the plugin could do, or do better
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: Idea
+      description: What you would like to do with the plugin, and why.
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Example
+      description: A search, a record or a service where it would help.
