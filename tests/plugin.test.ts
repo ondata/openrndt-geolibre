@@ -832,10 +832,10 @@ describe("folded filters after a search", () => {
     const clearAll = () =>
       Array.from(container.querySelectorAll<HTMLButtonElement>(".ordt-summary button")).find((b) => b.textContent === "Clear all")!;
 
-    form.requestSubmit(); // only the default area: one chip
+    form.requestSubmit(); // only the default area: one chip, and Clear all already there
     await flush();
     expect(chipLabels(container)).toEqual(["Map view"]);
-    expect(clearAll().hidden).toBe(true);
+    expect(clearAll().hidden).toBe(false);
 
     const text = container.querySelector<HTMLInputElement>('.ordt-search-bar input[name="text"]')!;
     const organisation = container.querySelector<HTMLInputElement>('input[name="organisation"]')!;
@@ -862,6 +862,7 @@ describe("folded filters after a search", () => {
     expect(new URL(requested.at(-1)!).searchParams.get("q")).toBe("(alberi)");
     expect(chipLabels(container)).toEqual([]);
     expect(container.querySelector(".ordt-summary-text")!.textContent).toBe("No filters");
+    expect(clearAll().hidden).toBe(true);
   });
 
   it("sorts from the results header, from the first page", async () => {

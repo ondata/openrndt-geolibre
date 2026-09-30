@@ -1468,7 +1468,7 @@ export class RndtPanel {
     this.updateAdvancedCount();
     this.summaryTextEl.textContent = chips.length ? "" : "No filters";
     this.summaryTextEl.hidden = chips.length > 0;
-    this.clearAllEl.hidden = chips.length < 2;
+    this.clearAllEl.hidden = chips.length === 0;
   }
 
   /** Turn on GeoEditor when "Drawn shapes" is picked and nothing is drawn yet. */
