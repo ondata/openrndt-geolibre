@@ -1776,14 +1776,19 @@ export class RndtPanel {
     this.detailId = id;
     this.footprintsLayer?.select(id);
     this.detailRows = [];
+    for (const li of this.listEl.querySelectorAll(".ordt-last-viewed")) li.classList.remove("ordt-last-viewed");
     this.detailEl.replaceChildren(...this.renderDetail(record).filter((c): c is Node | string => !!c));
     this.detailEl.hidden = false;
     this.root.classList.add("ordt-in-detail");
     this.searchBarEl.scrollIntoView?.({ block: "start" });
   }
 
-  /** Back to the list; with `scroll`, to the card of the record that was open. */
-  private closeDetail(scroll: boolean): void {
+  /**
+   * Back to the list. With `back` (the "← N results" link) the card of the
+   * record just seen is highlighted and brought to the top of the list, and its
+   * footprint stays selected, so list and map show where you were.
+   */
+  private closeDetail(back: boolean): void {
     if (this.detailId === null) return;
     const id = this.detailId;
     this.detailId = null;
@@ -1791,10 +1796,13 @@ export class RndtPanel {
     this.detailEl.hidden = true;
     this.detailEl.replaceChildren();
     this.root?.classList.remove("ordt-in-detail");
-    this.footprintsLayer?.select(null);
-    if (!scroll) return;
-    const card = Array.from(this.listEl.children).find((li) => (li as HTMLElement).dataset.id === id);
-    card?.scrollIntoView?.({ block: "nearest" });
+    const card = back ? (Array.from(this.listEl.children) as HTMLElement[]).find((li) => li.dataset.id === id) : undefined;
+    if (!card) {
+      this.footprintsLayer?.select(null);
+      return;
+    }
+    card.classList.add("ordt-last-viewed");
+    card.scrollIntoView?.({ block: "start" });
   }
 
   /** Mark the result whose footprint is hovered on the map. */

@@ -1105,10 +1105,20 @@ describe("Detail view", () => {
     // Services and links live only in the view, not in the cards.
     expect(container.querySelector(".ordt-results .ordt-services")).toBeNull();
 
+    const scrolled = vi.fn();
+    card.scrollIntoView = scrolled;
     back.click();
     expect(view.hidden).toBe(true);
     expect(view.childElementCount).toBe(0);
     expect(panel.classList.contains("ordt-in-detail")).toBe(false);
+    // The card just seen is marked and brought to the top of the list.
+    expect(card.classList.contains("ordt-last-viewed")).toBe(true);
+    expect(scrolled).toHaveBeenCalledWith({ block: "start" });
+    // Opening another record moves the mark.
+    const other = container.querySelectorAll<HTMLElement>(".ordt-result")[2];
+    openDetail(other).querySelector<HTMLButtonElement>(".ordt-back")!.click();
+    expect(card.classList.contains("ordt-last-viewed")).toBe(false);
+    expect(other.classList.contains("ordt-last-viewed")).toBe(true);
   });
 
   it("gives way to Settings and Search help, whose boxes live outside it", async () => {

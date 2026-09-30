@@ -1082,3 +1082,9 @@ a.ordt-menu-item {
   border: 1px solid var(--ordt-primary);
   border-radius: 8px;
 }
+
+/* The card of the record just seen in the detail view. */
+.ordt-result.ordt-last-viewed {
+  border-color: var(--ordt-primary);
+  background: color-mix(in srgb, var(--ordt-primary) 8%, var(--ordt-bg));
+}
