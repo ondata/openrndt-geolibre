@@ -86,4 +86,4 @@ npm run lint
 
 ## License
 
-MIT. Started from the [GeoLibre plugin template](https://github.com/opengeos/geolibre-plugin-template).
+MIT, Copyright (c) 2026 Andrea Borruso <andrea.borruso@ondata.it>. Started from the [GeoLibre plugin template](https://github.com/opengeos/geolibre-plugin-template) by Qiusheng Wu, also MIT: its notice stays in [LICENSE](LICENSE) for the parts that come from it.
