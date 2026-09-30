@@ -85,6 +85,19 @@ export function layerTitlesUrl(baseUrl: string, serviceUrl: string, num = BULK_L
   return `${baseUrl.replace(/\/+$/, "")}/rest/metadata/search?${params.toString()}`;
 }
 
+/**
+ * RNDT search for the records linking to the service that mention the layer
+ * name anywhere in their metadata. Emilia-Romagna names the layer only in the
+ * `gmd:name` of the online resource, which the CSW format leaves out, and
+ * links a bare GetCapabilities: on 2026-09-30 this found 28 of the 43 layers
+ * of `wms/metadati_raster`, the link rules none.
+ */
+export function layerCodeUrl(baseUrl: string, serviceUrl: string, layerName: string): string {
+  const q = `${serviceClause(serviceUrl)} AND ${escapeTerm(localName(layerName))}`;
+  const params = new URLSearchParams({ q, start: "1", num: "1", f: "csw" });
+  return `${baseUrl.replace(/\/+$/, "")}/rest/metadata/search?${params.toString()}`;
+}
+
 function childText(el: Element, local: string): string {
   const node = Array.from(el.getElementsByTagName("*")).find((c) => c.localName === local);
   return (node?.textContent ?? "").trim();
@@ -189,6 +202,23 @@ export async function lookupOneLayerTitle(
   try {
     const xml = await withTimeout(fetchText(host, layerTitlesUrl(baseUrl, serviceUrl, 20, layerName)), timeoutMs);
     return findTitle(parseLayerTitles(xml), layerName);
+  } catch {
+    return null;
+  }
+}
+
+/** Title of the best-ranked record that mentions the layer name (0.2 s); null if none or on error. */
+export async function lookupLayerTitleByCode(
+  host: RndtHost,
+  baseUrl: string,
+  serviceUrl: string,
+  layerName: string,
+  timeoutMs = LOOKUP_TIMEOUT_MS,
+): Promise<string | null> {
+  try {
+    const doc = parseXml(await withTimeout(fetchText(host, layerCodeUrl(baseUrl, serviceUrl, layerName)), timeoutMs));
+    const record = Array.from(doc.getElementsByTagName("*")).find((e) => e.localName === "Record");
+    return (record && childText(record, "title")) || null;
   } catch {
     return null;
   }

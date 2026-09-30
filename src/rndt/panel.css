@@ -579,3 +579,367 @@
   gap: 4px 8px;
   color: var(--ordt-muted);
 }
+
+/* Redesign 2026-09-30: segmented choices, pills, chips, ⋯ menus. */
+
+.ordt-segmented {
+  display: flex;
+  padding: 2px;
+  background: var(--ordt-accent);
+  border-radius: var(--ordt-radius);
+}
+
+.ordt-segmented .ordt-radio {
+  flex: 1 1 0;
+  justify-content: center;
+  padding: 3px 4px;
+  font-size: 12px;
+  color: var(--ordt-muted);
+  border-radius: calc(var(--ordt-radius) - 2px);
+}
+
+.ordt-segmented .ordt-radio:has(input:checked) {
+  font-weight: 500;
+  color: var(--ordt-fg);
+  background: var(--ordt-bg);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+.ordt-segmented .ordt-radio:has(input:focus-visible),
+.ordt-pill:has(input:focus-visible) {
+  outline: 2px solid var(--ordt-primary);
+  outline-offset: 1px;
+}
+
+/* The input stays in the DOM (the form reads it), out of sight. */
+.ordt-segmented input,
+.ordt-pill input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ordt-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ordt-pill {
+  position: relative;
+  padding: 1px 10px;
+  font-size: 12px;
+  color: var(--ordt-fg);
+  border: 1px solid var(--ordt-border);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.ordt-pill:has(input:checked) {
+  color: var(--ordt-primary);
+  border-color: var(--ordt-primary);
+  background: color-mix(in srgb, var(--ordt-primary) 8%, var(--ordt-bg));
+}
+
+.ordt-pill:has(input:checked)::after {
+  content: " ✓";
+}
+
+.ordt-label-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ordt-hint {
+  font-size: 11px;
+  color: var(--ordt-muted);
+}
+
+/* Date type on its own line, From and To below: three columns clip Chromium's date inputs. */
+.ordt-date-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.ordt-date-row > select {
+  grid-column: 1 / -1;
+}
+
+.ordt-more summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.ordt-more-hint {
+  font-size: 11px;
+}
+
+.ordt-count {
+  display: inline-block;
+  min-width: 16px;
+  padding: 0 4px;
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+  color: var(--ordt-primary-fg);
+  background: var(--ordt-primary);
+  border-radius: 8px;
+}
+
+/* Chip line: chips, then Edit filters / Clear all at the end of the row. */
+.ordt-summary {
+  align-items: center;
+}
+
+.ordt-chips {
+  display: contents;
+}
+
+.ordt-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  padding: 1px 2px 1px 9px;
+  color: var(--ordt-fg);
+  background: var(--ordt-accent);
+  border: 1px solid var(--ordt-border);
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+}
+
+.ordt-chip-remove {
+  flex: none;
+  padding: 0 4px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--ordt-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.ordt-chip-remove:hover {
+  color: var(--ordt-fg);
+}
+
+.ordt-summary-links {
+  display: inline-flex;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.ordt-head-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.ordt-pager-top {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ordt-pager-top .ordt-button,
+.ordt-head-tools .ordt-button {
+  padding: 0 7px;
+  line-height: 20px;
+}
+
+.ordt-head-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ordt-curl {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  background: var(--ordt-bg);
+}
+
+.ordt-head-tools .ordt-sort {
+  width: auto;
+  max-width: 120px;
+  padding: 1px 4px;
+  font-size: 12px;
+}
+
+.ordt-menu-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.ordt-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  max-width: 280px;
+  padding: 4px;
+  background: var(--ordt-bg);
+  border: 1px solid var(--ordt-border);
+  border-radius: var(--ordt-radius);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.12);
+}
+
+.ordt-menu-item {
+  padding: 4px 6px;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  color: var(--ordt-fg);
+  background: none;
+  border: 0;
+  border-radius: calc(var(--ordt-radius) - 2px);
+  cursor: pointer;
+}
+
+.ordt-menu-item:hover:not(:disabled),
+.ordt-menu-item:focus-visible {
+  background: var(--ordt-accent);
+  outline: none;
+}
+
+.ordt-menu-item:disabled {
+  color: var(--ordt-muted);
+  cursor: default;
+}
+
+.ordt-danger {
+  color: var(--ordt-error);
+}
+
+.ordt-menu-button {
+  padding: 0 7px;
+  line-height: 18px;
+}
+
+/* Result card: title and ⋯ on the first row, then type + formats, then organisation + date. */
+.ordt-result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 8px;
+}
+
+.ordt-result > :not(.ordt-result-title):not(.ordt-menu-wrap) {
+  grid-column: 1 / -1;
+}
+
+.ordt-result > .ordt-menu-wrap {
+  align-self: start;
+}
+
+.ordt-result .ordt-menu-button {
+  color: var(--ordt-muted);
+  background: none;
+  border-color: transparent;
+}
+
+.ordt-meta-org {
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  margin-top: 0;
+}
+
+.ordt-org-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ordt-date {
+  flex: none;
+}
+
+.ordt-help-all {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ordt-help-section h3 {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ordt-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: auto -12px -12px;
+  padding: 8px 12px;
+  background: var(--ordt-bg);
+  border-top: 1px solid var(--ordt-border);
+}
+
+/* A flex summary loses its disclosure triangle: draw one. */
+.ordt-more summary {
+  list-style: none;
+}
+
+.ordt-more summary::-webkit-details-marker {
+  display: none;
+}
+
+.ordt-more summary > span:first-child::before {
+  content: "▸ ";
+}
+
+.ordt-more[open] summary > span:first-child::before {
+  content: "▾ ";
+}
+
+/* "Search help" opens below the sticky search bar, not under it. */
+.ordt-help-all {
+  scroll-margin-top: calc(var(--ordt-bar-h, 46px) + 8px);
+}
+
+/* Long examples wrap: keep them aligned to the left like the text around. */
+.ordt-example {
+  text-align: left;
+}
+
+/* A record scrolled in from the map clears the sticky footer too. */
+.ordt-result {
+  scroll-margin-bottom: calc(var(--ordt-foot-h, 36px) + 4px);
+}
+
+.ordt-footer-links {
+  display: inline-flex;
+  gap: 12px;
+}
+
+.ordt-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--ordt-accent);
+  border-radius: var(--ordt-radius);
+  scroll-margin-top: calc(var(--ordt-bar-h, 46px) + 8px);
+}
+
+.ordt-settings h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+}

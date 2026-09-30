@@ -6,7 +6,9 @@ import type { RndtHost } from "../src/rndt/host";
 import {
   findTitle,
   isReadableTitle,
+  layerCodeUrl,
   layerTitlesUrl,
+  lookupLayerTitleByCode,
   lookupLayerTitles,
   lookupOneLayerTitle,
   optionLabel,
@@ -59,6 +61,29 @@ describe("RNDT lookup query", () => {
   it("targets one layer for large services", () => {
     const url = new URL(layerTitlesUrl(RNDT_BASE_URL, "https://serviziogc.regione.fvg.it/geoserver/RIFIUTI/wfs", 20, "RIFIUTI:TDLD8"));
     expect(url.searchParams.get("q")).toBe("links_s:*serviziogc.regione.fvg.it\\/geoserver\\/RIFIUTI*TDLD8*");
+  });
+});
+
+describe("lookup by layer name in the whole record", () => {
+  const service = "https://servizigis.regione.emilia-romagna.it/wms/metadati_raster";
+  const one = (title: string) =>
+    `<csw:GetRecordsResponse xmlns:csw="http://www.opengis.net/cat/csw/2.0.2" xmlns:dc="http://purl.org/dc/elements/1.1/"><csw:SearchResults numberOfRecordsMatched="2"><csw:Record><dc:title>${title}</dc:title></csw:Record></csw:SearchResults></csw:GetRecordsResponse>`;
+
+  it("asks for the records of the service that mention the name, best first", () => {
+    const url = new URL(layerCodeUrl(RNDT_BASE_URL, service, "QU_USR_PTPR_1993"));
+    expect(url.searchParams.get("q")).toBe(
+      "links_s:*servizigis.regione.emilia\\-romagna.it\\/wms* AND QU_USR_PTPR_1993",
+    );
+    expect(url.searchParams.get("num")).toBe("1");
+    expect(url.searchParams.get("f")).toBe("csw");
+  });
+
+  it("takes the title of the first record, null when there is none or on error", async () => {
+    const title = "Quadro di unione PTPR93 - Uso Reale del Suolo";
+    expect(await lookupLayerTitleByCode(host(async () => encode(one(title))), RNDT_BASE_URL, service, "QU_USR_PTPR_1993")).toBe(title);
+    const empty = one("x").replace(/<csw:Record>.*<\/csw:Record>/, "");
+    expect(await lookupLayerTitleByCode(host(async () => encode(empty)), RNDT_BASE_URL, service, "QU_X")).toBeNull();
+    expect(await lookupLayerTitleByCode(host(async () => { throw new Error("down"); }), RNDT_BASE_URL, service, "QU_X")).toBeNull();
   });
 });
 

@@ -279,7 +279,14 @@ describe("data downloads", () => {
 
   it("reports a download the host could not serve", async () => {
     const { fetchJson } = await import("../src/rndt/host");
-    const host = { ...base, fetchVectorUrl: async () => null };
+    // The DNS check after the failure goes through the host too, and fails here.
+    const host = {
+      ...base,
+      fetchVectorUrl: async () => null,
+      fetchArrayBuffer: async (): Promise<ArrayBuffer> => {
+        throw new Error("offline");
+      },
+    };
     await expect(fetchJson(host, "https://x.it/wfs", { download: true })).rejects.toThrow(
       /cannot reach x\.it: download failed/,
     );
@@ -335,6 +342,41 @@ describe("HTTP to HTTPS", () => {
       },
     };
     await expect(fetchTextFrom(host, "http://x.it/wms")).rejects.toThrow("cannot reach x.it (tried HTTPS and HTTP): timeout");
+  });
+
+  it("says a server is gone when the DNS does not know its name", async () => {
+    const { fetchTextFrom } = await import("../src/rndt/host");
+    const asked: string[] = [];
+    const host = {
+      addMapControl: () => true,
+      removeMapControl: () => undefined,
+      fetchArrayBuffer: async (url: string) => {
+        asked.push(url);
+        if (url.startsWith("https://dns.google/")) {
+          return new TextEncoder().encode(JSON.stringify({ Status: 3 })).buffer as ArrayBuffer;
+        }
+        throw new TypeError("Failed to fetch");
+      },
+    };
+    await expect(fetchTextFrom(host, "https://geoportale.comune.milano.it/wms")).rejects.toThrow(
+      "server geoportale.comune.milano.it does not exist: its name is not in the DNS",
+    );
+    expect(asked.at(-1)).toBe("https://dns.google/resolve?name=geoportale.comune.milano.it&type=A");
+  });
+
+  it("keeps the fetch error when the name exists or the DNS check fails", async () => {
+    const { fetchTextFrom } = await import("../src/rndt/host");
+    for (const answer of [JSON.stringify({ Status: 0 }), "not json"]) {
+      const host = {
+        addMapControl: () => true,
+        removeMapControl: () => undefined,
+        fetchArrayBuffer: async (url: string) => {
+          if (url.startsWith("https://dns.google/")) return new TextEncoder().encode(answer).buffer as ArrayBuffer;
+          throw new Error("HTTP 400");
+        },
+      };
+      await expect(fetchTextFrom(host, "https://x.it/wms")).rejects.toThrow("cannot reach x.it: HTTP 400");
+    }
   });
 
   it("upgrades same-host operation URLs when capabilities came over https", async () => {

@@ -10,6 +10,12 @@ const fixture = (name: string) => readFileSync(join(__dirname, "fixtures", name)
 const encode = (text: string) => new TextEncoder().encode(text).buffer as ArrayBuffer;
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
+const searchHelpToggle = (container: HTMLElement) =>
+  Array.from(container.querySelectorAll<HTMLButtonElement>(".ordt-footer button")).find((b) => b.textContent === "Search help")!;
+
+const chipLabels = (container: HTMLElement) =>
+  Array.from(container.querySelectorAll(".ordt-chip"), (c) => c.firstChild!.textContent);
+
 function createHost(responses: (url: string) => string) {
   let panel: GeoLibreRightPanelRegistration | null = null;
   const requested: string[] = [];
@@ -198,11 +204,15 @@ describe("RNDT panel", () => {
     expect(new URL(requested[0]).searchParams.get("q")).toBe("links_s:(http*wms* OR http*WMS* OR http*Wms*)");
   });
 
-  it("offers inside the area once an area is chosen", async () => {
+  it("starts from the map view and offers inside the area only with an area", async () => {
     const { requested, container } = await mountPanel(() => fixture("search-alberi.json"));
     const choice = container.querySelector<HTMLElement>(".ordt-spatial-rel")!;
-    expect(choice.hidden).toBe(true);
     const where = container.querySelector<HTMLSelectElement>('select[name="where"]')!;
+    expect(where.value).toBe("view");
+    expect(choice.hidden).toBe(false);
+    where.value = "anywhere";
+    where.dispatchEvent(new Event("change"));
+    expect(choice.hidden).toBe(true);
     where.value = "view";
     where.dispatchEvent(new Event("change"));
     expect(choice.hidden).toBe(false);
@@ -212,16 +222,17 @@ describe("RNDT panel", () => {
     expect(new URL(requested[0]).searchParams.get("spatialRel")).toBe("Within");
   });
 
-  it("toggles the search-mode help and runs an example", async () => {
+  it("toggles Search help and runs a search-mode example", async () => {
     const { requested, container } = await mountPanel(() =>
       fixture("search-alberi.json"),
     );
-    const toggle =
-      container.querySelector<HTMLButtonElement>(".ordt-help-toggle")!;
-    const help = container.querySelector<HTMLElement>(".ordt-help")!;
-    expect(toggle.getAttribute("aria-controls")).toBe(help.id);
-    expect(help.hidden).toBe(true);
+    const toggle = searchHelpToggle(container);
+    const all = container.querySelector<HTMLElement>(".ordt-help-all")!;
+    const help = container.querySelector<HTMLElement>('[id="ordt-search-help"]')!;
+    expect(toggle.getAttribute("aria-controls")).toBe(all.id);
+    expect(all.hidden).toBe(true);
     toggle.click();
+    expect(all.hidden).toBe(false);
     expect(help.hidden).toBe(false);
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
 
@@ -241,23 +252,17 @@ describe("RNDT panel", () => {
     expect(new URL(requested[0]).searchParams.get("q")).toBe(
       "(catastale AND NOT comune)",
     );
-
-    toggle.click();
-    expect(help.hidden).toBe(true);
+    // A search from the form folds the help away with the filters.
+    expect(all.hidden).toBe(true);
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
   });
 
   it("explains every Search in option and runs its example", async () => {
     const { requested, container } = await mountPanel(() =>
       fixture("search-alberi.json"),
     );
-    const toggle = container.querySelector<HTMLButtonElement>(
-      '[aria-label="Help on search fields"]',
-    )!;
-    const fieldHelp = Array.from(
-      container.querySelectorAll<HTMLElement>(".ordt-help"),
-    ).find((el) => el.id === toggle.getAttribute("aria-controls"))!;
-    expect(fieldHelp.hidden).toBe(true);
-    toggle.click();
+    searchHelpToggle(container).click();
+    const fieldHelp = container.querySelector<HTMLElement>('[id="ordt-field-help"]')!;
     expect(fieldHelp.hidden).toBe(false);
 
     // One entry per option of the select.
@@ -286,13 +291,8 @@ describe("RNDT panel", () => {
     const { requested, container } = await mountPanel(() =>
       fixture("search-alberi.json"),
     );
-    const toggle = container.querySelector<HTMLButtonElement>(
-      '[aria-label="Help on search areas"]',
-    )!;
-    const whereHelp = Array.from(
-      container.querySelectorAll<HTMLElement>(".ordt-help"),
-    ).find((el) => el.id === toggle.getAttribute("aria-controls"))!;
-    toggle.click();
+    searchHelpToggle(container).click();
+    const whereHelp = container.querySelector<HTMLElement>('[id="ordt-where-help"]')!;
     expect(whereHelp.hidden).toBe(false);
     const options = Array.from(
       container.querySelectorAll<HTMLOptionElement>(
@@ -318,9 +318,8 @@ describe("RNDT panel", () => {
     const writeText = vi.fn(async () => undefined);
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
     const { container } = await mountPanel(() => fixture("search-alberi.json"));
-    const copy = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(
-      (b) => b.textContent === "Copy query",
-    )!;
+    const copy = container.querySelector<HTMLButtonElement>('[aria-label="Copy query as curl"]')!;
+    expect(copy.textContent).toBe("curl");
     expect(copy.disabled).toBe(true);
 
     container.querySelector<HTMLInputElement>('input[name="text"]')!.value = "alberi";
@@ -330,7 +329,7 @@ describe("RNDT panel", () => {
     copy.click();
     await flush();
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining("--data-urlencode 'q=(alberi)'"));
-    expect(copy.textContent).toBe("Copied");
+    expect(copy.textContent).toBe("✓ copied");
   });
 
   it("hides footprints globally and one by one", async () => {
@@ -421,11 +420,12 @@ describe("RNDT panel", () => {
     container.querySelector<HTMLInputElement>('input[name="text"]')!.value = "alberi";
     container.querySelector<HTMLFormElement>("form")!.requestSubmit();
     await flush();
+    const name = container.querySelector(".ordt-org-name")!.textContent;
     const org = container.querySelector<HTMLButtonElement>(".ordt-org")!;
-    expect(org.title).toBe("Show only results from this organisation");
+    expect(org.textContent).toBe("Show only this organisation");
     org.click();
     await flush();
-    expect(container.querySelector<HTMLInputElement>('input[name="organisation"]')!.value).toBe(org.textContent);
+    expect(container.querySelector<HTMLInputElement>('input[name="organisation"]')!.value).toBe(name);
     expect(container.querySelector<HTMLDetailsElement>(".ordt-more")!.open).toBe(true);
     const q = new URL(requested.at(-1)!).searchParams.get("q")!;
     expect(q).toContain("(alberi)");
@@ -441,23 +441,26 @@ describe("RNDT panel", () => {
     expect(new URL(requested.at(-1)!).searchParams.get("q")).toBe("(alberi)");
   });
 
-  it("hides a record's organisation with the Hide button", async () => {
+  it("hides a record's organisation from its ⋯ menu", async () => {
     const { requested, container } = await mountPanel(() => fixture("search-alberi.json"));
     container.querySelector<HTMLFormElement>("form")!.requestSubmit();
     await flush();
-    const name = container.querySelector<HTMLButtonElement>(".ordt-org")!.textContent!;
-    container.querySelector<HTMLButtonElement>(".ordt-hide-org")!.click();
+    const name = container.querySelector(".ordt-org-name")!.textContent!;
+    const hide = container.querySelector<HTMLButtonElement>(".ordt-hide-org")!;
+    expect(hide.textContent).toBe(`Hide results from ${name}`);
+    hide.click();
     await flush();
     const organisation = container.querySelector<HTMLInputElement>('input[name="organisation"]')!;
-    const invert = container.querySelector<HTMLInputElement>('input[name="invertOrganisation"]')!;
+    const hiding = container.querySelector<HTMLInputElement>('input[name="orgMode"][value="hide"]')!;
     expect(organisation.value).toBe(name);
-    expect(invert.checked).toBe(true);
+    expect(hiding.checked).toBe(true);
     expect(new URL(requested.at(-1)!).searchParams.get("q")).toMatch(/^NOT EnteResponsabile_s:/);
+    expect(Array.from(container.querySelectorAll(".ordt-chip"), (c) => c.firstChild!.textContent)).toEqual(["Map view", `Hiding: ${name}`]);
 
-    // Clicking the name keeps only that organisation again.
+    // "Show only this organisation" keeps only that organisation again.
     container.querySelector<HTMLButtonElement>(".ordt-org")!.click();
     await flush();
-    expect(invert.checked).toBe(false);
+    expect(hiding.checked).toBe(false);
     expect(new URL(requested.at(-1)!).searchParams.get("q")).toMatch(/^EnteResponsabile_s:/);
   });
 
@@ -635,6 +638,45 @@ describe("readable layer names (#7)", () => {
     expect(item.textContent).toMatch(/Readable names from RNDT for 3 of 35 layers/);
   });
 
+  it("on opening the menu, searches RNDT for each layer still without a name", async () => {
+    const byCode = (q: string) =>
+      `<csw:GetRecordsResponse xmlns:csw="http://www.opengis.net/cat/csw/2.0.2" xmlns:dc="http://purl.org/dc/elements/1.1/"><csw:SearchResults numberOfRecordsMatched="1">${
+        q.endsWith(" AND X5") ? "<csw:Record><dc:title>Readable X5</dc:title></csw:Record>" : ""
+      }</csw:SearchResults></csw:GetRecordsResponse>`;
+    const ctx = await mountPanel((url) => {
+      const q = new URL(url).searchParams.get("q") ?? "";
+      if (url.includes("f=csw") && q.includes(" AND ")) return byCode(q);
+      if (url.includes("/rest/metadata/search") && url.includes("f=csw")) return fixture("csw-fvg-rifiuti.xml");
+      if (url.includes("/rest/metadata/search")) return fixture("search-alberi.json");
+      return wfsCaps;
+    });
+    ctx.container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const item = Array.from(ctx.container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
+      Array.from(li.querySelectorAll(".ordt-badge-service")).some((b) => b.textContent === "WFS"),
+    )!;
+    item.querySelector<HTMLButtonElement>(".ordt-result-title")!.click();
+    Array.from(item.querySelectorAll<HTMLButtonElement>("button")).filter((b) => b.textContent === "Add to map…").at(-1)!.click();
+    await flush();
+    await flush();
+    const byCodeCalls = () => ctx.requested.filter((u) => (new URL(u).searchParams.get("q") ?? "").includes(" AND "));
+    expect(byCodeCalls()).toHaveLength(0); // nothing until the menu is opened
+
+    const picker = item.querySelector<HTMLSelectElement>('select[aria-label="WFS feature type"]')!;
+    picker.dispatchEvent(new Event("pointerdown"));
+    picker.dispatchEvent(new Event("focus")); // the same opening: no second round
+    for (let i = 0; i < 12; i++) await flush();
+    expect(byCodeCalls()).toHaveLength(32);
+    expect(Array.from(picker.options).map((o) => o.textContent)).toContain("RIFIUTI:X5 (Readable X5)");
+    // Long labels are cut by the native menu: the full one is the tooltip.
+    const x5 = Array.from(picker.options).find((o) => o.value === "RIFIUTI:X5")!;
+    expect(x5.title).toBe("RIFIUTI:X5 (Readable X5)");
+    picker.value = "RIFIUTI:X5";
+    picker.dispatchEvent(new Event("change"));
+    expect(picker.title).toBe("RIFIUTI:X5 (Readable X5)");
+    expect(item.textContent).toMatch(/Readable names from RNDT for 4 of 35 layers/);
+  });
+
   it("above 1,000 RNDT records, looks up the selected layer only", async () => {
     const big = fixture("csw-fvg-rifiuti.xml").replace('numberOfRecordsMatched="245"', 'numberOfRecordsMatched="1500"');
     const ctx = await mountPanel((url) => {
@@ -687,12 +729,15 @@ describe("pager at the top of the list (#12)", () => {
     await flush();
     const top = container.querySelector(".ordt-pager-top")!;
     // In the sticky results header, right above the list.
-    expect(top.parentElement?.classList.contains("ordt-results-head")).toBe(true);
-    expect(top.parentElement?.nextElementSibling?.classList.contains("ordt-results")).toBe(true);
+    const head = top.closest(".ordt-results-head");
+    expect(head).not.toBeNull();
+    expect(head!.nextElementSibling?.classList.contains("ordt-results")).toBe(true);
     expect(pagers(container)).toEqual([
-      ["Previous:off", "Next:on"],
-      ["Previous:off", "Next:on"],
+      ["‹:off", "›:on"],
+      ["‹ Previous:off", "Next ›:on"],
     ]);
+    // The range sits between the header arrows.
+    expect(top.textContent).toBe("‹1-5 of 41›");
   });
 
   it("the top Next asks for the next page and both pagers follow", async () => {
@@ -702,8 +747,10 @@ describe("pager at the top of the list (#12)", () => {
     container.querySelector<HTMLElement>(".ordt-pager-top")!.querySelectorAll("button")[1].click();
     await flush();
     expect(new URL(requested.at(-1)!).searchParams.get("start")).toBe("21");
-    const [top, bottom] = pagers(container);
-    expect(top).toEqual(bottom);
+    expect(pagers(container)).toEqual([
+      ["‹:on", "›:on"],
+      ["‹ Previous:on", "Next ›:on"],
+    ]);
   });
 
   it("has no pager on a single page", async () => {
@@ -717,39 +764,137 @@ describe("pager at the top of the list (#12)", () => {
 });
 
 describe("folded filters after a search", () => {
-  it("folds the form into a summary of the filters, and unfolds it on request", async () => {
+  it("folds the form into chips of the filters, and unfolds it on request", async () => {
     const { container } = await mountPanel(() => fixture("search-alberi.json"));
     const form = container.querySelector<HTMLFormElement>("form")!;
     const summary = container.querySelector<HTMLElement>(".ordt-summary")!;
-    const actions = container.querySelector<HTMLElement>(".ordt-result-actions")!;
+    const tools = container.querySelector<HTMLElement>(".ordt-head-tools")!;
     expect(summary.hidden).toBe(true);
-    expect(actions.hidden).toBe(true);
+    expect(tools.hidden).toBe(true);
 
     // The text box lives in the search bar, outside the form, and still counts.
     const text = container.querySelector<HTMLInputElement>('.ordt-search-bar input[name="text"]')!;
     expect(form.contains(text)).toBe(false);
     text.value = "alberi";
-    container.querySelector<HTMLInputElement>('input[name="organisation"]')!.value = "Regione Piemonte";
-    container.querySelector<HTMLInputElement>('input[name="invertOrganisation"]')!.checked = true;
+    container.querySelector<HTMLInputElement>('input[name="organisation"]')!.value = "Regione Piemonte, Comune di Torino";
+    container.querySelector<HTMLInputElement>('input[name="orgMode"][value="hide"]')!.checked = true;
     container.querySelector<HTMLInputElement>('input[name="availableAs"][value="WMS"]')!.checked = true;
     form.requestSubmit();
     await flush();
 
     expect(form.hidden).toBe(true);
-    expect(actions.hidden).toBe(false);
+    expect(tools.hidden).toBe(false);
     expect(summary.hidden).toBe(false);
-    expect(summary.querySelector(".ordt-summary-text")!.textContent).toBe(
-      "Filters: as WMS · hiding Regione Piemonte",
-    );
-    const toggle = summary.querySelector<HTMLButtonElement>("button")!;
+    // No chip for the text: it is in the search bar.
+    // The default area, the map view, is a filter too.
+    expect(chipLabels(container)).toEqual(["WMS", "Map view", "Hiding: Regione Piemonte", "Hiding: Comune di Torino"]);
+    const toggle = Array.from(summary.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent === "Edit filters")!;
     toggle.click();
     expect(form.hidden).toBe(false);
     expect(toggle.textContent).toBe("Hide filters");
+    // Organisation is an advanced filter: editing opens that part.
+    expect(container.querySelector<HTMLDetailsElement>(".ordt-more")!.open).toBe(true);
 
-    container.querySelector<HTMLButtonElement>(".ordt-result-actions button")!.click(); // Clear results
+    Array.from(container.querySelectorAll<HTMLButtonElement>(".ordt-menu-item")).find((b) => b.textContent === "Clear results")!.click();
     expect(form.hidden).toBe(false);
     expect(summary.hidden).toBe(true);
-    expect(actions.hidden).toBe(true);
+    expect(tools.hidden).toBe(true);
+  });
+
+  it("removes one filter with its chip and searches again", async () => {
+    const { requested, container } = await mountPanel(() => fixture("search-alberi.json"));
+    container.querySelector<HTMLInputElement>('input[name="organisation"]')!.value = "Regione Piemonte, Comune di Torino";
+    container.querySelector<HTMLInputElement>('input[name="orgMode"][value="hide"]')!.checked = true;
+    container.querySelector<HTMLInputElement>('input[name="openData"]')!.checked = true;
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    container.querySelector<HTMLButtonElement>('[aria-label="Remove Hiding: Regione Piemonte"]')!.click();
+    await flush();
+    expect(container.querySelector<HTMLInputElement>('input[name="organisation"]')!.value).toBe("Comune di Torino");
+    expect(chipLabels(container)).toEqual(["Map view", "Hiding: Comune di Torino", "Open data only"]);
+    const q = new URL(requested.at(-1)!).searchParams.get("q")!;
+    expect(q).toContain("NOT EnteResponsabile_s:");
+    expect(q).not.toContain("Piemonte");
+  });
+
+  it("Clear all removes every filter, keeps the text and searches again", async () => {
+    // Panels of earlier tests share the form id, and the text box would join their form.
+    document.body.replaceChildren();
+    const { requested, container } = await mountPanel(() => fixture("search-alberi.json"));
+    const form = container.querySelector<HTMLFormElement>("form")!;
+    const clearAll = () =>
+      Array.from(container.querySelectorAll<HTMLButtonElement>(".ordt-summary button")).find((b) => b.textContent === "Clear all")!;
+
+    form.requestSubmit(); // only the default area: one chip
+    await flush();
+    expect(chipLabels(container)).toEqual(["Map view"]);
+    expect(clearAll().hidden).toBe(true);
+
+    const text = container.querySelector<HTMLInputElement>('.ordt-search-bar input[name="text"]')!;
+    const organisation = container.querySelector<HTMLInputElement>('input[name="organisation"]')!;
+    const hiding = container.querySelector<HTMLInputElement>('input[name="orgMode"][value="hide"]')!;
+    const dateFrom = container.querySelector<HTMLInputElement>('input[name="dateFrom"]')!;
+    text.value = "alberi";
+    organisation.value = "Comune di Livorno";
+    hiding.checked = true;
+    dateFrom.value = "2026-09-23";
+    form.requestSubmit();
+    await flush();
+    expect(clearAll().hidden).toBe(false);
+
+    clearAll().click();
+    await flush();
+    expect([text.value, organisation.value, hiding.checked, dateFrom.value]).toEqual(["alberi", "", false, ""]);
+    // Clear all removes the area too: the whole catalogue.
+    expect(container.querySelector<HTMLSelectElement>('select[name="where"]')!.value).toBe("anywhere");
+    expect(new URL(requested.at(-1)!).searchParams.get("bbox")).toBeNull();
+    // The segmented choices go back to their defaults, not to nothing.
+    const checked = (name: string) => container.querySelector<HTMLInputElement>(`input[name="${name}"]:checked`)?.value;
+    expect([checked("kind"), checked("textMode"), checked("orgMode")]).toEqual(["all", "all", "only"]);
+    expect(container.querySelector<HTMLElement>(".ordt-count")!.hidden).toBe(true);
+    expect(new URL(requested.at(-1)!).searchParams.get("q")).toBe("(alberi)");
+    expect(chipLabels(container)).toEqual([]);
+    expect(container.querySelector(".ordt-summary-text")!.textContent).toBe("No filters");
+  });
+
+  it("sorts from the results header, from the first page", async () => {
+    const { requested, container } = await mountPanel(() => fixture("search-alberi.json"));
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    container.querySelector<HTMLElement>(".ordt-pager-top")!.querySelectorAll("button")[1].click();
+    await flush();
+    const sort = container.querySelector<HTMLSelectElement>('[aria-label="Sort results"]')!;
+    sort.value = "title:asc";
+    sort.dispatchEvent(new Event("change"));
+    await flush();
+    const url = new URL(requested.at(-1)!);
+    expect(url.searchParams.get("sort")).toBe("title:asc");
+    expect(url.searchParams.get("start")).toBe("1");
+    // The form follows, so the next search from the form keeps the order.
+    expect(container.querySelector<HTMLSelectElement>('select[name="sort"]')!.value).toBe("title:asc");
+  });
+
+  it("fills the date range from the Last week / month / year presets", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 2, 31, 10));
+    try {
+      const { container } = await mountPanel(() => fixture("search-alberi.json"));
+      const from = container.querySelector<HTMLInputElement>('input[name="dateFrom"]')!;
+      const to = container.querySelector<HTMLInputElement>('input[name="dateTo"]')!;
+      const preset = (label: string) =>
+        Array.from(container.querySelectorAll<HTMLButtonElement>(".ordt-date-presets button")).find(
+          (b) => b.textContent === label,
+        )!;
+      to.value = "2026-12-31";
+      preset("Last week").click();
+      expect([from.value, to.value]).toEqual(["2026-03-24", ""]);
+      preset("Last month").click();
+      expect(from.value).toBe("2026-03-01");
+      preset("Last year").click();
+      expect(from.value).toBe("2025-03-31");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("keeps the filters as they are when changing page", async () => {
@@ -757,9 +902,173 @@ describe("folded filters after a search", () => {
     const form = container.querySelector<HTMLFormElement>("form")!;
     form.requestSubmit();
     await flush();
-    container.querySelector<HTMLButtonElement>(".ordt-summary button")!.click();
+    Array.from(container.querySelectorAll<HTMLButtonElement>(".ordt-summary button")).find((b) => b.textContent === "Edit filters")!.click();
     container.querySelector<HTMLElement>(".ordt-pager-top")!.querySelectorAll("button")[1].click();
     await flush();
     expect(form.hidden).toBe(false);
+  });
+});
+
+describe("Report the error", () => {
+  it("copies a report for the record's contact, RNDT in copy, when a service fails", async () => {
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    const { container } = await mountPanel((url) => {
+      if (url.includes("/rest/metadata/search")) return fixture("search-alberi.json");
+      throw new Error("cannot reach example.org: HTTP 400");
+    });
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const item = Array.from(container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
+      Array.from(li.querySelectorAll(".ordt-badge-service")).some((b) => b.textContent === "WMS"),
+    )!;
+    item.querySelector<HTMLButtonElement>(".ordt-result-title")!.click();
+    Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent === "Add to map…")!.click();
+    await flush();
+    await flush();
+
+    const button = item.querySelector<HTMLButtonElement>(".ordt-report")!;
+    expect(button.textContent).toBe("Copy error report");
+    expect(button.parentElement!.textContent).toMatch(/\(to [^@\s]+@[^\s,]+, RNDT in copy\)$/);
+    button.click();
+    await flush();
+    expect(button.textContent).toBe("Copied: paste it into a new email");
+    const text = (writeText.mock.calls[0] as unknown as [string])[0];
+    const title = item.querySelector(".ordt-result-title")!.textContent!;
+    expect(text).toMatch(/^A: [^@\s]+@\S+\nCc: info@rndt\.gov\.it\n/);
+    expect(text).toContain(`\nOggetto: Errore nel caricamento del servizio WMS - ${title}\n\nBuongiorno,\n\nvi scrivo come referenti`);
+    expect(text).toContain("Metto in copia il RNDT.");
+    expect(text).toContain(`Scheda: ${title}`);
+    expect(text).toMatch(/\nErrore: WMS error: cannot reach .*HTTP 400\n/);
+    expect(text).toMatch(/Data e ora \(UTC\): \d{4}-\d\d-\d\d \d\d:\d\d/);
+  });
+
+  it("addresses RNDT alone when the record names no contact", async () => {
+    const { errorReport, errorReportText } = await import("../src/rndt/panel");
+    const record = {
+      id: "x:1",
+      title: "Carta",
+      abstract: "",
+      type: "service",
+      organisation: "",
+      contactEmails: [],
+      modified: "",
+      bbox: null,
+      services: [],
+      otherLinks: [],
+      htmlUrl: "https://geodati.gov.it/RNDT/rest/metadata/item/x%3A1/html",
+      xmlUrl: "",
+    };
+    const report = errorReport(record, { kind: "WMS", url: "https://example.org/wms" } as never, "WMS error: HTTP 500", new Date("2026-09-30T19:29:00Z"));
+    expect([report.to, report.cc]).toEqual([["info@rndt.gov.it"], []]);
+    const text = errorReportText(report);
+    expect(text).toMatch(/^A: info@rndt\.gov\.it\nOggetto: /);
+    expect(text).toContain("Buongiorno,\n\nvi ringrazio per il catalogo RNDT.");
+    expect(text).not.toContain("Ente:");
+    expect(text).toContain("Data e ora (UTC): 2026-09-30 19:29");
+  });
+
+  it("opens new-tab links in the system browser through the host", async () => {
+    const { host, container } = await mountPanel(() => fixture("search-alberi.json"));
+    host.openExternalUrl = vi.fn();
+    const link = container.querySelector<HTMLAnchorElement>('.ordt-footer a[target="_blank"]')!;
+    const event = new MouseEvent("click", { bubbles: true, cancelable: true });
+    link.dispatchEvent(event);
+    expect(host.openExternalUrl).toHaveBeenCalledWith("https://geodati.gov.it/geoportale/");
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("keeps only real addresses from the contact field", async () => {
+    const { parseEmails } = await import("../src/rndt/records");
+    expect(parseEmails("sinaservice@isprambiente.it")).toEqual(["sinaservice@isprambiente.it"]);
+    expect(parseEmails("ad@min")).toEqual([]);
+    expect(parseEmails(["a@x.it; b@y.it", "a@x.it"])).toEqual(["a@x.it", "b@y.it"]);
+    expect(parseEmails(undefined)).toEqual([]);
+  });
+});
+
+describe("Settings and the error log", () => {
+  const failingWms = async () => {
+    const ctx = await mountPanel((url) => {
+      if (url.includes("/rest/metadata/search")) return fixture("search-alberi.json");
+      throw new Error("cannot reach example.org: HTTP 400");
+    });
+    ctx.container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const item = Array.from(ctx.container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
+      Array.from(li.querySelectorAll(".ordt-badge-service")).some((b) => b.textContent === "WMS"),
+    )!;
+    item.querySelector<HTMLButtonElement>(".ordt-result-title")!.click();
+    Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent === "Add to map…")!.click();
+    await flush();
+    await flush();
+    return ctx;
+  };
+  const settingsToggle = (container: HTMLElement) =>
+    Array.from(container.querySelectorAll<HTMLButtonElement>(".ordt-footer button")).find((b) => b.textContent === "⚙ Settings")!;
+
+  it("logs nothing by default", async () => {
+    localStorage.clear();
+    const { container } = await failingWms();
+    settingsToggle(container).click();
+    expect(container.querySelector<HTMLInputElement>('input[name="logErrors"]')!.checked).toBe(false);
+    expect(localStorage.getItem("openrndt-geolibre:error-log")).toBeNull();
+  });
+
+  it("keeps the choice and logs failing services as JSON Lines", async () => {
+    localStorage.clear();
+    localStorage.setItem("openrndt-geolibre:settings", JSON.stringify({ logErrors: true }));
+    const { host, container } = await failingWms();
+    const log = JSON.parse(localStorage.getItem("openrndt-geolibre:error-log")!);
+    expect(log).toHaveLength(1);
+    expect(log[0]).toMatchObject({ serviceKind: "WMS", error: expect.stringMatching(/^WMS error: cannot reach .*HTTP 400$/) });
+    expect(log[0].url).toMatch(/^https?:\/\//);
+    expect(log[0].time).toMatch(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/);
+
+    settingsToggle(container).click();
+    const settings = container.querySelector<HTMLElement>(".ordt-settings")!;
+    expect(settings.hidden).toBe(false);
+    expect(settings.textContent).toContain("1 entry");
+    host.exportTextFile = vi.fn();
+    Array.from(settings.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent === "Export JSON Lines")!.click();
+    const [name, content] = (host.exportTextFile as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(name).toBe("openrndt-errors.jsonl");
+    expect(content.trim().split("\n").map((line: string) => JSON.parse(line))).toEqual(log);
+
+    Array.from(settings.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent === "Clear log")!.click();
+    expect(localStorage.getItem("openrndt-geolibre:error-log")).toBeNull();
+    expect(settings.textContent).toContain("0 entries");
+
+    // Turning it off stops the log.
+    const box = container.querySelector<HTMLInputElement>('input[name="logErrors"]')!;
+    box.checked = false;
+    box.dispatchEvent(new Event("change"));
+    expect(JSON.parse(localStorage.getItem("openrndt-geolibre:settings")!)).toEqual({ logErrors: false });
+  });
+
+  it("keeps at most 1,000 entries, dropping the oldest", async () => {
+    localStorage.clear();
+    const { appendErrorLog, readErrorLog } = await import("../src/rndt/settings");
+    const entry = (n: number) => ({ time: String(n), recordId: "", recordTitle: "", organisation: "", serviceKind: "WMS", url: "", error: "" });
+    for (let n = 1; n <= 1002; n++) appendErrorLog(entry(n));
+    const log = readErrorLog();
+    expect(log).toHaveLength(1000);
+    expect([log[0].time, log.at(-1)!.time]).toEqual(["3", "1002"]);
+    localStorage.clear();
+  });
+
+  it("works when storage throws", async () => {
+    const { loadSettings, appendErrorLog, readErrorLog } = await import("../src/rndt/settings");
+    const spy = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    const set = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    expect(loadSettings()).toEqual({ logErrors: false });
+    expect(() => appendErrorLog({ time: "", recordId: "", recordTitle: "", organisation: "", serviceKind: "", url: "", error: "" })).not.toThrow();
+    expect(readErrorLog()).toEqual([]);
+    spy.mockRestore();
+    set.mockRestore();
   });
 });

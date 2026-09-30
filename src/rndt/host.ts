@@ -35,6 +35,18 @@ export interface RndtHostExtras {
   getDrawnFeatures?: () => Feature<Geometry | null>[];
   getMap?: () => MapLibreMap | null;
   activatePlugin?: (pluginId: string, state?: unknown) => Promise<boolean>;
+  /**
+   * Open an http(s) URL in the system browser. The desktop webview keeps
+   * target="_blank" links in an in-app window, and accepts no other scheme
+   * (no mailto:).
+   */
+  openExternalUrl?: (url: string) => void;
+  /** Save a text file through the system "Save as" dialog (GeoLibre 3.1.0). */
+  exportTextFile?: (
+    filename: string,
+    content: string,
+    options?: { description?: string; extensions?: string[]; mimeType?: string },
+  ) => void;
 }
 
 /** Id of GeoLibre's built-in GeoEditor plugin, whose sketches `getDrawnFeatures` reads. */
@@ -103,9 +115,35 @@ export async function fetchTextFrom(
       lastError = error;
     }
   }
+  const hostname = new URL(url).hostname;
+  // The webview only says "Failed to fetch" and the native client's reason
+  // stays in Diagnostics: tell a server that is gone (228 RNDT records point
+  // to geoportale.comune.milano.it, NXDOMAIN since 2026-09-27) from one that
+  // does not answer.
+  if (await nameIsMissing(host, hostname)) {
+    throw new Error(`server ${hostname} does not exist: its name is not in the DNS`);
+  }
   const reason = lastError instanceof Error ? lastError.message : String(lastError);
   const tried = candidates.length > 1 ? " (tried HTTPS and HTTP)" : "";
   throw new Error(`cannot reach ${new URL(url).host}${tried}: ${reason}`);
+}
+
+/** Public DNS-over-HTTPS resolver, answers in JSON ("Status": 3 is NXDOMAIN). */
+const DNS_RESOLVER = "https://dns.google/resolve";
+
+/**
+ * True only when a public DNS says the name does not exist. Any other outcome
+ * (the resolver unreachable, a name with no A record) counts as "exists", so
+ * the plugin never calls a server gone by mistake. IP addresses are skipped.
+ */
+export async function nameIsMissing(host: RndtHost, hostname: string): Promise<boolean> {
+  if (/^[\d.]+$|:/.test(hostname)) return false;
+  try {
+    const text = await withTimeout(fetchOnce(host, `${DNS_RESOLVER}?name=${encodeURIComponent(hostname)}&type=A`, {}), 5000);
+    return (JSON.parse(text) as { Status?: unknown }).Status === 3;
+  } catch {
+    return false;
+  }
 }
 
 /** Budget of each browser reachability probe. */

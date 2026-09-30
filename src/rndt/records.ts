@@ -16,6 +16,8 @@ export interface RndtRecord {
   /** dataset, series or service. */
   type: string;
   organisation: string;
+  /** Point of contact of the resource (`PuntoDiContattoEmail_s`), valid addresses only. */
+  contactEmails: string[];
   /** Metadata date (`apiso_Modified_dt`), yyyy-mm-dd. */
   modified: string;
   bbox: Bbox | null;
@@ -55,6 +57,15 @@ function asStringList(value: unknown): string[] {
   if (typeof value === "string") return [value];
   if (Array.isArray(value)) return value.filter((v): v is string => typeof v === "string");
   return [];
+}
+
+/**
+ * The addresses in a contact field. Placeholders such as "ad@min" (2 records
+ * out of 400 sampled on 2026-09-30) are dropped: no domain, no mail.
+ */
+export function parseEmails(value: unknown): string[] {
+  const found = asStringList(value).flatMap((v) => v.split(/[\s,;]+/));
+  return Array.from(new Set(found.filter((v) => /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(v))));
 }
 
 /** Guess a resource kind from its URL (SERVICE parameter, path, extension). */
@@ -179,6 +190,7 @@ export function parseRecord(result: Json, baseUrl: string): RndtRecord {
     abstract: asString(result.description) || asString(source.apiso_Abstract_txt),
     type: asString(source.apiso_Type_s),
     organisation: asString(source.EnteResponsabile_s),
+    contactEmails: parseEmails(source.PuntoDiContattoEmail_s),
     modified: asString(source.apiso_Modified_dt).slice(0, 10),
     bbox: parseBbox(result.bbox),
     services,

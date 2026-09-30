@@ -1,223 +1,315 @@
-# Piano - pannello: ricerca e risultati fissi, filtri riassunti
+# Plan - plugin settings and log of failing URLs
 
-## Contesto (2026-09-29)
+## Context (2026-09-30)
 
-Con "More filters" aperto il form occupa quasi tutta l'altezza del pannello: dei risultati si vede una scheda.
+Request: a gear icon with the plugin settings, per user, local, off by default; first option: save a log of URLs that are unreachable or return an error.
 
-## Fase 1 - Layout
+What GeoLibre 3.1.0 offers a plugin (verified in `usePlugins.ts` at tag v3.1.0): no API for settings; `exportTextFile(nome, testo, {description, extensions, mimeType})` opens the "Save as" dialog. The plugin cannot write files by itself: the log is kept in `localStorage` (of the webview, on the user's computer) and exported on request.
 
-- [x] barra fissa in cima (sticky): casella di testo e Search, fuori dal `<form>` ma associati con l'attributo `form` → verify: test esistenti su submit e reset
-- [x] dopo una ricerca lanciata dal form i filtri si chiudono; al loro posto una riga di riepilogo dei filtri attivi con "Edit filters" / "Hide filters" → verify: test del riepilogo
-- [x] testata dei risultati fissa sotto la barra: stato, Previous/Next, Clear results, Zoom to results, Hide footprints, Copy query; Reset resta in fondo ai filtri → verify: test, prova in GeoLibre Desktop
-- [x] cambio pagina e selezione dalla mappa: la scheda non finisce sotto le barre fisse (`scroll-margin-top`) → verify: prova in GeoLibre Desktop
+## Phase 1 - Settings
 
-## Fase 2 - Chiusura
+- [x] "⚙ Settings" in the footer next to "Search help": opens a box like the help; the panel header belongs to GeoLibre and takes no buttons → verify: test open/close
+- [x] settings in `localStorage` (`openrndt-geolibre:settings`), read/write in try/catch, everything off by default; without storage the panel works the same → verify: test with fake storage and with storage that throws
 
-- [x] `npm test`, typecheck, lint, LOG.md, copia in %APPDATA%
-- [ ] prova in GeoLibre Desktop (sticky, riepilogo, scroll al cambio pagina)
+## Phase 2 - Error log
 
-## Domande aperte
+- [x] checkbox "Log service URLs that fail (unreachable or errors)", off by default
+- [x] if on: every capabilities, GetFeature or download error adds a line: UTC time, record id and title, organisation, service type, URL, error; at most 1,000 lines, the oldest leave first → verify: test on WMS errors
+- [x] in the box: "N entries", "Export JSON Lines" (via `exportTextFile`, `openrndt-errors.jsonl`), "Clear log" → verify: test on the exported lines
+- [x] off: nothing is recorded; the log already saved stays until it is cleared
 
-- sticky funziona solo se il contenitore che scorre è quello di GeoLibre, senza `overflow: hidden` in mezzo: da vedere in Desktop
+## Phase 3 - Wrap-up
+
+- [x] tests, typecheck, lint, LOG.md, build, copy to %APPDATA%
+- [ ] test in Desktop (persistence after restart, Save as)
+
+## Open questions
+
+- none (footer, JSON Lines, 1,000 lines: decided by the user)
 
 ---
 
-# Piano - scelta dei footprint sovrapposti e hover mappa/lista
+# Plan - panel redesign (claude.ai/design "RNDT Panel Proposta", version of 2026-09-30 20:22)
 
-## Contesto (2026-09-29)
+## Context (2026-09-30)
 
-Il click sulla mappa prende `features[0]`, il rettangolo disegnato più in alto: dentro un box piccolo (Palermo) si seleziona sempre uno dei box grandi che lo contengono.
+The proposal keeps Previous/Next, labels the date as "Metadata", shows the advanced filters (Match, Search in, theme, keyword, Organisation with "Show only these / Hide these", Date with the shortcuts). All controls already exist: the layout changes, not the query. Only new feature: "Recent searches". To confirm before executing.
 
-## Fase 1 - Click
+## Phase 1 - Search form
 
-- [x] al click, tutti i footprint sotto il cursore (senza doppioni), ordinati per area crescente → verify: test con box annidati
-- [x] uno solo: selezione diretta; più di uno: menu con i titoli sulla mappa, dal più piccolo; hover su una voce evidenzia il box; Esc, click fuori o movimento della mappa lo chiudono → verify: test, prova in GeoLibre Desktop
+- [x] Type (All/Data/Services), Where, Available as in view; the rest in "Advanced filters", collapsed, with the number of active filters → verify: existing tests on submit and reset
+- [x] Match and Organisation "Show only these / Hide these" as segmented controls → verify: same query as today
+- [x] "Open data only" in the advanced filters with its "?"
+- [ ] "Open data only" disabled with Services (postponed: today it is ignored, the help says so)
+- [x] "?" on theme, Keywords, Organisation, Open data, Date; the rest in "Search help" at the bottom, clickable examples included → verify: tests updated
+- [ ] "Recent searches": postponed to later
 
-## Fase 2 - Hover
+## Phase 2 - Results
 
-- [x] layer di evidenziazione (linea) separato dalla selezione → verify: test filtri
-- [x] hover su una scheda della lista → box evidenziato → verify: prova in GeoLibre Desktop
-- [x] hover su un box → tooltip con il titolo (il più piccolo sotto il cursore, "+N" se ce ne sono altri) e scheda evidenziata nella lista → verify: prova in GeoLibre Desktop
+- [x] removable chips, no per-chip menu; × removes and reruns; "Edit filters", "Clear all" (with 2+ chips, keeps the text) → verify: chip and Clear all tests
+- [x] header: ‹ range ›, `curl`, Sort (reruns from the first page), ⋯ (Clear results), "Zoom to results" and "Hide footprints" in view → verify: sort and pager tests
+- [x] card with fixed rows, "Metadata <date>"; ⋯ with Hide/Show only organisation, Zoom to extent, Hide footprint → verify: organisation ⋯ test
+- [x] visual test in headless Chromium at 380 px (`tmp/harness` bench)
 
-## Fase 3 - Chiusura
+## Phase 3 - Detail (bigger job)
+
+- [ ] dedicated view with "← N results" that goes back to the same page and position; click on a footprint opens the detail → verify: test, test in Desktop
+- [ ] capabilities read when the detail opens, one block per service (WMS, WFS, download); checkbox list with filter above 30 layers; layers outside EPSG:3857 not selectable, with reason → verify: test
+- [ ] "Add to map (N)" for WMS, name = readable title; WFS keeps count, limit and "visible area only" → verify: test on names and WFS
+- [ ] tile errors next to the added layer, if the source can be derived from `getMap` → verify: test in Desktop
+
+## Phase 4 - Wrap-up
+
+- [x] `npm test`, typecheck, lint, LOG.md, build, copy to %APPDATA%
+- [ ] test in GeoLibre Desktop
+
+## Open questions
+
+- none (Where starts from "Current map view", decided by the user)
+
+---
+
+# Plan - "Reset filters" in the summary row
+
+## Context (2026-09-30)
+
+After a search the filters collapse into the summary and the Reset button, at the bottom of the form, is no longer visible: to clear them you need "Edit filters", scroll, "Reset".
+
+## Phase 1 - Link in the summary
+
+- [x] "Reset filters" link next to "Edit filters", only if there is at least one filter; clears the form (text included, like Reset), does not rerun the search, opens the empty filters, hides the summary; the results stay → verify: test in `tests/plugin.test.ts`
+
+## Phase 2 - Wrap-up
+
+- [x] `npm test`, typecheck, lint, LOG.md, build and copy to %APPDATA%
+- [ ] test in GeoLibre Desktop
+
+## Open questions
+
+- none
+
+---
+
+# Plan - panel: fixed search and results, summarised filters
+
+## Context (2026-09-29)
+
+With "More filters" open the form takes up almost the whole height of the panel: only one result card is visible.
+
+## Phase 1 - Layout
+
+- [x] fixed bar at the top (sticky): text box and Search, outside the `<form>` but associated with the `form` attribute → verify: existing tests on submit and reset
+- [x] after a search launched from the form the filters collapse; in their place a summary row of the active filters with "Edit filters" / "Hide filters" → verify: summary test
+- [x] fixed results header under the bar: status, Previous/Next, Clear results, Zoom to results, Hide footprints, Copy query; Reset stays at the bottom of the filters → verify: test, test in GeoLibre Desktop
+- [x] page change and selection from the map: the card does not end up under the fixed bars (`scroll-margin-top`) → verify: test in GeoLibre Desktop
+
+## Phase 2 - Wrap-up
+
+- [x] `npm test`, typecheck, lint, LOG.md, copy to %APPDATA%
+- [ ] test in GeoLibre Desktop (sticky, summary, scroll on page change)
+
+## Open questions
+
+- sticky works only if the scrolling container is GeoLibre's, without `overflow: hidden` in between: to check in Desktop
+
+---
+
+# Plan - choosing overlapping footprints and map/list hover
+
+## Context (2026-09-29)
+
+The click on the map takes `features[0]`, the rectangle drawn on top: inside a small box (Palermo) one of the large boxes containing it is always selected.
+
+## Phase 1 - Click
+
+- [x] on click, all footprints under the cursor (without duplicates), sorted by increasing area → verify: test with nested boxes
+- [x] only one: direct selection; more than one: menu with the titles on the map, from the smallest; hover on an entry highlights the box; Esc, click outside or map movement close it → verify: test, test in GeoLibre Desktop
+
+## Phase 2 - Hover
+
+- [x] highlight layer (line) separate from the selection → verify: filter tests
+- [x] hover on a list card → highlighted box → verify: test in GeoLibre Desktop
+- [x] hover on a box → tooltip with the title (the smallest under the cursor, "+N" if there are others) and card highlighted in the list → verify: test in GeoLibre Desktop
+
+## Phase 3 - Wrap-up
 
 - [x] `npm test`, typecheck, lint, LOG.md
-- [ ] prova in GeoLibre Desktop (plugin copiato in %APPDATA%)
+- [ ] test in GeoLibre Desktop (plugin copied to %APPDATA%)
 
-## Domande aperte
+## Open questions
 
-- tooltip: etichetta propria nel contenitore della mappa (il `title` nativo compare con ritardo e non si aggiorna mentre il mouse si muove)
-- menu fatto a mano nel contenitore della mappa, non `maplibregl.Popup` (eviterebbe una seconda copia di maplibre nel bundle)
+- tooltip: own label in the map container (the native `title` appears with a delay and does not update while the mouse moves)
+- menu built by hand in the map container, not `maplibregl.Popup` (it would avoid a second copy of maplibre in the bundle)
 
 ---
 
-# Piano - filtri tematici della Ricerca Dettagliata del portale
+# Plan - thematic filters of the portal's Ricerca Dettagliata
 
-## Contesto (2026-09-27, misure su geodati.gov.it, 23.831 record)
+## Context (2026-09-27, measurements on geodati.gov.it, 23.831 records)
 
-Il form del portale ha cinque filtri che il plugin non ha. "Tipo servizio" il plugin lo ha già. Valori e query ricavati dal codice della pagina (`tmp/rd.html`, `tmp/groups.json`); il portale li applica solo con "Dati".
+The portal form has five filters that the plugin does not have. "Tipo servizio" the plugin already has. Values and queries derived from the page code (`tmp/rd.html`, `tmp/groups.json`); the portal applies them only with "Dati".
 
-| Filtro del portale | Campo | Record con il campo | Note |
+| Portal filter | Field | Records with the field | Notes |
 |---|---|---|---|
-| Dataset prioritari | `PriorityDataset_s` | 1.055 | Acqua 272 confermato dal portale (screenshot 2026-09-27). 6 gruppi, ognuno una lista di decine di valori (direttive UE): Acqua 272, Aria e rumore 23, Industria 11, Marina 12, Natura e biodiversità 693, Rifiuti 18. "National legislation" (631) non sta in nessun gruppo. Il portale mette "National legislation" nel gruppo Natura e biodiversità: 631 record che hanno solo quel valore, quasi tutti Alto Adige (Provincia di Bolzano 441, Consorzio dei Comuni BZ 83, Protezione civile 64, Merano 39), con titoli come "Numeri civici", "Infrastrutture". Senza quel valore Natura scende da 693 a 62 e il totale da 1.055 a 424. 35 record hanno solo valori fuori dalle liste del portale (varianti e refusi: "Monitoring stations associated to water bodies" 24, "River network (Water Framework Directive)" 20, "Direttiva 2000/60/EC" 14), per lo più Autorità di bacino del Po |
-| Dati aperti (temi DCAT) | `OpenDataTheme_s` | 23.831 (tutti) | 9 gruppi, ognuno una lista di temi INSPIRE (it + en): Agricoltura 201, Ambiente 8.951, Economia 10.498, Governo 1.385, Popolazione 264, Regioni e città 11.298, Salute 288, Scienza 2.855, Trasporti 1.135. Il campo contiene anche parole chiave sparse: è una rimappatura dei temi INSPIRE, si sovrappone al filtro INSPIRE theme |
-| Dati di elevato valore (HVD) | `DatiElevatoValore_s` | 499, 0 servizi | Dati geospaziali 361, Osservazione della terra e ambiente 138, Meteorologici 0, Mobilità 0 |
+| Dataset prioritari | `PriorityDataset_s` | 1.055 | Acqua 272 confirmed by the portal (screenshot 2026-09-27). 6 groups, each a list of dozens of values (EU directives): Acqua 272, Aria e rumore 23, Industria 11, Marina 12, Natura e biodiversità 693, Rifiuti 18. "National legislation" (631) is in no group. The portal puts "National legislation" in the Natura e biodiversità group: 631 records that have only that value, almost all Alto Adige (Provincia di Bolzano 441, Consorzio dei Comuni BZ 83, Protezione civile 64, Merano 39), with titles such as "Numeri civici", "Infrastrutture". Without that value Natura drops from 693 to 62 and the total from 1.055 to 424. 35 records have only values outside the portal lists (variants and typos: "Monitoring stations associated to water bodies" 24, "River network (Water Framework Directive)" 20, "Direttiva 2000/60/EC" 14), mostly Autorità di bacino del Po |
+| Dati aperti (DCAT themes) | `OpenDataTheme_s` | 23.831 (all) | 9 groups, each a list of INSPIRE themes (it + en): Agricoltura 201, Ambiente 8.951, Economia 10.498, Governo 1.385, Popolazione 264, Regioni e città 11.298, Salute 288, Scienza 2.855, Trasporti 1.135. The field also contains scattered keywords: it is a remapping of the INSPIRE themes, it overlaps the INSPIRE theme filter |
+| Dati di elevato valore (HVD) | `DatiElevatoValore_s` | 499, 0 services | Dati geospaziali 361, Osservazione della terra e ambiente 138, Meteorologici 0, Mobilità 0 |
 
-Difetto del portale: per "Dati relativi all'osservazione della terra e all'ambiente" manda l'apostrofo dritto `'`, nei dati c'è `’` → 0 risultati invece di 138.
+Portal defect: for "Dati relativi all'osservazione della terra e all'ambiente" it sends the straight apostrophe `'`, in the data there is `’` → 0 results instead of 138.
 
-## Fase 1 - Decisioni (da confermare, un filtro alla volta)
+## Phase 1 - Decisions (to confirm, one filter at a time)
 
-- [x] Ambito territoriale: escluso. Campo compilato a discrezione dell'ente: dei 2.270 record dei Comuni 1.994 non lo hanno, 248 dicono "Regionale" e solo 28 "Locale"; 25 record delle Regioni sono "Locale"; "Regionale" copre il 92% dei valori. Per ente si usa Organisation
-- [x] Categoria ISO: esclusa. Compilata sul 99,5% dei dati, lista chiusa di 19 codici, ma ripete INSPIRE theme (20.660 record) con una griglia più grossa e in inglese tecnico; `planningCadastre` (11.714) è per 7.694 il catasto dell'Agenzia delle Entrate; legame con i temi INSPIRE debole (Idrografia: 564 inlandWaters, 232 planningCadastre)
-- [x] Dataset prioritari: rinviati. Valori sporchi ("National legislation" nel gruppo Natura, 35 record fuori dalle liste): misure nella tabella sopra, per quando si riprende
-- [ ] quali filtri aggiungere (proposta: HVD; "Dati aperti" no, perché ripete INSPIRE theme con gruppi larghi)
-- [ ] con "Services" ignorati, come INSPIRE theme e Open data only
-- [ ] selezione singola (come INSPIRE theme oggi) o multipla
-- [ ] HVD: mandare entrambe le forme dell'apostrofo; nascondere o no le due voci a 0
+- [x] Ambito territoriale: excluded. Field filled in at the organisation's discretion: of the 2.270 records of the Comuni 1.994 do not have it, 248 say "Regionale" and only 28 "Locale"; 25 records of the Regioni are "Locale"; "Regionale" covers 92% of the values. For organisations, Organisation is used
+- [x] Categoria ISO: excluded. Filled in on 99,5% of the data, closed list of 19 codes, but it repeats INSPIRE theme (20.660 records) with a coarser grid and in technical English; `planningCadastre` (11.714) is for 7.694 the Agenzia delle Entrate cadastre; weak link with the INSPIRE themes (Idrografia: 564 inlandWaters, 232 planningCadastre)
+- [x] Dataset prioritari: postponed. Dirty values ("National legislation" in the Natura group, 35 records outside the lists): measurements in the table above, for when it is resumed
+- [ ] which filters to add (proposal: HVD; "Dati aperti" no, because it repeats INSPIRE theme with broad groups)
+- [ ] ignored with "Services", like INSPIRE theme and Open data only
+- [ ] single selection (like INSPIRE theme today) or multiple
+- [ ] HVD: send both forms of the apostrophe; hide or not the two entries at 0
 
-## Fase 2 - Query
+## Phase 2 - Query
 
-- [ ] campi nuovi in `SearchForm`, clausole in `buildQuery` (gruppi espansi in OR di valori tra virgolette) → verify: fixture in `tests/fixtures/queries.json`, `npm test`
-- [ ] gruppi e liste in `constants.ts`, etichette in inglese come il resto del pannello → verify: typecheck
+- [ ] new fields in `SearchForm`, clauses in `buildQuery` (groups expanded into an OR of quoted values) → verify: fixture in `tests/fixtures/queries.json`, `npm test`
+- [ ] groups and lists in `constants.ts`, labels in English like the rest of the panel → verify: typecheck
 
-## Fase 3 - Pannello
+## Phase 3 - Panel
 
-- [ ] select nel pannello, nascoste con "Services", con "?" nello schema di `WHERE_HELP` → verify: test UI, prova in GeoLibre Desktop
-- [ ] conteggi dal vivo per ogni filtro contro le misure qui sopra → verify: stessi numeri
+- [ ] selects in the panel, hidden with "Services", with "?" following the `WHERE_HELP` pattern → verify: UI test, test in GeoLibre Desktop
+- [ ] live counts for each filter against the measurements above → verify: same numbers
 
-## Fase 4 - Chiusura
+## Phase 4 - Wrap-up
 
-- [ ] LOG.md, README se elenca i filtri; nota sull'apostrofo HVD in openrndt `knowledge/api/known-issues.md` → verify: lettura
+- [ ] LOG.md, README if it lists the filters; note on the HVD apostrophe in openrndt `knowledge/api/known-issues.md` → verify: reading
 
-## Domande aperte
+## Open questions
 
-- "Dati aperti" dentro o fuori?
-- singola o multipla?
-- prima si chiude il lavoro in corso (help dei filtri, Date), poi questo?
-
----
-
-# Piano - help "?" per tutti i filtri e revisione del filtro Date
-
-## Contesto (2026-09-27, misure su geodati.gov.it, 23.831 record)
-
-- Oggi hanno un "?" solo i modi di ricerca, "Search in" e "Where". Mancano: Resources, INSPIRE theme, Keywords, Organisation, Open data only, Date, Sort by.
-- Date: con la casella "Include records without this date" spuntata (default) il filtro filtra poco. Revision dal 2024: 6.517 record con la data, ma la casella aggiunge i 10.480 senza revisione, 17.000 risultati su 23.831. Senza data: Revision 10.480, Publication 15.338, Creation 13.536.
-- La casella non ha effetto se non si scrive almeno una data.
-- Le tre date sono date della risorsa (creazione, pubblicazione, revisione). "Sort by" ordina invece per data del metadato (`apiso_Modified_dt`, presente in tutti i record): due date diverse, da dire.
-- Keywords: corrispondenza esatta e sensibile alle maiuscole. `opendata` 2.742, `OpenData` 8; `Idrografia` 976, `idrografia` 117.
-- INSPIRE theme e Open data only si applicano a All e Data, sono ignorati con Services: nessun servizio ha un tema (0) né il flag open data (0).
-- Organisation: "contiene", senza maiuscole, sul responsabile della risorsa (`EnteResponsabile_s`), non sul contatto dei metadati.
-- Resources: Data = dataset e serie (20.667), Services = servizi (3.164).
-
-## Fase 1 - Filtro Date
-
-Misure aggiuntive (2026-09-27): nessun record è privo di tutte e tre le date (0). 17.363 record su 23.831 (73%) ne hanno una sola: solo revisione 9.313, solo creazione 4.725, solo pubblicazione 3.325; tutte e tre 1.840. Il default del portale "Considera valori vuoti" compensa questo: un filtro stretto su Revision perde i record datati solo con creazione o pubblicazione. Con "qualsiasi delle tre date" dal 2024: 7.938 (contro 6.517 su Revision stretta e circa 17.000 con la casella).
-
-- [x] decisione: togliere la casella "Include records without this date" (filtro stretto quando c'è una data)
-- [x] decisione: niente "Any date", restano le tre date distinte
-- [ ] nota piccola, sempre visibile, sopra la select: molti record non hanno la data scelta → verify: prova in GeoLibre Desktop
-- [ ] togliere `includeMissingDates` da form, query e fixture → verify: `npm test`
-- [ ] help "?" della legenda Date: cosa sono le tre date, che quasi tutti i record ne hanno una sola, differenza con la data del metadato del Sort → verify: lettura
-
-## Fase 2 - Help degli altri filtri
-
-- [ ] Resources: cosa sono Data e Services; con Services tema e open data sono ignorati
-- [ ] INSPIRE theme: ignorato con Services
-- [ ] Keywords: esatte e sensibili alle maiuscole, con esempi cliccabili `opendata` / `OpenData`
-- [ ] Organisation: contiene, senza maiuscole, ente responsabile; si può cliccare il nome di un ente nei risultati
-- [ ] Open data only: tiene i record in cui l'ente ha compilato il campo open data (`isOpendata`, 16.792). Valore libero e non controllato: licenze (CC BY 4.0 535 su un campione di 1000), il solo marcatore "open data"/"opendata" (404 su 1000), anche licenze non commerciali (286 con NC, non open data in senso stretto). Perde 1.367 record senza il campo ma con licenza CC dichiarata altrove. Ignorato con Services
-- [ ] Sort by: Relevance e data del metadato
-- stesso schema di `WHERE_HELP` (costante + `helpToggle`) → verify: `npm test`, typecheck, prova in GeoLibre Desktop
-
-## Fase 4 - Relazione spaziale (fatta)
-
-- `spatialRel=Within` supportato dal REST: box di Palermo 94 record contro 878 di Intersects; `Contains` 706 (i nazionali)
-- [x] scelta in "Where" tra "touches the area" (Intersects, default) e "inside the area" (Within) → verify: test `buildQuery`, conteggi dal vivo
-
-## Fase 5 - Escludere enti (fatta)
-
-- [x] casella "Invert" sotto Organisation (più enti con la virgola), al posto di un secondo campo → verify: fixture `buildQuery`, test dal vivo (Messina 72 → 2, `ispra, torino` 517)
-- [x] pulsante "Hide" sul nome dell'ente nei risultati → verify: test UI
-- [x] esempio NOT nell'help Lucene → verify: conteggio dal vivo 8.133 → 436
-
-## Fase 6 - Record type e Available as (fatta)
-
-- [x] verifica su campione: filtro `links_s` contro badge del plugin → 99% concordi su 2.400 record
-- [x] "Resources" → "Record type", help con la differenza tipo/link
-- [x] "Available as" WMS/WFS → verify: fixture, test UI, test dal vivo (`idrografia` 586)
-- [ ] ArcGIS REST in "Available as" quando il plugin saprà aprirlo
-
-## Fase 3 - Chiusura
-
-- [ ] LOG.md, README se descrive i filtri → verify: lettura
-
-## Domande aperte
-
-- decisi: casella tolta; un "?" per ogni campo; `isOpendata` verificato
+- "Dati aperti" in or out?
+- single or multiple?
+- first close the work in progress (filter help, Date), then this?
 
 ---
 
-# Piano - `crs` in `addWmsLayer` (issue #1)
+# Plan - "?" help for all filters and revision of the Date filter
 
-## Contesto (2026-09-27)
+## Context (2026-09-27, measurements on geodati.gov.it, 23.831 records)
 
-- Dopo l'apertura della issue #1 è stata unita opengeos/GeoLibre#2695: il protocollo WMS nativo del desktop ridisegna in Web Mercator anche i CRS proiettati (`EPSG:<n>` qualsiasi, risolto offline). La lista "solo `GEOGRAPHIC_WMS_CRS`" della issue è superata.
-- Python (`_normalize_wms_crs` in `project.py`) accetta `EPSG:3857`, i CRS geografici della lista, `CRS:84` (solo con 1.3.0) e qualsiasi `EPSG:\d{4,6}`. La PR si allinea a questo.
-- Il CRS vive nell'URL delle tessere, che viene salvato nel progetto; Python non lo scrive in `source`. Nessun codice ricostruisce il GetMap da `source` con un CRS (Cesium usa il suo schema, l'export dei ritagli forza EPSG:4326 1.1.1). Voce "crs in source" tolta.
-- La riproiezione c'è solo nel desktop (Tauri). Nel web un `crs` diverso da 3857 dà tessere sbagliate.
-- `createWmsTileUrl` usa `appendQuery`, che accoda senza togliere `SRS`/`VERSION` già presenti nell'endpoint (Python invece li toglie). Da verificare se `addWmsLayer` riceve endpoint già ripuliti.
-- Il WMS Basilicata oggi non risponde per un problema DNS dell'ente: i name server di `regione.basilicata.it` (78.40.170.22, 78.40.170.36) non rispondono, SERVFAIL anche da dns.google. Non è un difetto del plugin.
+- Today only the search modes, "Search in" and "Where" have a "?". Missing: Resources, INSPIRE theme, Keywords, Organisation, Open data only, Date, Sort by.
+- Date: with the checkbox "Include records without this date" ticked (default) the filter filters little. Revision since 2024: 6.517 records with the date, but the checkbox adds the 10.480 without revision, 17.000 results out of 23.831. Without date: Revision 10.480, Publication 15.338, Creation 13.536.
+- The checkbox has no effect unless at least one date is entered.
+- The three dates are resource dates (creation, publication, revision). "Sort by" instead sorts by metadata date (`apiso_Modified_dt`, present in all records): two different dates, to be stated.
+- Keywords: exact and case-sensitive match. `opendata` 2.742, `OpenData` 8; `Idrografia` 976, `idrografia` 117.
+- INSPIRE theme and Open data only apply to All and Data, they are ignored with Services: no service has a theme (0) or the open data flag (0).
+- Organisation: "contains", case-insensitive, on the party responsible for the resource (`EnteResponsabile_s`), not on the metadata contact.
+- Resources: Data = datasets and series (20.667), Services = services (3.164).
 
-## Fase 1 - Issue upstream (da confermare)
+## Phase 1 - Date filter
 
-- [x] Saltata su richiesta: PR diretta, le domande sono nella PR
-- Domande da porre al maintainer: comportamento sul web (warn, errore o solo documentazione), come fa un plugin a sapere se l'host supporta `crs` (oggi nessuna versione esposta; un host vecchio ignora `crs` in silenzio)
+Additional measurements (2026-09-27): no record lacks all three dates (0). 17.363 records out of 23.831 (73%) have only one: revision only 9.313, creation only 4.725, publication only 3.325; all three 1.840. The portal default "Considera valori vuoti" compensates for this: a strict filter on Revision loses the records dated only with creation or publication. With "any of the three dates" since 2024: 7.938 (against 6.517 on strict Revision and about 17.000 with the checkbox).
 
-## Fase 2 - PR a GeoLibre (branch nuovo da `origin/main` in `~/git/GeoLibre`)
+- [x] decision: remove the checkbox "Include records without this date" (strict filter when there is a date)
+- [x] decision: no "Any date", the three separate dates stay
+- [ ] small note, always visible, above the select: many records do not have the chosen date → verify: test in GeoLibre Desktop
+- [ ] remove `includeMissingDates` from form, query and fixture → verify: `npm test`
+- [ ] "?" help of the Date legend: what the three dates are, that almost all records have only one, difference with the metadata date of Sort → verify: reading
 
-- [x] `normalizeWmsCrs` in `add-data/helpers.ts`, accanto a `normalizeWmsVersion`, che importa `GEOGRAPHIC_WMS_CRS` → verify: test unitari
-- [x] `createWmsTileUrl` con `crs?` (default `EPSG:3857`): Add Data dialog invariato → verify: test esistenti verdi
-- [x] `addWmsLayer`: destruttura `crs`, valida, errore esplicito per valori non ammessi e per `CRS:84` con 1.1.1 → verify: test
-- [x] test: 4326 1.1.1 (`SRS=`), 4326 1.3.0 (`CRS=`), `CRS:84` 1.3.0, 25833, rifiuto `CRS:84` + 1.1.1
-- [x] JSDoc di `GeoLibreWmsLayerOptions` e `docs/plugin-api.md` ("solo desktop") → verify: lettura
-- [x] `pre-commit run --files ...`, suite frontend, typecheck → verify: tutto verde
-- [x] PR in inglese, struttura come #2695
+## Phase 2 - Help for the other filters
 
-## Fase 3 - Plugin (dopo il merge)
+- [ ] Resources: what Data and Services are; with Services theme and open data are ignored
+- [ ] INSPIRE theme: ignored with Services
+- [ ] Keywords: exact and case-sensitive, with clickable examples `opendata` / `OpenData`
+- [ ] Organisation: contains, case-insensitive, responsible organisation; you can click an organisation name in the results
+- [ ] Open data only: keeps the records in which the organisation filled in the open data field (`isOpendata`, 16.792). Free, uncontrolled value: licences (CC BY 4.0 535 in a sample of 1000), just the marker "open data"/"opendata" (404 out of 1000), non-commercial licences too (286 with NC, not open data in the strict sense). Loses 1.367 records without the field but with a CC licence declared elsewhere. Ignored with Services
+- [ ] Sort by: Relevance and metadata date
+- same pattern as `WHERE_HELP` (constant + `helpToggle`) → verify: `npm test`, typecheck, test in GeoLibre Desktop
 
-Stato 2026-09-28: #2701, #2702 e #2707 unite, non ancora in release (ultima 3.1.0). Il maintainer non ha risposto sul rilevamento del supporto. Deciso: `typeof app.importLayerStyle === "function"` come segnale per entrambe (unite a un minuto di distanza); con host vecchio il pulsante resta disattivato come oggi.
+## Phase 4 - Spatial relation (done)
 
-- [ ] `crs?` in `WmsLayerOptions` (`host.ts`), `importLayerStyle?` nel tipo dell'app → verify: typecheck
-- [ ] stessa regola di `defaultWmsCrs` di #2707 (3857, poi geografici, poi primo EPSG), così plugin e dialog nativo scelgono lo stesso CRS → verify: test unitari
-- [ ] ordine di scelta: `EPSG:3857`, poi geografici della lista, poi altri EPSG; `CRS:84` solo con 1.3.0; evitare EPSG:3003 se c'è altro (scarto di circa 70 m, #2695)
-- [ ] rilevamento: `typeof app.importLayerStyle === "function"`; più avanti proposta upstream di una versione dell'API dei plugin → verify: test con host finto con e senza la funzione
-- [ ] verifica in GeoLibre Desktop: catasto AdE allineato al WFS, Basilicata quando il DNS torna
+- `spatialRel=Within` supported by the REST: Palermo box 94 records against 878 for Intersects; `Contains` 706 (the national ones)
+- [x] choice in "Where" between "touches the area" (Intersects, default) and "inside the area" (Within) → verify: `buildQuery` test, live counts
 
-## Domande aperte
+## Phase 5 - Excluding organisations (done)
 
-- issue upstream prima, o PR diretta?
-- sul web: errore o solo doc?
-- ~~rilevamento supporto `crs` da plugin: come?~~ deciso (indizio `importLayerStyle`)
+- [x] "Invert" checkbox under Organisation (several organisations with commas), instead of a second field → verify: `buildQuery` fixture, live test (Messina 72 → 2, `ispra, torino` 517)
+- [x] "Hide" button on the organisation name in the results → verify: UI test
+- [x] NOT example in the Lucene help → verify: live count 8.133 → 436
+
+## Phase 6 - Record type and Available as (done)
+
+- [x] check on a sample: `links_s` filter against the plugin badges → 99% matching on 2.400 records
+- [x] "Resources" → "Record type", help with the type/link difference
+- [x] "Available as" WMS/WFS → verify: fixture, UI test, live test (`idrografia` 586)
+- [ ] ArcGIS REST in "Available as" when the plugin is able to open it
+
+## Phase 3 - Wrap-up
+
+- [ ] LOG.md, README if it describes the filters → verify: reading
+
+## Open questions
+
+- decided: checkbox removed; one "?" for each field; `isOpendata` verified
+
+---
+
+# Plan - `crs` in `addWmsLayer` (issue #1)
+
+## Context (2026-09-27)
+
+- After issue #1 was opened, opengeos/GeoLibre#2695 was merged: the desktop's native WMS protocol also redraws projected CRSs in Web Mercator (any `EPSG:<n>`, resolved offline). The issue's "only `GEOGRAPHIC_WMS_CRS`" list is outdated.
+- Python (`_normalize_wms_crs` in `project.py`) accepts `EPSG:3857`, the geographic CRSs of the list, `CRS:84` (only with 1.3.0) and any `EPSG:\d{4,6}`. The PR aligns with this.
+- The CRS lives in the tile URL, which is saved in the project; Python does not write it in `source`. No code rebuilds the GetMap from `source` with a CRS (Cesium uses its own scheme, the clip export forces EPSG:4326 1.1.1). Item "crs in source" removed.
+- Reprojection exists only in the desktop (Tauri). On the web a `crs` other than 3857 gives wrong tiles.
+- `createWmsTileUrl` uses `appendQuery`, which appends without removing `SRS`/`VERSION` already present in the endpoint (Python removes them instead). To check whether `addWmsLayer` receives endpoints already cleaned.
+- The Basilicata WMS today does not reply because of a DNS problem at the organisation: the name servers of `regione.basilicata.it` (78.40.170.22, 78.40.170.36) do not reply, SERVFAIL from dns.google too. Not a plugin defect.
+
+## Phase 1 - Upstream issue (to confirm)
+
+- [x] Skipped on request: direct PR, the questions are in the PR
+- Questions to ask the maintainer: behaviour on the web (warn, error or documentation only), how a plugin can know whether the host supports `crs` (today no version exposed; an old host silently ignores `crs`)
+
+## Phase 2 - PR to GeoLibre (new branch from `origin/main` in `~/git/GeoLibre`)
+
+- [x] `normalizeWmsCrs` in `add-data/helpers.ts`, next to `normalizeWmsVersion`, which imports `GEOGRAPHIC_WMS_CRS` → verify: unit tests
+- [x] `createWmsTileUrl` with `crs?` (default `EPSG:3857`): Add Data dialog unchanged → verify: existing tests green
+- [x] `addWmsLayer`: destructures `crs`, validates, explicit error for values not allowed and for `CRS:84` with 1.1.1 → verify: test
+- [x] tests: 4326 1.1.1 (`SRS=`), 4326 1.3.0 (`CRS=`), `CRS:84` 1.3.0, 25833, rejection of `CRS:84` + 1.1.1
+- [x] JSDoc of `GeoLibreWmsLayerOptions` and `docs/plugin-api.md` ("desktop only") → verify: reading
+- [x] `pre-commit run --files ...`, frontend suite, typecheck → verify: all green
+- [x] PR in English, structure like #2695
+
+## Phase 3 - Plugin (after the merge)
+
+Status 2026-09-28: #2701, #2702 and #2707 merged, not yet in a release (latest 3.1.0). The maintainer has not replied about support detection. Decided: `typeof app.importLayerStyle === "function"` as the signal for both (merged one minute apart); with an old host the button stays disabled as today.
+
+- [ ] `crs?` in `WmsLayerOptions` (`host.ts`), `importLayerStyle?` in the app type → verify: typecheck
+- [ ] same rule as `defaultWmsCrs` of #2707 (3857, then geographic, then first EPSG), so plugin and native dialog choose the same CRS → verify: unit tests
+- [ ] order of choice: `EPSG:3857`, then geographic ones of the list, then other EPSG; `CRS:84` only with 1.3.0; avoid EPSG:3003 if there is something else (offset of about 70 m, #2695)
+- [ ] detection: `typeof app.importLayerStyle === "function"`; later an upstream proposal for a plugin API version → verify: test with fake host with and without the function
+- [ ] check in GeoLibre Desktop: AdE cadastre aligned with the WFS, Basilicata when the DNS comes back
+
+## Open questions
+
+- upstream issue first, or direct PR?
+- on the web: error or doc only?
+- ~~detection of `crs` support from a plugin: how?~~ decided (`importLayerStyle` hint)
 
 ## Review
 
-- PR aperta: opengeos/GeoLibre#2701 (branch `feat/plugin-wms-crs` sul fork). Test frontend 10079 ok, typecheck ok, eslint e oxfmt sui file toccati ok (`docs/plugin-api.md` aveva già problemi oxfmt, non toccati). `pre-commit` sul lint dell'intero repo va in out of memory in WSL.
-- Non provata in una build desktop.
+- PR opened: opengeos/GeoLibre#2701 (branch `feat/plugin-wms-crs` on the fork). Frontend tests 10079 ok, typecheck ok, eslint and oxfmt on the touched files ok (`docs/plugin-api.md` already had oxfmt problems, not touched). `pre-commit` on the lint of the whole repo runs out of memory in WSL.
+- Not tested in a desktop build.
 
 ---
 
-# Piano - stile SLD dei WFS (issue #10)
+# Plan - SLD style of WFS (issue #10)
 
-Sbloccata da opengeos/GeoLibre#2702 (`importLayerStyle(layerId, text)`, SLD/QML/Mapbox GL), unita il 2026-09-27, non ancora in release.
+Unblocked by opengeos/GeoLibre#2702 (`importLayerStyle(layerId, text)`, SLD/QML/Mapbox GL), merged on 2026-09-27, not yet in a release.
 
-## Fase 1 - Plugin
+## Phase 1 - Plugin
 
-- [ ] dopo `addGeoJsonLayer`, WMS `GetStyles` sullo stesso GeoServer (`layers=<nome>`) → verify: test con fixture SLD Liguria `M5:L4`
-- [ ] passare il testo a `importLayerStyle`; se manca l'API, o GetStyles fallisce, o l'esito è `unsupported-layer`, resta lo stile di default senza errore → verify: test UI
-- [ ] prova in GeoLibre Desktop (build da `main`): Liguria `M5:L4`, 33 classi su `classe` → verify: screenshot
+- [ ] after `addGeoJsonLayer`, WMS `GetStyles` on the same GeoServer (`layers=<nome>`) → verify: test with Liguria SLD fixture `M5:L4`
+- [ ] pass the text to `importLayerStyle`; if the API is missing, or GetStyles fails, or the outcome is `unsupported-layer`, the default style stays without error → verify: UI test
+- [ ] test in GeoLibre Desktop (build from `main`): Liguria `M5:L4`, 33 classes on `classe` → verify: screenshot
 
-## Domande aperte
+## Open questions
 
-- GetStyles sempre, o solo se il capabilities WMS dello stesso host ha il layer?
-- `minZoom: 12` dalla SLD: tenerlo (il layer sparisce a scala piccola) o toglierlo?
+- GetStyles always, or only if the WMS capabilities of the same host has the layer?
+- `minZoom: 12` from the SLD: keep it (the layer disappears at small scale) or remove it?

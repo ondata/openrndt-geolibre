@@ -1,7 +1,7 @@
 {
-  "name": "geolibre-plugin-template",
+  "name": "openrndt-geolibre",
   "version": "0.1.0",
-  "description": "A template for creating GeoLibre plugins with MapLibre GL JS controls",
+  "description": "GeoLibre plugin to search the RNDT catalogue and add its WMS/WFS services to the map",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
@@ -58,17 +58,17 @@
     "geolibre",
     "maplibre",
     "maplibre-gl",
-    "map",
-    "plugin",
-    "control",
-    "react",
-    "typescript"
+    "rndt",
+    "opendata",
+    "wms",
+    "wfs",
+    "plugin"
   ],
-  "author": "Your Name",
+  "author": "ondata",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/geolibre-plugin-template.git"
+    "url": "https://github.com/ondata/openrndt-geolibre.git"
   },
   "peerDependencies": {
     "maplibre-gl": ">=3.0.0",

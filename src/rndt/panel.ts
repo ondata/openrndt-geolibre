@@ -30,7 +30,23 @@ import {
 } from "./ogc";
 import { bboxError, buildCurlCommand, buildSearchUrl, clampBbox, emptyForm, type Bbox, type ResourceKind, type LinkKind, type SearchForm, type SpatialRel, type TextMode } from "./query";
 import { footprints, parseSearchResponse, type RndtRecord, type RndtService } from "./records";
-import { findTitle, lookupLayerTitles, lookupOneLayerTitle, optionLabel, readableTitle } from "./layer-names";
+import {
+  appendErrorLog,
+  clearErrorLog,
+  errorLogJsonl,
+  loadSettings,
+  readErrorLog,
+  saveSettings,
+  type Settings,
+} from "./settings";
+import {
+  findTitle,
+  lookupLayerTitleByCode,
+  lookupLayerTitles,
+  lookupOneLayerTitle,
+  optionLabel,
+  readableTitle,
+} from "./layer-names";
 
 type Child = Node | string | null | undefined | false;
 type Where = "anywhere" | "view" | "drawn" | "box";
@@ -48,6 +64,9 @@ function h<K extends keyof HTMLElementTagNameMap>(
       el.addEventListener(key.slice(2), value as EventListener);
     } else if (key === "className" || key === "textContent" || key === "value" || key === "checked" || key === "disabled" || key === "selected") {
       (el as unknown as Record<string, unknown>)[key] = value;
+      // form.reset() goes back to the defaults, not to the current state.
+      if (key === "checked") (el as unknown as HTMLInputElement).defaultChecked = value === true;
+      if (key === "selected") (el as unknown as HTMLOptionElement).defaultSelected = value === true;
     } else {
       el.setAttribute(key, value === true ? "" : String(value));
     }
@@ -67,10 +86,10 @@ function select(options: Option[], value: string, props: Record<string, unknown>
   );
 }
 
-function radioGroup(name: string, options: Option[], value: string, onChange: () => void): HTMLElement {
+function radioGroup(name: string, options: Option[], value: string, onChange: () => void, className = "ordt-radios"): HTMLElement {
   return h(
     "div",
-    { className: "ordt-radios", role: "radiogroup" },
+    { className, role: "radiogroup" },
     ...options.map((o) =>
       h(
         "label",
@@ -164,6 +183,60 @@ export function groupServices(services: RndtService[]): ServiceGroup[] {
   return Array.from(groups.values());
 }
 
+/** RNDT contact, from the footer of geodati.gov.it (AgID). */
+const RNDT_EMAIL = "info@rndt.gov.it";
+
+/**
+ * A report on a service that failed to load, with what is needed to check it:
+ * record, service, error, time (UTC). It is addressed to the record's point of
+ * contact, who runs the service, with RNDT in copy; to RNDT alone when the
+ * record names no contact. In Italian, the language of the catalogue.
+ */
+export function errorReport(
+  record: RndtRecord,
+  service: RndtService,
+  error: string,
+  now = new Date(),
+): { to: string[]; cc: string[]; subject: string; body: string } {
+  const toContact = record.contactEmails.length > 0;
+  const intro = toContact
+    ? `vi scrivo come referenti del servizio ${service.kind} indicato in una scheda del Repertorio Nazionale dei Dati Territoriali (RNDT). Ho provato ad aggiungerlo a una mappa (GeoLibre Desktop, plugin openrndt-geolibre), ma il caricamento ha dato errore. Metto in copia il RNDT.`
+    : `vi ringrazio per il catalogo RNDT. Ho provato ad aggiungere a una mappa un servizio ${service.kind} indicato in una scheda del catalogo (GeoLibre Desktop, plugin openrndt-geolibre), ma il caricamento ha dato errore.`;
+  return {
+    to: toContact ? record.contactEmails : [RNDT_EMAIL],
+    cc: toContact ? [RNDT_EMAIL] : [],
+    subject: `Errore nel caricamento del servizio ${service.kind} - ${record.title}`,
+    body: [
+      "Buongiorno,",
+      "",
+      intro,
+      "",
+      `Scheda: ${record.title}`,
+      `Identificativo: ${record.id}`,
+      `Pagina della scheda: ${record.htmlUrl}`,
+      ...(record.organisation ? [`Ente: ${record.organisation}`] : []),
+      `Servizio: ${service.url}`,
+      `Errore: ${error}`,
+      `Data e ora (UTC): ${now.toISOString().slice(0, 16).replace("T", " ")}`,
+      "",
+      "Vi segnalo il problema nel caso sia utile per verificare il servizio o la scheda.",
+      "",
+      "Grazie e buon lavoro",
+    ].join("\n"),
+  };
+}
+
+/** The report as text to paste into a new email: recipients and subject first. */
+export function errorReportText(report: ReturnType<typeof errorReport>): string {
+  return [
+    `A: ${report.to.join(", ")}`,
+    ...(report.cc.length ? [`Cc: ${report.cc.join(", ")}`] : []),
+    `Oggetto: ${report.subject}`,
+    "",
+    report.body,
+  ].join("\n");
+}
+
 /** Layers above which the layer menu gets a filter field (Veneto WFS: 1,068). */
 const FILTER_THRESHOLD = 30;
 
@@ -252,6 +325,19 @@ const WHERE_HELP: { value: Where; note: string; box?: string }[] = [
 ];
 
 /** A "?" button that shows and hides `box`, an inline help panel. */
+/** Shortcuts under the date range: days back from today. */
+const DATE_PRESETS: [string, number][] = [
+  ["Last week", 7],
+  ["Last month", 30],
+  ["Last year", 365],
+];
+
+/** yyyy-mm-dd in local time (`toISOString` would give the UTC day). */
+function localIsoDate(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
 function helpToggle(box: HTMLElement, label: string): HTMLButtonElement {
   const button = h(
     "button",
@@ -275,6 +361,57 @@ function helpToggle(box: HTMLElement, label: string): HTMLButtonElement {
 /** An inline help panel, hidden until its "?" is pressed. */
 function helpBox(id: string, ...children: (Node | string)[]): HTMLElement {
   return h("div", { className: "ordt-help", id, hidden: true }, ...children);
+}
+
+/** A ⋯ button with its menu; picking an item closes the menu. */
+function menuWrap(menu: HTMLElement, label: string): HTMLElement {
+  const button = h(
+    "button",
+    {
+      className: "ordt-button ordt-menu-button",
+      type: "button",
+      "aria-label": label,
+      title: label,
+      "aria-haspopup": "menu",
+      onclick: () => (menu.hidden = !menu.hidden),
+    },
+    "⋯",
+  );
+  menu.addEventListener("click", (event) => {
+    if ((event.target as HTMLElement).closest("button")) menu.hidden = true;
+  });
+  return h("span", { className: "ordt-menu-wrap" }, button, menu);
+}
+
+/**
+ * "Copy error report": the desktop app opens no mailto: link, so the report
+ * goes to the clipboard, with the recipients also shown beside the button.
+ */
+function reportControl(record: RndtRecord, service: RndtService, error: string): HTMLElement {
+  const report = errorReport(record, service, error);
+  const label = "Copy error report";
+  const button = h(
+    "button",
+    { className: "ordt-link ordt-report", type: "button", title: "Copy recipients, subject and text of an email about this error" },
+    label,
+  );
+  button.addEventListener("click", () => {
+    void navigator.clipboard?.writeText(errorReportText(report)).then(
+      () => {
+        button.textContent = "Copied: paste it into a new email";
+        setTimeout(() => (button.textContent = label), 3000);
+      },
+      () => undefined,
+    );
+  });
+  const to = report.cc.length ? `to ${report.to.join(", ")}, RNDT in copy` : `to ${report.to.join(", ")}`;
+  return h("span", { className: "ordt-report-wrap" }, button, " ", h("span", { className: "ordt-muted" }, `(${to})`));
+}
+
+/** A titled part of "Search help": the panel inside is always shown there. */
+function helpSection(title: string, box: HTMLElement): HTMLElement {
+  box.hidden = false;
+  return h("section", { className: "ordt-help-section" }, h("h3", {}, title), box);
 }
 
 /** A help panel made of plain paragraphs. */
@@ -320,8 +457,8 @@ const KEYWORDS_HELP = [
 const ORGANISATION_HELP = [
   "The owner of the resource, with its name as in the IPA index of public administrations, not the metadata contact. Part of the name is enough and case does not matter: piemonte finds Regione Piemonte.",
   "Data are listed under whoever published them: data commissioned by a municipality but published by its Region appear under the Region.",
-  "Separate several organisations with commas. Invert hides them instead: entrate hides Agenzia delle Entrate, which alone publishes about a third of the catalogue (its municipal cadastral maps).",
-  "In the results, clicking an organisation name keeps only that organisation; Hide next to it hides it.",
+  "Separate several organisations with commas. Hide these hides them instead: entrate hides Agenzia delle Entrate, which alone publishes about a third of the catalogue (its municipal cadastral maps).",
+  "In the results, the ⋯ menu of a record keeps only its organisation or hides it.",
 ];
 
 const OPEN_DATA_HELP = [
@@ -333,6 +470,10 @@ const DATE_HELP: [string, string][] = [
   ["Revision", "the last update of the resource"],
   ["Publication", "when the resource was published"],
   ["Creation", "when the resource was produced"],
+  [
+    "Added to catalogue",
+    "when the record entered the RNDT catalogue, not a date of the resource. Every record has it, but 23,342 records carry 25 April 2026, when the catalogue was loaded in bulk: it tells new records only after that day",
+  ],
 ];
 
 const SORT_HELP: [string, string][] = [
@@ -340,7 +481,7 @@ const SORT_HELP: [string, string][] = [
   ["Title", "alphabetical order"],
   [
     "Metadata date",
-    "when the record was last updated in the catalogue. It is not one of the three dates of the Date filter",
+    "when the record was last updated in the catalogue. It is not one of the dates of the Date filter",
   ],
 ];
 
@@ -354,6 +495,10 @@ const WHERE_OPTIONS: Option[] = [
   { value: "view", label: "Current map view" },
   { value: "drawn", label: "Drawn shapes (GeoEditor)" },
   { value: "box", label: "Box (west, south, east, north)" },
+];
+const ORG_MODES: Option[] = [
+  { value: "only", label: "Show only these" },
+  { value: "hide", label: "Hide these" },
 ];
 const SPATIAL_RELS: Option[] = [
   { value: "Intersects", label: "Touches the area" },
@@ -378,9 +523,24 @@ export class RndtPanel {
   private summaryEl!: HTMLElement;
   private summaryTextEl!: HTMLElement;
   private summaryToggleEl!: HTMLButtonElement;
-  /** Status, pager and result actions, kept below the search bar. */
+  private chipsEl!: HTMLElement;
+  private clearAllEl!: HTMLButtonElement;
+  /** Number of active advanced filters, next to "Advanced filters". */
+  private advancedCountEl!: HTMLElement;
+  /** "Search help": the help of the fields that have no "?" of their own. */
+  private helpEl!: HTMLElement;
+  /** Pager, curl, sort and the ⋯ menu, kept below the search bar. */
   private resultsHeadEl!: HTMLElement;
   private resultActionsEl!: HTMLElement;
+  private sortEl!: HTMLSelectElement;
+  private zoomRowEl!: HTMLElement;
+  private helpToggleEl!: HTMLButtonElement;
+  private footerEl!: HTMLElement;
+  /** "Settings": per-user options, stored on this computer only. */
+  private settingsEl!: HTMLElement;
+  private settingsToggleEl!: HTMLButtonElement;
+  private logCountEl!: HTMLElement;
+  private settings: Settings = loadSettings();
   private footprintsLayer: FootprintsLayer | null = null;
   private records: RndtRecord[] = [];
   private total = 0;
@@ -407,15 +567,35 @@ export class RndtPanel {
       this.statusEl = h("div", { className: "ordt-status", role: "status", "aria-live": "polite" });
       this.listEl = h("ol", { className: "ordt-results" });
       this.pagerEl = h("div", { className: "ordt-pager" });
-      this.pagerTopEl = h("div", { className: "ordt-pager ordt-pager-top" });
-      this.resultsHeadEl = h(
-        "div",
-        { className: "ordt-results-head" },
-        this.statusEl,
-        this.pagerTopEl,
-        this.resultActionsEl,
+      this.pagerTopEl = h("div", { className: "ordt-pager ordt-pager-top" }, this.statusEl);
+      this.resultsHeadEl = this.buildResultsHead();
+      this.settingsEl = this.buildSettings();
+      this.footerEl = this.buildFooter();
+      this.root.append(
+        this.searchBarEl,
+        this.formEl,
+        this.helpEl,
+        this.settingsEl,
+        this.summaryEl,
+        this.resultsHeadEl,
+        this.listEl,
+        this.pagerEl,
+        this.footerEl,
       );
-      this.root.append(this.searchBarEl, this.formEl, this.summaryEl, this.resultsHeadEl, this.listEl, this.pagerEl);
+      // The desktop app keeps target="_blank" links in an in-app window: hand
+      // them to the system browser when the host can.
+      this.root.addEventListener("click", (event) => {
+        const link = (event.target as HTMLElement).closest?.<HTMLAnchorElement>('a[target="_blank"]');
+        if (!link || !this.app.openExternalUrl || !/^https?:/i.test(link.href)) return;
+        event.preventDefault();
+        this.app.openExternalUrl(link.href);
+      });
+      // A click anywhere else closes the open ⋯ menus.
+      this.root.addEventListener("click", (event) => {
+        for (const menu of this.root!.querySelectorAll<HTMLElement>(".ordt-menu:not([hidden])")) {
+          if (!menu.parentElement!.contains(event.target as Node)) menu.hidden = true;
+        }
+      });
       this.trackStickyHeights();
       this.setStatus("Search the Italian national catalogue of spatial data (RNDT).");
     }
@@ -458,21 +638,25 @@ export class RndtPanel {
    */
   private filterByOrganisation(name: string): void {
     this.field<HTMLInputElement>("organisation").value = name;
-    this.field<HTMLInputElement>("invertOrganisation").checked = false;
+    this.setOrgMode("only");
     this.syncClearButtons();
     this.formEl.querySelector<HTMLDetailsElement>(".ordt-more")!.open = true;
     this.formEl.requestSubmit();
   }
 
-  /** Hide an organisation (Organisation + Invert) and search again. */
+  /** "Show only these" or "Hide these" under Organisation. */
+  private setOrgMode(mode: "only" | "hide"): void {
+    this.formEl.querySelector<HTMLInputElement>(`input[name="orgMode"][value="${mode}"]`)!.checked = true;
+  }
+
+  /** Hide an organisation (Organisation + Hide these) and search again. */
   private excludeOrganisation(name: string): void {
     const input = this.field<HTMLInputElement>("organisation");
-    const invert = this.field<HTMLInputElement>("invertOrganisation");
     // Already hiding: add to the list. Keeping some: switch to hiding this one.
-    const names = invert.checked ? input.value.split(",").map((n) => n.trim()).filter(Boolean) : [];
+    const names = checkedValue(this.formEl, "orgMode") === "hide" ? input.value.split(",").map((n) => n.trim()).filter(Boolean) : [];
     if (!names.some((n) => n.toLowerCase() === name.toLowerCase())) names.push(name);
     input.value = names.join(", ");
-    invert.checked = true;
+    this.setOrgMode("hide");
     this.syncClearButtons();
     this.formEl.querySelector<HTMLDetailsElement>(".ordt-more")!.open = true;
     this.formEl.requestSubmit();
@@ -524,9 +708,8 @@ export class RndtPanel {
     });
     const spatialRel = radioGroup("spatialRel", SPATIAL_RELS, "Intersects", () => undefined);
     spatialRel.classList.add("ordt-spatial-rel", "ordt-small");
-    spatialRel.hidden = true;
     spatialRel.setAttribute("aria-label", "Records whose extent");
-    const whereSelect = select(WHERE_OPTIONS, "anywhere", {
+    const whereSelect = select(WHERE_OPTIONS, "view", {
       name: "where",
       "aria-label": "Where",
       onchange: () => {
@@ -663,12 +846,12 @@ export class RndtPanel {
     const openDataHelp = textHelp("ordt-open-data-help", OPEN_DATA_HELP);
     const dateHelp = helpBox(
       "ordt-date-help",
-      h("p", {}, "Dates of the resource, not of its metadata:"),
+      h("p", {}, "The first three are dates of the resource, not of its metadata:"),
       h("ul", {}, ...DATE_HELP.map(([term, note]) => termItem(term, note))),
       h(
         "p",
         {},
-        "Publishers usually fill in only one of the three: depending on the type, 44% to 64% of the records lack it, and a date range leaves them out. If you get few results, try another date type. With both dates empty there is no date filter.",
+        "Publishers usually fill in only one of the first three: depending on the type, 44% to 64% of the records lack it, and a date range leaves them out. If you get few results, try another date type. With both dates empty there is no date filter.",
       ),
     );
     const sortHelp = helpBox(
@@ -680,19 +863,32 @@ export class RndtPanel {
     this.copyQueryEl = h(
       "button",
       {
-        className: "ordt-link",
+        className: "ordt-button ordt-curl",
         type: "button",
         disabled: true,
-        title: "Copy a curl command that repeats this search in a terminal",
+        title: "Copy query as curl",
+        "aria-label": "Copy query as curl",
         onclick: () => this.copyQuery(),
       },
-      "Copy query",
+      "curl",
     );
 
     this.footprintsToggleEl = h(
       "button",
       { className: "ordt-link", type: "button", disabled: true, onclick: () => this.toggleFootprints() },
       "Hide footprints",
+    );
+
+    this.advancedCountEl = h("span", { className: "ordt-count", hidden: true });
+    this.helpEl = h(
+      "div",
+      { className: "ordt-help-all", id: "ordt-help-all", hidden: true },
+      helpSection("Search modes", modeHelp),
+      helpSection("Search in", fieldHelp),
+      helpSection("Type", resourcesHelp),
+      helpSection("Where", whereHelp),
+      helpSection("Available as", availableAsHelp),
+      helpSection("Sort by", sortHelp),
     );
 
     const form = h(
@@ -704,108 +900,73 @@ export class RndtPanel {
           event.preventDefault();
           void this.search(1);
         },
+        onchange: () => this.updateAdvancedCount(),
+        oninput: () => this.updateAdvancedCount(),
       },
-      h(
-        "div",
-        { className: "ordt-row ordt-small" },
-        radioGroup("textMode", TEXT_MODES, "all", () => undefined),
-        helpToggle(modeHelp, "Help on search modes"),
-      ),
-      modeHelp,
-      h(
-        "div",
-        { className: "ordt-label" },
-        "Search in",
-        h(
-          "div",
-          { className: "ordt-row" },
-          fieldSelect,
-          helpToggle(fieldHelp, "Help on search fields"),
-        ),
-      ),
-      fieldHelp,
-      h(
-        "div",
-        { className: "ordt-label" },
-        "Record type",
-        h(
-          "div",
-          { className: "ordt-row" },
-          radioGroup("kind", KIND_OPTIONS, "all", toggleServiceTypes),
-          helpToggle(resourcesHelp, "Help on record types"),
-        ),
-      ),
-      resourcesHelp,
+      h("div", { className: "ordt-label" }, "Type", radioGroup("kind", KIND_OPTIONS, "all", toggleServiceTypes, "ordt-segmented")),
       serviceTypes,
+      h("div", { className: "ordt-label" }, "Where", whereSelect),
+      boxInput,
+      spatialRel,
       h(
         "div",
         { className: "ordt-label" },
         "Available as",
         h(
           "div",
-          { className: "ordt-row" },
-          h(
-            "div",
-            { className: "ordt-radios", role: "group", "aria-label": "Available as" },
-            ...LINK_KINDS.map((kind) =>
-              h(
-                "label",
-                { className: "ordt-radio" },
-                h("input", { type: "checkbox", name: "availableAs", value: kind }),
-                kind,
-              ),
-            ),
+          { className: "ordt-pills", role: "group", "aria-label": "Available as" },
+          ...LINK_KINDS.map((kind) =>
+            h("label", { className: "ordt-pill" }, h("input", { type: "checkbox", name: "availableAs", value: kind }), kind),
           ),
-          helpToggle(availableAsHelp, "Help on available as"),
         ),
       ),
-      availableAsHelp,
-      h(
-        "div",
-        { className: "ordt-label" },
-        "Where",
-        h(
-          "div",
-          { className: "ordt-row" },
-          whereSelect,
-          helpToggle(whereHelp, "Help on search areas"),
-        ),
-      ),
-      whereHelp,
-      boxInput,
-      spatialRel,
       h(
         "details",
         { className: "ordt-more" },
-        h("summary", {}, "More filters"),
         h(
-          "div",
-          { className: "ordt-label" },
-          "INSPIRE theme",
-          h("div", { className: "ordt-row" }, themes, helpToggle(themeHelp, "Help on INSPIRE themes")),
+          "summary",
+          {},
+          h("span", {}, "Advanced filters ", this.advancedCountEl),
+          h("span", { className: "ordt-more-hint" }, "text, theme, organisation, dates, sort"),
         ),
-        themeHelp,
+        h("div", { className: "ordt-label" }, "Match", radioGroup("textMode", TEXT_MODES, "all", () => undefined, "ordt-segmented")),
+        h("div", { className: "ordt-label" }, "Search in", fieldSelect),
         h(
           "div",
           { className: "ordt-label" },
-          "Keywords (comma-separated, exact)",
+          h("span", { className: "ordt-label-head" }, "INSPIRE theme", helpToggle(themeHelp, "Help on INSPIRE themes")),
+          themeHelp,
+          themes,
+        ),
+        h(
+          "div",
+          { className: "ordt-label" },
           h(
-            "div",
-            { className: "ordt-row" },
-            h("input", {
-              className: "ordt-input ordt-grow",
-              name: "keywords",
-              placeholder: "opendata, Idrografia",
-              "aria-label": "Keywords",
-            }),
+            "span",
+            { className: "ordt-label-head" },
+            "Keywords ",
+            h("span", { className: "ordt-hint" }, "· exact, case-sensitive, comma-separated"),
             helpToggle(keywordsHelp, "Help on keywords"),
           ),
+          keywordsHelp,
+          h("input", {
+            className: "ordt-input",
+            name: "keywords",
+            placeholder: "opendata, Idrografia",
+            "aria-label": "Keywords",
+          }),
         ),
-        keywordsHelp,
         h(
           "div",
           { className: "ordt-label" },
-          "Organisation (comma-separated)",
+          h(
+            "span",
+            { className: "ordt-label-head" },
+            "Organisation ",
+            h("span", { className: "ordt-hint" }, "· comma-separated"),
+            helpToggle(organisationHelp, "Help on organisation"),
+          ),
+          organisationHelp,
           h(
             "div",
             { className: "ordt-row" },
@@ -817,68 +978,45 @@ export class RndtPanel {
               oninput: () => this.syncClearButtons(),
             }),
             this.clearButton("organisation", "organisation"),
-            helpToggle(organisationHelp, "Help on organisation"),
           ),
-        ),
-        organisationHelp,
-        h(
-          "label",
-          { className: "ordt-check" },
-          h("input", { type: "checkbox", name: "invertOrganisation" }),
-          "Invert: hide these organisations",
+          radioGroup("orgMode", ORG_MODES, "only", () => undefined, "ordt-segmented"),
         ),
         h(
           "div",
           { className: "ordt-row" },
-          h(
-            "label",
-            { className: "ordt-check" },
-            h("input", { type: "checkbox", name: "openData" }),
-            "Open data only",
-          ),
+          h("label", { className: "ordt-check" }, h("input", { type: "checkbox", name: "openData" }), "Open data only"),
           helpToggle(openDataHelp, "Help on open data"),
         ),
         openDataHelp,
         h(
-          "fieldset",
-          { className: "ordt-fieldset" },
-          h("legend", {}, "Date ", helpToggle(dateHelp, "Help on dates")),
-          dateHelp,
-          h("p", { className: "ordt-note" }, "Often missing: most records carry only one of these three dates."),
-          select(DATE_FIELDS, "apiso_RevisionDate_dt", { name: "dateField", "aria-label": "Date type" }),
-          h(
-            "div",
-            { className: "ordt-row" },
-            h("input", { className: "ordt-input ordt-grow", type: "date", name: "dateFrom", "aria-label": "From" }),
-            h("input", { className: "ordt-input ordt-grow", type: "date", name: "dateTo", "aria-label": "To" }),
-          ),
-        ),
-        h(
           "div",
           { className: "ordt-label" },
-          "Sort by",
+          h("span", { className: "ordt-label-head" }, "Date", helpToggle(dateHelp, "Help on dates")),
+          dateHelp,
           h(
             "div",
-            { className: "ordt-row" },
-            select(SORT_OPTIONS, "", { name: "sort", "aria-label": "Sort by" }),
-            helpToggle(sortHelp, "Help on sorting"),
+            { className: "ordt-date-row" },
+            select(DATE_FIELDS, "apiso_RevisionDate_dt", { name: "dateField", "aria-label": "Date type" }),
+            h("input", { className: "ordt-input", type: "date", name: "dateFrom", "aria-label": "From" }),
+            h("input", { className: "ordt-input", type: "date", name: "dateTo", "aria-label": "To" }),
           ),
+          h(
+            "div",
+            { className: "ordt-row ordt-small ordt-date-presets" },
+            ...DATE_PRESETS.map(([label, days]) =>
+              h("button", { className: "ordt-link", type: "button", onclick: () => this.setDateFrom(days) }, label),
+            ),
+          ),
+          h("span", { className: "ordt-hint" }, "Most records carry only one of the three resource dates."),
         ),
-        sortHelp,
+        h("div", { className: "ordt-label" }, "Sort by", select(SORT_OPTIONS, "", { name: "sort", "aria-label": "Sort by" })),
+        h(
+          "div",
+          { className: "ordt-row ordt-small" },
+          h("button", { className: "ordt-button ordt-primary", type: "submit" }, "Search"),
+          h("button", { className: "ordt-link", type: "button", onclick: () => this.clearFilters() }, "Clear all"),
+        ),
       ),
-      h(
-        "div",
-        { className: "ordt-row ordt-small" },
-        h("button", { className: "ordt-link", type: "reset", onclick: () => setTimeout(() => this.afterReset(), 0) }, "Reset"),
-      ),
-    );
-    this.resultActionsEl = h(
-      "div",
-      { className: "ordt-row ordt-small ordt-result-actions", hidden: true },
-      h("button", { className: "ordt-link", type: "button", onclick: () => this.clearResults() }, "Clear results"),
-      h("button", { className: "ordt-link", type: "button", onclick: () => this.zoomToResults() }, "Zoom to results"),
-      this.footprintsToggleEl,
-      this.copyQueryEl,
     );
     return form;
   }
@@ -900,20 +1038,221 @@ export class RndtPanel {
     );
   }
 
+  /** Active filters as removable chips, "Edit filters" and "Clear all". */
   private buildSummary(): HTMLElement {
-    this.summaryTextEl = h("span", { className: "ordt-summary-text" });
+    this.chipsEl = h("div", { className: "ordt-chips" });
+    this.summaryTextEl = h("span", { className: "ordt-summary-text ordt-muted" });
     this.summaryToggleEl = h(
       "button",
       { className: "ordt-link", type: "button", onclick: () => this.showFilters(this.formEl.hidden === true) },
       "Edit filters",
     );
-    return h("div", { className: "ordt-summary ordt-small", hidden: true }, this.summaryTextEl, this.summaryToggleEl);
+    this.clearAllEl = h(
+      "button",
+      {
+        className: "ordt-link",
+        type: "button",
+        title: "Remove all filters and search again; the text stays",
+        onclick: () => {
+          this.clearFilters();
+          this.formEl.requestSubmit();
+        },
+      },
+      "Clear all",
+    );
+    return h(
+      "div",
+      { className: "ordt-summary ordt-small", hidden: true },
+      this.chipsEl,
+      this.summaryTextEl,
+      h("span", { className: "ordt-summary-links" }, this.summaryToggleEl, this.clearAllEl),
+    );
   }
 
-  /** Unfold or fold the filters; the summary line stays as their handle. */
+  /** Pager with the status between its arrows, curl, sort, the ⋯ menu; below, Zoom to results and Hide footprints. */
+  private buildResultsHead(): HTMLElement {
+    this.sortEl = select(SORT_OPTIONS, "", {
+      className: "ordt-input ordt-sort",
+      "aria-label": "Sort results",
+      onchange: () => this.changeSort(),
+    });
+    const menu = h(
+      "div",
+      { className: "ordt-menu", role: "menu", hidden: true },
+      h("button", { className: "ordt-menu-item ordt-danger", type: "button", onclick: () => this.clearResults() }, "Clear results"),
+    );
+    this.resultActionsEl = h(
+      "div",
+      { className: "ordt-head-tools", hidden: true },
+      this.copyQueryEl,
+      this.sortEl,
+      menuWrap(menu, "More actions"),
+    );
+    this.zoomRowEl = h(
+      "div",
+      { className: "ordt-row ordt-small", hidden: true },
+      this.app.fitBounds && h("button", { className: "ordt-link", type: "button", onclick: () => this.zoomToResults() }, "Zoom to results"),
+      this.footprintsToggleEl,
+    );
+    return h(
+      "div",
+      { className: "ordt-results-head" },
+      h("div", { className: "ordt-head-row" }, this.pagerTopEl, this.resultActionsEl),
+      this.zoomRowEl,
+    );
+  }
+
+  private buildFooter(): HTMLElement {
+    this.helpToggleEl = h(
+      "button",
+      {
+        className: "ordt-link",
+        type: "button",
+        "aria-expanded": "false",
+        "aria-controls": this.helpEl.id,
+        onclick: () => this.showHelp(this.helpEl.hidden === true),
+      },
+      "Search help",
+    );
+    this.settingsToggleEl = h(
+      "button",
+      {
+        className: "ordt-link",
+        type: "button",
+        "aria-expanded": "false",
+        "aria-controls": this.settingsEl.id,
+        onclick: () => this.showSettings(this.settingsEl.hidden === true),
+      },
+      "⚙ Settings",
+    );
+    return h(
+      "div",
+      { className: "ordt-footer ordt-small" },
+      h(
+        "a",
+        { className: "ordt-link", href: "https://geodati.gov.it/geoportale/", target: "_blank", rel: "noopener" },
+        "Italian national catalogue (RNDT)",
+      ),
+      h("span", { className: "ordt-footer-links" }, this.settingsToggleEl, this.helpToggleEl),
+    );
+  }
+
+  private buildSettings(): HTMLElement {
+    const logBox = h("input", {
+      type: "checkbox",
+      name: "logErrors",
+      checked: this.settings.logErrors,
+      onchange: () => {
+        this.settings = { ...this.settings, logErrors: logBox.checked };
+        saveSettings(this.settings);
+      },
+    });
+    this.logCountEl = h("span", { className: "ordt-muted" });
+    return h(
+      "section",
+      { className: "ordt-settings", id: "ordt-settings", hidden: true },
+      h("h3", {}, "Settings"),
+      h("label", { className: "ordt-check" }, logBox, "Log service URLs that fail (unreachable or errors)"),
+      h(
+        "p",
+        { className: "ordt-note" },
+        "Each failure adds a line: time (UTC), record, organisation, service type, URL, error. Up to 1,000 lines, the oldest leave first. Settings and log stay on this computer.",
+      ),
+      h(
+        "div",
+        { className: "ordt-row ordt-small" },
+        this.logCountEl,
+        h("button", { className: "ordt-link", type: "button", onclick: () => this.exportErrorLog() }, "Export JSON Lines"),
+        h(
+          "button",
+          {
+            className: "ordt-link",
+            type: "button",
+            onclick: () => {
+              clearErrorLog();
+              this.updateLogCount();
+            },
+          },
+          "Clear log",
+        ),
+      ),
+    );
+  }
+
+  private showSettings(show: boolean): void {
+    this.settingsEl.hidden = !show;
+    this.settingsToggleEl.setAttribute("aria-expanded", String(show));
+    if (!show) return;
+    this.updateLogCount();
+    this.settingsEl.scrollIntoView?.({ block: "start" });
+  }
+
+  private updateLogCount(): void {
+    const count = readErrorLog().length;
+    this.logCountEl.textContent = `${count.toLocaleString("en")} ${count === 1 ? "entry" : "entries"}`;
+  }
+
+  /** Save the log through the host's "Save as" dialog, or as a download on the web. */
+  private exportErrorLog(): void {
+    const content = errorLogJsonl(readErrorLog());
+    const filename = "openrndt-errors.jsonl";
+    if (this.app.exportTextFile) {
+      this.app.exportTextFile(filename, content, { description: "JSON Lines", extensions: ["jsonl"], mimeType: "application/jsonl" });
+      return;
+    }
+    const url = URL.createObjectURL(new Blob([content], { type: "application/jsonl" }));
+    h("a", { href: url, download: filename }).click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
+  /** Add a failing service to the log, when the user turned it on. */
+  private logError(record: RndtRecord, service: RndtService, error: string): void {
+    if (!this.settings.logErrors) return;
+    appendErrorLog({
+      time: new Date().toISOString(),
+      recordId: record.id,
+      recordTitle: record.title,
+      organisation: record.organisation,
+      serviceKind: service.kind,
+      url: service.url,
+      error,
+    });
+    if (!this.settingsEl.hidden) this.updateLogCount();
+  }
+
+  /** Show "Search help" above the results, with the filters it explains; or hide it. */
+  private showHelp(show: boolean): void {
+    this.helpEl.hidden = !show;
+    this.helpToggleEl.setAttribute("aria-expanded", String(show));
+    if (!show) return;
+    this.showFilters(true);
+    this.helpEl.scrollIntoView?.({ block: "start" });
+  }
+
+  /** Sort from the results header: the same search again, from the first page. */
+  private changeSort(): void {
+    this.field<HTMLSelectElement>("sort").value = this.sortEl.value;
+    this.updateAdvancedCount();
+    if (this.lastForm) void this.search(1, { ...this.lastForm, sort: this.sortEl.value });
+  }
+
+  /** Empty every filter, the area too (Anywhere); the text and the sort order stay. Nothing is searched. */
+  private clearFilters(): void {
+    const text = this.field<HTMLInputElement>("text").value;
+    const sort = this.field<HTMLSelectElement>("sort").value;
+    this.formEl.reset();
+    this.field<HTMLInputElement>("text").value = text;
+    this.field<HTMLSelectElement>("sort").value = sort;
+    this.field<HTMLSelectElement>("where").value = "anywhere";
+    this.afterReset();
+  }
+
+  /** Unfold or fold the filters; the chip line stays as their handle. */
   private showFilters(show: boolean): void {
     this.formEl.hidden = !show;
     this.summaryToggleEl.textContent = show ? "Hide filters" : "Edit filters";
+    // Filters set in the advanced part must be visible when editing.
+    if (show && this.advancedCount() > 0) this.formEl.querySelector<HTMLDetailsElement>(".ordt-more")!.open = true;
   }
 
   /**
@@ -925,45 +1264,144 @@ export class RndtPanel {
     const update = () => {
       this.root!.style.setProperty("--ordt-bar-h", `${this.searchBarEl.offsetHeight}px`);
       this.root!.style.setProperty("--ordt-head-h", `${this.resultsHeadEl.offsetHeight}px`);
+      this.root!.style.setProperty("--ordt-foot-h", `${this.footerEl.offsetHeight}px`);
     };
     const observer = new ResizeObserver(update);
     observer.observe(this.searchBarEl);
     observer.observe(this.resultsHeadEl);
+    observer.observe(this.footerEl);
   }
 
-  /** The filters of the form in words, for the summary line. The text itself is in the search bar. */
-  private describeFilters(): string {
-    const selected = (name: string) => this.field<HTMLSelectElement>(name).selectedOptions[0]?.text ?? "";
-    const checked = (name: string) =>
-      Array.from(this.formEl.querySelectorAll<HTMLInputElement>(`input[name="${name}"]:checked`), (el) =>
-        el.closest("label")!.textContent!.trim(),
-      );
-    const parts: string[] = [];
+  /** Filters set in "Advanced filters", sort order included. */
+  private advancedCount(): number {
     const mode = checkedValue(this.formEl, "textMode");
-    if (mode && mode !== "all") parts.push(checked("textMode")[0]);
-    if (this.field("field").value) parts.push(`in ${selected("field")}`);
-    if (checkedValue(this.formEl, "kind") !== "all") parts.push(checked("kind")[0]);
-    parts.push(...checked("serviceType"));
-    const availableAs = checked("availableAs");
-    if (availableAs.length) parts.push(`as ${availableAs.join("/")}`);
-    const where = this.field("where").value;
-    if (where !== "anywhere") {
-      const area = where === "box" ? `box ${this.field("box").value.trim()}` : selected("where");
-      parts.push(`${checkedValue(this.formEl, "spatialRel") === "Within" ? "inside" : "touching"} ${area}`);
+    return [
+      mode && mode !== "all",
+      this.field("field").value,
+      this.field("theme").value,
+      this.field("keywords").value.trim(),
+      this.field("organisation").value.trim(),
+      this.field<HTMLInputElement>("openData").checked,
+      this.field("dateFrom").value || this.field("dateTo").value,
+      this.field("sort").value,
+    ].filter(Boolean).length;
+  }
+
+  private updateAdvancedCount(): void {
+    const count = this.advancedCount();
+    this.advancedCountEl.hidden = count === 0;
+    this.advancedCountEl.textContent = String(count);
+  }
+
+  /**
+   * One chip per active filter, each with the way to remove it. Read from the
+   * form, so a chip always matches what the next search sends. The text has
+   * no chip (it is in the search bar), nor has the sort order (in the header).
+   */
+  private activeChips(): { label: string; clear: () => void }[] {
+    const selected = (name: string) => this.field<HTMLSelectElement>(name).selectedOptions[0]?.text ?? "";
+    const setRadio = (name: string, value: string) =>
+      (this.formEl.querySelector<HTMLInputElement>(`input[name="${name}"][value="${value}"]`)!.checked = true);
+    const chips: { label: string; clear: () => void }[] = [];
+
+    const mode = checkedValue(this.formEl, "textMode");
+    if (mode && mode !== "all") {
+      chips.push({ label: TEXT_MODES.find((o) => o.value === mode)!.label, clear: () => setRadio("textMode", "all") });
     }
-    if (this.field("theme").value) parts.push(selected("theme"));
+    if (this.field("field").value) {
+      chips.push({ label: `In ${selected("field")}`, clear: () => (this.field("field").value = "") });
+    }
+    const kind = checkedValue(this.formEl, "kind");
+    if (kind && kind !== "all") {
+      chips.push({
+        label: KIND_OPTIONS.find((o) => o.value === kind)!.label,
+        clear: () => {
+          setRadio("kind", "all");
+          for (const box of this.formEl.querySelectorAll<HTMLInputElement>('input[name="serviceType"]')) box.checked = false;
+          this.formEl.querySelector<HTMLElement>(".ordt-service-types")!.hidden = true;
+        },
+      });
+    }
+    for (const box of this.formEl.querySelectorAll<HTMLInputElement>('input[name="serviceType"]:checked, input[name="availableAs"]:checked')) {
+      chips.push({ label: box.closest("label")!.textContent!.trim(), clear: () => (box.checked = false) });
+    }
+    const where = this.field<HTMLSelectElement>("where");
+    if (where.value !== "anywhere") {
+      const area = where.value === "box" ? `Box ${this.field("box").value.trim()}` : where.value === "view" ? "Map view" : "Drawn shapes";
+      chips.push({
+        label: checkedValue(this.formEl, "spatialRel") === "Within" ? `Inside: ${area}` : area,
+        clear: () => {
+          where.value = "anywhere";
+          where.dispatchEvent(new Event("change"));
+        },
+      });
+    }
+    if (this.field("theme").value) {
+      chips.push({ label: selected("theme"), clear: () => (this.field("theme").value = "") });
+    }
     const keywords = this.field("keywords").value.trim();
-    if (keywords) parts.push(`keywords ${keywords}`);
-    const organisation = this.field("organisation").value.trim();
-    if (organisation) {
-      parts.push(`${this.field<HTMLInputElement>("invertOrganisation").checked ? "hiding" : "only"} ${organisation}`);
+    if (keywords) {
+      chips.push({ label: `Keywords: ${keywords}`, clear: () => (this.field("keywords").value = "") });
     }
-    if (this.field<HTMLInputElement>("openData").checked) parts.push("open data only");
+    const organisation = this.field<HTMLInputElement>("organisation");
+    const names = organisation.value.split(",").map((n) => n.trim()).filter(Boolean);
+    const hiding = checkedValue(this.formEl, "orgMode") === "hide";
+    for (const name of names) {
+      chips.push({
+        label: `${hiding ? "Hiding" : "Only"}: ${name}`,
+        clear: () => {
+          organisation.value = names.filter((n) => n !== name).join(", ");
+          this.syncClearButtons();
+        },
+      });
+    }
+    if (this.field<HTMLInputElement>("openData").checked) {
+      chips.push({ label: "Open data only", clear: () => (this.field<HTMLInputElement>("openData").checked = false) });
+    }
     const from = this.field("dateFrom").value;
     const to = this.field("dateTo").value;
-    if (from || to) parts.push(`${selected("dateField")} ${from || "…"} to ${to || "…"}`);
-    if (this.field("sort").value) parts.push(`sorted by ${selected("sort")}`);
-    return parts.length ? `Filters: ${parts.join(" · ")}` : "No filters";
+    if (from || to) {
+      chips.push({
+        label: `${selected("dateField")} ${from || "…"} to ${to || "…"}`,
+        clear: () => {
+          this.field("dateFrom").value = "";
+          this.field("dateTo").value = "";
+        },
+      });
+    }
+    return chips;
+  }
+
+  /** Rebuild the chip line from the form; × removes one filter and searches again. */
+  private renderChips(): void {
+    const chips = this.activeChips();
+    this.chipsEl.replaceChildren(
+      ...chips.map((chip) =>
+        h(
+          "span",
+          { className: "ordt-chip" },
+          chip.label,
+          h(
+            "button",
+            {
+              className: "ordt-chip-remove",
+              type: "button",
+              "aria-label": `Remove ${chip.label}`,
+              title: "Remove this filter and search again",
+              onclick: () => {
+                chip.clear();
+                this.formEl.requestSubmit();
+              },
+            },
+            "×",
+          ),
+        ),
+      ),
+    );
+    this.updateAdvancedCount();
+    this.summaryTextEl.textContent = chips.length ? "" : "No filters";
+    this.summaryTextEl.hidden = chips.length > 0;
+    this.clearAllEl.hidden = chips.length < 2;
   }
 
   /** Turn on GeoEditor when "Drawn shapes" is picked and nothing is drawn yet. */
@@ -980,11 +1418,23 @@ export class RndtPanel {
     );
   }
 
+  /** A preset: From goes back the given days from today, To is left open. */
+  private setDateFrom(days: number): void {
+    const date = new Date();
+    date.setDate(date.getDate() - days);
+    this.field<HTMLInputElement>("dateFrom").value = localIsoDate(date);
+    this.field<HTMLInputElement>("dateTo").value = "";
+    this.updateAdvancedCount();
+  }
+
   private afterReset(): void {
     this.formEl.querySelector<HTMLElement>(".ordt-service-types")!.hidden = true;
-    this.formEl.querySelector<HTMLElement>('input[name="box"]')!.hidden = true;
-    this.formEl.querySelector<HTMLElement>(".ordt-spatial-rel")!.hidden = true;
+    // Box and Touches/Inside follow the default area (the map view).
+    const where = this.field<HTMLSelectElement>("where").value;
+    this.formEl.querySelector<HTMLElement>('input[name="box"]')!.hidden = where !== "box";
+    this.formEl.querySelector<HTMLElement>(".ordt-spatial-rel")!.hidden = where === "anywhere";
     this.syncClearButtons();
+    this.updateAdvancedCount();
   }
 
   /** The × that empties a text field; hidden while the field is empty. */
@@ -1044,7 +1494,7 @@ export class RndtPanel {
     form.inspireThemes = theme ? [theme] : [];
     form.keywords = this.field<HTMLInputElement>("keywords").value;
     form.organisation = this.field<HTMLInputElement>("organisation").value;
-    form.invertOrganisation = this.field<HTMLInputElement>("invertOrganisation").checked;
+    form.invertOrganisation = checkedValue(this.formEl, "orgMode") === "hide";
     form.openDataOnly = this.field<HTMLInputElement>("openData").checked;
     form.dateField = this.field<HTMLSelectElement>("dateField").value;
     form.dateFrom = this.field<HTMLInputElement>("dateFrom").value;
@@ -1107,10 +1557,12 @@ export class RndtPanel {
       this.lastForm = current;
       if (!form) {
         // A search from the form: fold the filters so the results get the room.
-        this.summaryTextEl.textContent = this.describeFilters();
+        this.renderChips();
         this.summaryEl.hidden = false;
         this.showFilters(false);
+        this.showHelp(false);
       }
+      this.sortEl.value = current.sort;
       this.records = page.records;
       this.total = page.total;
       this.start = start;
@@ -1136,8 +1588,9 @@ export class RndtPanel {
     if (!this.root) return;
     this.listEl.replaceChildren();
     this.pagerEl.replaceChildren();
-    this.pagerTopEl.replaceChildren();
+    this.pagerTopEl.replaceChildren(this.statusEl);
     this.resultActionsEl.hidden = true;
+    this.zoomRowEl.hidden = true;
     this.summaryEl.hidden = true;
     this.showFilters(true);
     this.setStatus("Results cleared.");
@@ -1179,8 +1632,8 @@ export class RndtPanel {
     const button = this.copyQueryEl;
     void navigator.clipboard?.writeText(command).then(
       () => {
-        button.textContent = "Copied";
-        setTimeout(() => (button.textContent = "Copy query"), 1500);
+        button.textContent = "✓ copied";
+        setTimeout(() => (button.textContent = "curl"), 1500);
       },
       () => this.setStatus("Could not copy to the clipboard.", "error"),
     );
@@ -1202,18 +1655,24 @@ export class RndtPanel {
     this.setStatus(
       this.total === 0
         ? "No records found."
-        : `${this.start}-${end} of ${this.total.toLocaleString("en")} records`,
+        : `${this.start}-${end} of ${this.total.toLocaleString("en")}`,
     );
     this.listEl.replaceChildren(...this.records.map((r) => this.renderRecord(r)));
     this.resultActionsEl.hidden = false;
+    this.zoomRowEl.hidden = !this.records.some((r) => r.bbox);
 
-    const pages = this.total > PAGE_SIZE;
-    this.pagerTopEl.replaceChildren(...(pages ? this.pagerButtons(end) : []));
-    this.pagerEl.replaceChildren(...(pages ? this.pagerButtons(end) : []));
+    if (this.total > PAGE_SIZE) {
+      const [previous, next] = this.pagerButtons(end, true);
+      this.pagerTopEl.replaceChildren(previous, this.statusEl, next);
+      this.pagerEl.replaceChildren(...this.pagerButtons(end, false));
+    } else {
+      this.pagerTopEl.replaceChildren(this.statusEl);
+      this.pagerEl.replaceChildren();
+    }
   }
 
-  /** Previous/Next for the current page; built twice, for the top and the bottom pager. */
-  private pagerButtons(end: number): HTMLButtonElement[] {
+  /** Previous/Next for the current page: compact arrows in the header, words below the list. */
+  private pagerButtons(end: number, compact: boolean): HTMLButtonElement[] {
     const go = (start: number) =>
       void this.search(start, this.lastForm ?? undefined).then(() =>
         // The new page starts from its first record, wherever the click came from.
@@ -1223,15 +1682,17 @@ export class RndtPanel {
       h("button", {
         className: "ordt-button",
         type: "button",
+        "aria-label": "Previous page",
         disabled: this.start <= 1,
         onclick: () => go(Math.max(1, this.start - PAGE_SIZE)),
-      }, "Previous"),
+      }, compact ? "‹" : "‹ Previous"),
       h("button", {
         className: "ordt-button",
         type: "button",
+        "aria-label": "Next page",
         disabled: end >= this.total,
         onclick: () => go(this.start + PAGE_SIZE),
-      }, "Next"),
+      }, compact ? "›" : "Next ›"),
     ];
   }
 
@@ -1280,34 +1741,18 @@ export class RndtPanel {
         },
         record.title,
       ),
+      this.recordMenu(record),
       h(
         "div",
         { className: "ordt-meta" },
-        record.type && h("span", { className: "ordt-badge" }, record.type),
+        record.type && h("span", { className: "ordt-muted" }, record.type),
         ...kinds.map((k) => h("span", { className: "ordt-badge ordt-badge-service" }, k)),
-        record.organisation &&
-          h(
-            "button",
-            {
-              className: "ordt-link ordt-org",
-              type: "button",
-              title: "Show only results from this organisation",
-              onclick: () => this.filterByOrganisation(record.organisation),
-            },
-            record.organisation,
-          ),
-        record.organisation &&
-          h(
-            "button",
-            {
-              className: "ordt-link ordt-hide-org",
-              type: "button",
-              title: "Hide the results from this organisation",
-              onclick: () => this.excludeOrganisation(record.organisation),
-            },
-            "Hide",
-          ),
-        record.modified && h("span", { className: "ordt-muted" }, record.modified),
+      ),
+      h(
+        "div",
+        { className: "ordt-meta ordt-meta-org" },
+        h("span", { className: "ordt-org-name", title: record.organisation }, record.organisation),
+        record.modified && h("span", { className: "ordt-muted ordt-date" }, `Metadata ${record.modified}`),
       ),
       detail,
     );
@@ -1316,6 +1761,47 @@ export class RndtPanel {
       li.addEventListener("mouseleave", () => this.footprintsLayer?.highlight(null));
     }
     return li;
+  }
+
+  /** The ⋯ of a result: keep or hide its organisation, zoom, hide its footprint. */
+  private recordMenu(record: RndtRecord): HTMLElement {
+    const items: Child[] = [];
+    if (record.organisation) {
+      items.push(
+        h(
+          "button",
+          { className: "ordt-menu-item ordt-hide-org", type: "button", onclick: () => this.excludeOrganisation(record.organisation) },
+          "Hide results from ",
+          h("strong", {}, record.organisation),
+        ),
+        h(
+          "button",
+          { className: "ordt-menu-item ordt-org", type: "button", onclick: () => this.filterByOrganisation(record.organisation) },
+          "Show only this organisation",
+        ),
+      );
+    }
+    if (record.bbox && this.app.fitBounds) {
+      items.push(
+        h("button", { className: "ordt-menu-item", type: "button", onclick: () => this.app.fitBounds!(record.bbox!) }, "Zoom to extent"),
+      );
+    }
+    if (record.bbox && this.footprintsLayer) {
+      items.push(
+        h(
+          "button",
+          {
+            className: "ordt-menu-item ordt-footprint-toggle",
+            type: "button",
+            "data-id": record.id,
+            disabled: !this.footprintsLayer.isVisible(),
+            onclick: () => this.toggleFootprint(record.id),
+          },
+          this.footprintsLayer.isHidden(record.id) ? "Show footprint" : "Hide footprint",
+        ),
+      );
+    }
+    return menuWrap(h("div", { className: "ordt-menu", role: "menu", hidden: true }, ...items), "Record actions");
   }
 
   private renderDetail(record: RndtRecord): Child[] {
@@ -1420,8 +1906,16 @@ export class RndtPanel {
     );
   }
 
-  private note(area: HTMLElement, message: string, kind: "info" | "error" | "busy" = "info"): void {
-    area.replaceChildren(h("p", { className: "ordt-note", "data-kind": kind }, message));
+  private note(
+    area: HTMLElement,
+    message: string,
+    kind: "info" | "error" | "busy" = "info",
+    report?: { record: RndtRecord; service: RndtService },
+  ): void {
+    if (report) this.logError(report.record, report.service, message);
+    area.replaceChildren(
+      h("p", { className: "ordt-note", "data-kind": kind }, message, report && " ", report && reportControl(report.record, report.service, message)),
+    );
   }
 
   /**
@@ -1444,6 +1938,12 @@ export class RndtPanel {
       layers.some((l) => l.name === wanted) ? wanted! : layers[0].name,
       { "aria-label": ariaLabel },
     );
+    // The native menu cuts long labels: the full one shows on mouse-over, of
+    // each entry and of the closed menu.
+    const showFull = () => (picker.title = picker.selectedOptions[0]?.textContent ?? "");
+    for (const option of Array.from(picker.options)) option.title = option.textContent ?? "";
+    showFull();
+    picker.addEventListener("change", showFull);
     const controls: HTMLElement[] = [];
 
     if (layers.length > FILTER_THRESHOLD) {
@@ -1476,6 +1976,8 @@ export class RndtPanel {
       const setTitle = (option: HTMLOptionElement, title: string) => {
         readable.set(option.value, title);
         option.textContent = optionLabel(option.value, title);
+        option.title = option.textContent;
+        showFull();
       };
       void lookupLayerTitles(this.app, RNDT_BASE_URL, serviceUrl).then((lookup) => {
         if (lookup.mode === "all") {
@@ -1487,12 +1989,35 @@ export class RndtPanel {
             setTitle(option, title);
             found++;
           }
-          if (found) {
+          const report = () => {
+            status.hidden = found === 0;
             status.dataset.kind = "info";
             status.textContent = `Readable names from RNDT for ${found.toLocaleString("en")} of ${layers.length.toLocaleString("en")} layers.`;
-          } else {
-            status.remove();
-          }
+          };
+          report();
+          const missing = Array.from(picker.options).filter((o) => !readable.get(o.value));
+          if (!missing.length) return;
+          // Some records name the layer only inside their ISO XML: when the
+          // user opens the menu, search RNDT for each layer still without a
+          // name, four at a time.
+          const onOpen = () => {
+            picker.removeEventListener("pointerdown", onOpen);
+            picker.removeEventListener("focus", onOpen);
+            status.hidden = false;
+            status.dataset.kind = "busy";
+            status.textContent = `Looking up readable names in RNDT for ${missing.length.toLocaleString("en")} layers…`;
+            const worker = async () => {
+              for (let option = missing.shift(); option; option = missing.shift()) {
+                const title = await lookupLayerTitleByCode(this.app, RNDT_BASE_URL, serviceUrl, option.value);
+                if (!title) continue;
+                setTitle(option, title);
+                found++;
+              }
+            };
+            void Promise.all(Array.from({ length: 4 }, worker)).then(report);
+          };
+          picker.addEventListener("pointerdown", onOpen);
+          picker.addEventListener("focus", onOpen);
           return;
         }
         // Too many RNDT records to download: look up the selected layer only,
@@ -1504,7 +2029,9 @@ export class RndtPanel {
           asked.add(option.value);
           status.dataset.kind = "busy";
           status.textContent = "Looking up the readable name of the selected layer in RNDT…";
-          const title = await lookupOneLayerTitle(this.app, RNDT_BASE_URL, serviceUrl, option.value);
+          const title =
+            (await lookupOneLayerTitle(this.app, RNDT_BASE_URL, serviceUrl, option.value)) ??
+            (await lookupLayerTitleByCode(this.app, RNDT_BASE_URL, serviceUrl, option.value));
           if (title) setTitle(option, title);
           status.dataset.kind = "info";
           status.textContent = "Readable names are looked up in RNDT for the selected layer only.";
@@ -1531,7 +2058,7 @@ export class RndtPanel {
         caps.getMapUrl = declared;
       }
       if (!caps.layers.length) {
-        this.note(area, "The WMS lists no named layers.", "error");
+        this.note(area, "The WMS lists no named layers.", "error", { record, service });
         return;
       }
       const wanted = service.layerHint ?? bestMatchingLayer(record.title, caps.layers);
@@ -1569,7 +2096,7 @@ export class RndtPanel {
       area.replaceChildren(...controls.filter((c) => c.tagName === "INPUT"), h("div", { className: "ordt-row" }, picker, add), ...controls.filter((c) => c.tagName !== "INPUT"), warning);
       check();
     } catch (error) {
-      this.note(area, `WMS error: ${errorMessage(error)}`, "error");
+      this.note(area, `WMS error: ${errorMessage(error)}`, "error", { record, service });
     }
   }
 
@@ -1580,7 +2107,7 @@ export class RndtPanel {
       const caps = parseWfsCapabilities(fetched.text, fetched.url);
       caps.getFeatureUrl = upgradeToHttps(caps.getFeatureUrl, fetched.url);
       if (!caps.featureTypes.length) {
-        this.note(area, "The WFS lists no feature types.", "error");
+        this.note(area, "The WFS lists no feature types.", "error", { record, service });
         return;
       }
       const format = pickJsonFormat(caps.outputFormats);
@@ -1651,6 +2178,8 @@ export class RndtPanel {
             result.textContent = message.startsWith("cannot reach")
               ? `WFS error: ${message}. Large layers can be slow: zoom in and keep "Only features in the current map view" checked.`
               : `WFS error: ${message}`;
+            result.append(" ", reportControl(record, service, `WFS error: ${message}`));
+            this.logError(record, service, `WFS error: ${message}`);
           } finally {
             add.disabled = false;
           }
@@ -1664,7 +2193,7 @@ export class RndtPanel {
         result,
       );
     } catch (error) {
-      this.note(area, `WFS error: ${errorMessage(error)}`, "error");
+      this.note(area, `WFS error: ${errorMessage(error)}`, "error", { record, service });
     }
   }
 
@@ -1687,7 +2216,7 @@ export class RndtPanel {
       this.app.addGeoJsonLayer!(record.title, fixAxisOrder(data));
       this.note(area, `Added ${data.features.length} features.`);
     } catch (error) {
-      this.note(area, `Could not add the file: ${errorMessage(error)}`, "error");
+      this.note(area, `Could not add the file: ${errorMessage(error)}`, "error", { record, service });
     }
   }
 }
