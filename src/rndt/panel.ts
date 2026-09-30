@@ -1322,18 +1322,19 @@ export class RndtPanel {
     if (show && this.advancedCount() > 0) this.formEl.querySelector<HTMLDetailsElement>(".ordt-more")!.open = true;
   }
 
+  private updateStickyHeights(): void {
+    this.root!.style.setProperty("--ordt-bar-h", `${this.searchBarEl.offsetHeight}px`);
+    this.root!.style.setProperty("--ordt-head-h", `${this.resultsHeadEl.offsetHeight}px`);
+    this.root!.style.setProperty("--ordt-foot-h", `${this.footerEl.offsetHeight}px`);
+  }
+
   /**
    * The results header sticks just below the search bar, and a record scrolled
    * into view must clear both: their heights go into CSS variables.
    */
   private trackStickyHeights(): void {
     if (typeof ResizeObserver === "undefined") return;
-    const update = () => {
-      this.root!.style.setProperty("--ordt-bar-h", `${this.searchBarEl.offsetHeight}px`);
-      this.root!.style.setProperty("--ordt-head-h", `${this.resultsHeadEl.offsetHeight}px`);
-      this.root!.style.setProperty("--ordt-foot-h", `${this.footerEl.offsetHeight}px`);
-    };
-    const observer = new ResizeObserver(update);
+    const observer = new ResizeObserver(() => this.updateStickyHeights());
     observer.observe(this.searchBarEl);
     observer.observe(this.resultsHeadEl);
     observer.observe(this.footerEl);
@@ -1802,6 +1803,10 @@ export class RndtPanel {
       return;
     }
     card.classList.add("ordt-last-viewed");
+    // The results header was hidden with the detail view, so its recorded
+    // height is 0 until the resize observer runs: measure it now, or the card
+    // lands under the header.
+    this.updateStickyHeights();
     card.scrollIntoView?.({ block: "start" });
   }
 

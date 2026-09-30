@@ -2,6 +2,7 @@
 
 ## 2026-09-30
 
+- **Back link: card under the header in Desktop**: while the detail view is open the results header is hidden, so the ResizeObserver records its height as 0; on "← N results" the scroll ran before the observer updated it and the card landed under the header. The heights are now measured synchronously before the scroll, and the scroll margin has 8 px more. Headless: card top 110 px, header bottom 102 px, measured in the same tick as the click.
 - **Back from the detail view to where you were**: "← N results" scrolled the card with `block: "nearest"` and nothing marked it, so in a long list it was lost. Now the card is brought to the top of the list (`block: "start"`, below the sticky header thanks to its scroll margin), gets the class `ordt-last-viewed` (primary border and tint) until another record is opened or a new search runs, and its footprint stays selected on the map. Checked headless on "ortofoto", 15th card of the page.
 - **"Clear all" from one filter on**: it appeared only with two or more chips (mockup rule: with one chip its × does the same); a tester looked for it with the single "Map view" chip. Now it shows whenever there is a filter.
 - **0.1.0-alpha.5** released as a GitHub pre-release with the zip: capabilities XML files read as services, same-named layers told apart, layers already on the map not added twice, preselection only with a reason, footer with GitHub icon, maplibre-gl types 6.
