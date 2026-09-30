@@ -1918,7 +1918,7 @@ export class RndtPanel {
       h(
         "button",
         { className: "ordt-link ordt-back", type: "button", onclick: () => this.closeDetail(true) },
-        `← ${this.total.toLocaleString("en")} results`,
+        `← ${this.total.toLocaleString("en")} ${this.total === 1 ? "result" : "results"}`,
       ),
       h("h2", { className: "ordt-detail-title" }, record.title),
       h(
