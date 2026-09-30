@@ -39,7 +39,7 @@
     "eslint": "^10.4.1",
     "globals": "^17.6.0",
     "jsdom": "^29.1.1",
-    "maplibre-gl": "^5.24.0",
+    "maplibre-gl": "^6.11.2",
     "prettier": "^3.8.3",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.60.1",
