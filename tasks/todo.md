@@ -16,7 +16,7 @@ The repo is private; two friends will test the plugin and open issues. The READM
 
 ## Phase 3 - Release and visibility
 
-- [ ] version 0.1.0-alpha.4, pre-release on GitHub with the zip attached → verify: download and install the zip
+- [x] version 0.1.0-alpha.4, pre-release on GitHub with the zip attached → verify: download and install the zip
 - [ ] repo public (only after an explicit go) → verify: open the URL logged out
 
 ## Open questions
