@@ -965,15 +965,16 @@ describe("Report the error", () => {
 
   it("links the plugin repo from the footer", async () => {
     const { container } = await mountPanel(() => fixture("search-alberi.json"));
-    const repo = Array.from(container.querySelectorAll<HTMLAnchorElement>(".ordt-footer a")).find((a) => a.textContent === "Repo")!;
+    const repo = container.querySelector<HTMLAnchorElement>('.ordt-footer a[aria-label="The plugin on GitHub"]')!;
     expect(repo.href).toBe("https://github.com/ondata/openrndt-geolibre");
     expect(repo.target).toBe("_blank");
+    expect(repo.querySelector("svg")).not.toBeNull();
   });
 
   it("opens new-tab links in the system browser through the host", async () => {
     const { host, container } = await mountPanel(() => fixture("search-alberi.json"));
     host.openExternalUrl = vi.fn();
-    const link = container.querySelector<HTMLAnchorElement>('.ordt-footer a[target="_blank"]')!;
+    const link = Array.from(container.querySelectorAll<HTMLAnchorElement>('.ordt-footer a[target="_blank"]')).find((a) => a.textContent === "Italian geospatial catalogue")!;
     const event = new MouseEvent("click", { bubbles: true, cancelable: true });
     link.dispatchEvent(event);
     expect(host.openExternalUrl).toHaveBeenCalledWith("https://geodati.gov.it/geoportale/");

@@ -1052,3 +1052,17 @@ a.ordt-menu-item {
   font-size: 11px;
   color: var(--ordt-error);
 }
+
+.ordt-repo {
+  display: inline-flex;
+  align-items: center;
+  color: var(--ordt-muted);
+}
+
+.ordt-repo:hover {
+  color: var(--ordt-fg);
+}
+
+.ordt-footer-links {
+  align-items: center;
+}

@@ -2,6 +2,7 @@
 
 ## 2026-09-30
 
+- **Footer on one line**: "Italian national catalogue (RNDT)" → "Italian geospatial catalogue" (same link), and "Repo" → GitHub icon (Primer Octicons `mark-github-16`, MIT, inline SVG in `currentColor`, `aria-label` "The plugin on GitHub"). At 380 px the footer is one line (34 px).
 - **"Repo" link in the panel footer**, next to Settings and Search help, to https://github.com/ondata/openrndt-geolibre. The panel header "RNDT" is drawn by GeoLibre from `registerRightPanel`'s `title`, a plain string (3.1.0 types), so it cannot hold a link.
 - **Repo public** on the user's go: repo page, release page and the release zip answer without login (checked with curl); "New issue" asks to sign in, as GitHub does. No GeoLibre plugin registry submission yet.
 - **Dependencies**: `npm audit fix` (lockfile only: undici, brace-expansion, nanoid, postcss, fflate) and `maplibre-gl` 5.24 → 6.11 in devDependencies, which closes the critical advisory (XSS in `DOM.sanitize`) and matches GeoLibre 3.1.0, which ships maplibre-gl ^6.10. The plugin imports only maplibre-gl types: the bundle has no maplibre code. Left: 3 moderate advisories in the vitest chain (`@vitest/mocker`), fixed only in vitest 5, a major upgrade of the test tooling; nothing of it reaches the plugin zip.
