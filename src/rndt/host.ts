@@ -173,6 +173,33 @@ export async function browserNeedsHttp(httpsUrl: string): Promise<boolean> {
   return reaches(httpsUrl.replace(/^https:/i, "http:"));
 }
 
+/** Time allowed to the one-tile test of a WMS in EPSG:3857. */
+const IMAGE_PROBE_TIMEOUT_MS = 8000;
+
+/**
+ * True when the URL answers with an image (PNG, JPEG, GIF or WebP by their
+ * first bytes), false on an error document, an HTTP error or no answer.
+ */
+export async function answersWithImage(host: RndtHost, url: string): Promise<boolean> {
+  try {
+    const buffer = host.fetchArrayBuffer
+      ? await withTimeout(host.fetchArrayBuffer(url), IMAGE_PROBE_TIMEOUT_MS)
+      : await (async () => {
+          const response = await fetch(url, { signal: AbortSignal.timeout(IMAGE_PROBE_TIMEOUT_MS) });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response.arrayBuffer();
+        })();
+    const b = new Uint8Array(buffer.slice(0, 12));
+    const png = b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47;
+    const jpeg = b[0] === 0xff && b[1] === 0xd8;
+    const gif = b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46;
+    const webp = b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50;
+    return png || jpeg || gif || webp;
+  } catch {
+    return false;
+  }
+}
+
 export async function fetchText(host: RndtHost, url: string, options: FetchOptions = {}): Promise<string> {
   return (await fetchTextFrom(host, url, options)).text;
 }

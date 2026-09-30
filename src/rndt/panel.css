@@ -1088,3 +1088,8 @@ a.ordt-menu-item {
   border-color: var(--ordt-primary);
   background: color-mix(in srgb, var(--ordt-primary) 8%, var(--ordt-bg));
 }
+
+.ordt-layer-note {
+  font-size: 11px;
+  color: var(--ordt-muted);
+}

@@ -1268,3 +1268,48 @@ describe("WMS layers with the same name, or already on the map", () => {
     expect(host.addWmsLayer).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("WMS layers that do not declare EPSG:3857", () => {
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]).buffer;
+
+  async function openAde(drawsTile: boolean) {
+    const ctx = createHost((url) =>
+      url.includes("/rest/metadata/search") ? fixture("search-services.json") : fixture("wms-ade-130.xml"),
+    );
+    const plain = ctx.host.fetchArrayBuffer!;
+    ctx.host.fetchArrayBuffer = vi.fn(async (url: string) =>
+      /REQUEST=GetMap/i.test(url) && drawsTile ? png : plain(url),
+    );
+    plugin.activate(ctx.host);
+    const container = document.createElement("div");
+    document.body.append(container);
+    ctx.getPanel()!.render(container);
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const card = Array.from(container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
+      li.querySelector(".ordt-badge-service")?.textContent === "WMS",
+    )!;
+    const item = openDetail(card);
+    for (let i = 0; i < 4; i++) await flush();
+    return { ...ctx, item };
+  }
+
+  it("tries one tile in EPSG:3857 and keeps the layers usable when the server draws it", async () => {
+    const { host, item } = await openAde(true);
+    const probe = vi.mocked(host.fetchArrayBuffer!).mock.calls.map((c) => c[0]).find((u) => /REQUEST=GetMap/i.test(u))!;
+    const params = new URL(probe).searchParams;
+    expect(params.get("CRS") ?? params.get("SRS")).toBe("EPSG:3857");
+    expect(params.get("WIDTH")).toBe("64");
+    const boxes = Array.from(item.querySelectorAll<HTMLInputElement>('[aria-label="WMS layers"] input'));
+    expect(boxes.every((b) => !b.disabled)).toBe(true);
+    expect(item.textContent).toContain("EPSG:3857 not declared, but the server drew a test tile in it.");
+    expect(item.textContent).not.toContain("No layer of this WMS is offered in EPSG:3857");
+  });
+
+  it("keeps them disabled when the test tile is an error", async () => {
+    const { item } = await openAde(false);
+    const boxes = Array.from(item.querySelectorAll<HTMLInputElement>('[aria-label="WMS layers"] input'));
+    expect(boxes.every((b) => b.disabled)).toBe(true);
+    expect(item.textContent).toContain("the server did not draw a test tile in it");
+  });
+});

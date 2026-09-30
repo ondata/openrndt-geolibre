@@ -389,3 +389,30 @@ describe("HTTP to HTTPS", () => {
     expect(upgradeToHttps("http://x.it/wfs", "http://x.it/wfs")).toBe("http://x.it/wfs");
   });
 });
+
+describe("EPSG:3857 test tile", () => {
+  it("builds a small GetMap in EPSG:3857 at the centre of the layer", async () => {
+    const { probeGetMapUrl } = await import("../src/rndt/ogc");
+    const url = new URL(probeGetMapUrl("https://x.it/wms?map=a", "1.3.0", "ortofoto", [9, 45, 10, 46]));
+    expect(url.searchParams.get("map")).toBe("a");
+    expect(url.searchParams.get("CRS")).toBe("EPSG:3857");
+    expect(url.searchParams.get("LAYERS")).toBe("ortofoto");
+    const [x1, y1, x2, y2] = url.searchParams.get("BBOX")!.split(",").map(Number);
+    expect(x2 - x1).toBe(4000);
+    expect((x1 + x2) / 2).toBeCloseTo(1057535.16, 1); // 9.5° E
+    expect((y1 + y2) / 2).toBeCloseTo(5700582.73, 1); // 45.5° N
+    expect(new URL(probeGetMapUrl("https://x.it/wms", "1.1.1", "a", null)).searchParams.get("SRS")).toBe("EPSG:3857");
+  });
+
+  it("tells an image from an error document by its first bytes", async () => {
+    const { answersWithImage } = await import("../src/rndt/host");
+    const host = (bytes: number[]) => ({
+      addMapControl: () => true,
+      removeMapControl: () => undefined,
+      fetchArrayBuffer: async () => new Uint8Array(bytes).buffer as ArrayBuffer,
+    });
+    expect(await answersWithImage(host([0x89, 0x50, 0x4e, 0x47, 0, 0, 0, 0, 0, 0, 0, 0]), "u")).toBe(true);
+    expect(await answersWithImage(host([0xff, 0xd8, 0xff, 0xe0]), "u")).toBe(true);
+    expect(await answersWithImage(host([...new TextEncoder().encode("<?xml version")]), "u")).toBe(false);
+  });
+});

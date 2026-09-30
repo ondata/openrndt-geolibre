@@ -11,7 +11,7 @@ import {
   type Option,
 } from "./constants";
 import { FootprintsLayer } from "./footprints-layer";
-import { browserNeedsHttp, drawnBbox, fetchJson, fetchText, fetchTextFrom, GEO_EDITOR_PLUGIN_ID, type RndtHost } from "./host";
+import { answersWithImage, browserNeedsHttp, drawnBbox, fetchJson, fetchText, fetchTextFrom, GEO_EDITOR_PLUGIN_ID, type RndtHost } from "./host";
 import {
   bestMatchingLayer,
   buildGetFeatureUrl,
@@ -23,6 +23,7 @@ import {
   parseWmsCapabilities,
   pickJsonFormat,
   preselectedName,
+  probeGetMapUrl,
   serviceBaseUrl,
   supportsWebMercator,
   upgradeToHttps,
@@ -2077,6 +2078,7 @@ export class RndtPanel {
     ariaLabel: string,
     kind: string,
     disabledReason: (name: string) => string | null = () => null,
+    noteOf: (name: string) => string | null = () => null,
   ): {
     list: HTMLElement;
     controls: HTMLElement[];
@@ -2106,7 +2108,14 @@ export class RndtPanel {
         "label",
         { className: "ordt-layer", title: reason ?? "" },
         input,
-        h("span", { className: "ordt-layer-text" }, title, code, reason && h("span", { className: "ordt-layer-reason" }, reason)),
+        h(
+          "span",
+          { className: "ordt-layer-text" },
+          title,
+          code,
+          reason && h("span", { className: "ordt-layer-reason" }, reason),
+          !reason && noteOf(layer.name) && h("span", { className: "ordt-layer-note" }, noteOf(layer.name)),
+        ),
       );
       rows.set(layer.name, { row, input, title, code });
       this.detailRows.push({ kind, code: layer.name, title: () => readable.get(layer.name) || layer.name, row });
@@ -2256,12 +2265,30 @@ export class RndtPanel {
       }
       countEl.textContent = layerCount(caps.layers.length);
       const byName = new Map(caps.layers.map((l) => [l.name, l]));
+      // The capabilities list the systems a layer is offered in, but not
+      // always all of them: ArcGIS servers often draw EPSG:3857 without
+      // declaring it (Lombardy's ortofoto 2003, 2026-09-30). One small tile in
+      // EPSG:3857 tells: if the server draws it, the layers stay usable.
+      const undeclared = caps.layers.filter((l) => !supportsWebMercator(l));
+      let serverDraws3857 = false;
+      if (undeclared.length) {
+        this.note(area, "Checking whether the server draws EPSG:3857…", "busy");
+        const sample = undeclared.find((l) => l.bbox) ?? undeclared[0];
+        serverDraws3857 = await answersWithImage(
+          this.app,
+          probeGetMapUrl(caps.getMapUrl, caps.version, sample.name, sample.bbox ?? record.bbox),
+        );
+      }
       const outside3857 = (name: string) => {
         const layer = byName.get(name)!;
-        return supportsWebMercator(layer)
+        return supportsWebMercator(layer) || serverDraws3857
           ? null
-          : `Not offered in EPSG:3857 (only ${layer.crs.slice(0, 6).join(", ")}${layer.crs.length > 6 ? ", …" : ""}): GeoLibre plugins cannot display it yet.`;
+          : `Not offered in EPSG:3857 (only ${layer.crs.slice(0, 6).join(", ")}${layer.crs.length > 6 ? ", …" : ""}), and the server did not draw a test tile in it: GeoLibre plugins cannot display it yet.`;
       };
+      const drawnAnyway = (name: string) =>
+        serverDraws3857 && !supportsWebMercator(byName.get(name)!)
+          ? "EPSG:3857 not declared, but the server drew a test tile in it."
+          : null;
       const wanted = wantedLayer(record, service, caps.layers);
       const { list, controls, selected, nameOf, setOnMap } = this.layerList(
         caps.layers,
@@ -2271,6 +2298,7 @@ export class RndtPanel {
         "WMS layers",
         "WMS",
         outside3857,
+        drawnAnyway,
       );
       const add = h("button", { className: "ordt-button ordt-primary", type: "button" });
       const result = h("p", { className: "ordt-note", hidden: true });
