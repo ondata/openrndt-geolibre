@@ -80,6 +80,13 @@ export function inferKind(url: string): ServiceKind {
     if (key.toLowerCase() === "service" && value) return normalizeKind(value);
   }
   const path = parsed.pathname.toLowerCase();
+  // A capabilities document saved as a file (Piemonte's WEBCAT/CAPABILITIES/
+  // wms_*.xml) describes a service: its GetMap URL is inside.
+  if (path.endsWith(".xml") && path.includes("capabilities")) {
+    if (path.includes("wmts")) return "WMTS";
+    if (path.includes("wms")) return "WMS";
+    if (path.includes("wfs")) return "WFS";
+  }
   if (DOWNLOAD_EXTENSIONS.some((ext) => path.endsWith(ext))) return "download";
   if (path.includes("wmts")) return "WMTS";
   if (path.includes("wms")) return "WMS";

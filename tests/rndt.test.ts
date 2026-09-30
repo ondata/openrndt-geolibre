@@ -108,6 +108,9 @@ describe("search results", () => {
     expect(inferKind("https://x.it/geoserver/ows?service=wfs&request=GetCapabilities")).toBe("WFS");
     expect(inferKind("https://x.it/cgi/wms?")).toBe("WMS");
     expect(inferKind("https://x.it/data/file.geojson")).toBe("download");
+    // A capabilities document saved as a file is the service, not a download.
+    expect(inferKind("https://geomap.reteunitaria.piemonte.it/WEBCAT/CAPABILITIES/wms_coto_ortofoto_2016.xml")).toBe("WMS");
+    expect(inferKind("https://x.it/data/metadata.xml")).toBe("download");
     expect(inferKind("https://x.it/page.html")).toBe("link");
     expect(extractServices({ _source: { links_s: ["https://x.it/page.html"] } })).toEqual([]);
   });
