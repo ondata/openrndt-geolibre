@@ -198,6 +198,9 @@ function enabledCount(layers: { name: string }[], disabledReason: (name: string)
   return layers.filter((l) => !disabledReason(l.name)).length;
 }
 
+/** Where the plugin lives: code, releases, issues. */
+const PLUGIN_REPO_URL = "https://github.com/ondata/openrndt-geolibre";
+
 /** RNDT contact, from the footer of geodati.gov.it (AgID). */
 const RNDT_EMAIL = "info@rndt.gov.it";
 
@@ -1154,7 +1157,18 @@ export class RndtPanel {
         { className: "ordt-link", href: "https://geodati.gov.it/geoportale/", target: "_blank", rel: "noopener" },
         "Italian national catalogue (RNDT)",
       ),
-      h("span", { className: "ordt-footer-links" }, this.settingsToggleEl, this.helpToggleEl),
+      h(
+        "span",
+        { className: "ordt-footer-links" },
+        this.settingsToggleEl,
+        this.helpToggleEl,
+        // The panel header belongs to GeoLibre and takes plain text only.
+        h(
+          "a",
+          { className: "ordt-link", href: PLUGIN_REPO_URL, target: "_blank", rel: "noopener", title: "The plugin on GitHub: code, releases, issues" },
+          "Repo",
+        ),
+      ),
     );
   }
 

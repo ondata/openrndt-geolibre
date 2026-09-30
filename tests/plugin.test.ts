@@ -963,6 +963,13 @@ describe("Report the error", () => {
     expect(text).toContain("Data e ora (UTC): 2026-09-30 19:29");
   });
 
+  it("links the plugin repo from the footer", async () => {
+    const { container } = await mountPanel(() => fixture("search-alberi.json"));
+    const repo = Array.from(container.querySelectorAll<HTMLAnchorElement>(".ordt-footer a")).find((a) => a.textContent === "Repo")!;
+    expect(repo.href).toBe("https://github.com/ondata/openrndt-geolibre");
+    expect(repo.target).toBe("_blank");
+  });
+
   it("opens new-tab links in the system browser through the host", async () => {
     const { host, container } = await mountPanel(() => fixture("search-alberi.json"));
     host.openExternalUrl = vi.fn();
