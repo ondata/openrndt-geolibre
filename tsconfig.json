@@ -12,7 +12,6 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx",
 
     /* Linting */
     "strict": true,
@@ -20,16 +19,11 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
 
-    /* Type generation */
-    "declaration": true,
-    "declarationMap": true,
-    "emitDeclarationOnly": false,
-
     /* Path aliases (resolved relative to this tsconfig in TS 6+) */
     "paths": {
       "@/*": ["./src/*"]
     }
   },
   "include": ["src"],
-  "exclude": ["node_modules", "dist", "examples", "tests"]
+  "exclude": ["node_modules", "dist", "tests"]
 }

@@ -4,10 +4,10 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    // Generated output, vendored examples, and dependencies are not linted.
+    // Generated output, local scratch files and dependencies are not linted.
     ignores: [
+      "tmp/**",
       "dist/**",
-      "dist-examples/**",
       "geolibre-plugin/**",
       "coverage/**",
       "node_modules/**",
@@ -16,15 +16,12 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    // Library and config source.
-    files: ["**/*.{ts,tsx}"],
+    // Plugin and config source.
+    files: ["**/*.ts"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
       globals: { ...globals.browser, ...globals.node },
-      parserOptions: {
-        ecmaFeatures: { jsx: true },
-      },
     },
   },
   {
@@ -38,7 +35,7 @@ export default tseslint.config(
   },
   {
     // Vitest exposes its API as globals (see vitest.config.ts `globals: true`).
-    files: ["tests/**/*.{ts,tsx}", "**/*.{test,spec}.{ts,tsx}"],
+    files: ["tests/**/*.ts", "**/*.{test,spec}.ts"],
     languageOptions: {
       globals: {
         describe: "readonly",
