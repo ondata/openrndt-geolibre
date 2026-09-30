@@ -1,6 +1,6 @@
 # openrndt-geolibre
 
-A [GeoLibre](https://github.com/opengeos/GeoLibre) plugin to search the **RNDT** (Repertorio Nazionale dei Dati Territoriali, the Italian national catalogue of spatial data) and add its WMS and WFS services to the map.
+A [GeoLibre](https://github.com/opengeos/GeoLibre) plugin to search the **RNDT** ([Repertorio Nazionale dei Dati Territoriali](https://geodati.gov.it/geoportale/), the Italian national catalogue of spatial data) and add its WMS and WFS services to the map.
 
 It is the GeoLibre counterpart of the [openrndt](https://github.com/ondata/openrndt) CLI and uses the same RNDT REST API (`https://geodati.gov.it/RNDT/rest/metadata/search`).
 
