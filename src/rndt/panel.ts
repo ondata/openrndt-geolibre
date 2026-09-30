@@ -24,6 +24,7 @@ import {
   pickJsonFormat,
   preselectedName,
   probeGetMapUrl,
+  arcgisWmsFromWmts,
   serviceBaseUrl,
   supportsWebMercator,
   upgradeToHttps,
@@ -148,6 +149,28 @@ function isGeoJsonUrl(url: string): boolean {
 interface ServiceGroup extends RndtService {
   /** Layer or feature type named by any of the merged links. */
   layerHint: string | null;
+  /** Set on a WMS the record does not declare, derived from this ArcGIS WMTS link. */
+  derivedFrom?: string;
+}
+
+/**
+ * The record's services plus, for each ArcGIS WMTS, the WMS of the same
+ * service (GeoLibre plugins cannot add a WMTS; the WMS reprojects on request).
+ * Not added when the record already declares that WMS.
+ */
+function servicesWithDerivedWms(services: RndtService[]): ServiceGroup[] {
+  const groups = groupServices(services);
+  const key = (url: string) => serviceBaseUrl(url).replace(/^https?:\/\//i, "").toLowerCase();
+  const declared = new Set(groups.filter((g) => g.kind === "WMS").map((g) => key(g.url)));
+  const derived: ServiceGroup[] = [];
+  for (const group of groups) {
+    if (group.kind !== "WMTS") continue;
+    const wms = arcgisWmsFromWmts(group.url);
+    if (!wms || declared.has(key(wms))) continue;
+    declared.add(key(wms));
+    derived.push({ kind: "WMS", url: wms, layerHint: null, derivedFrom: group.url });
+  }
+  return [...groups, ...derived];
 }
 
 /**
@@ -1945,7 +1968,7 @@ export class RndtPanel {
       record.modified && h("div", { className: "ordt-small ordt-muted" }, `Metadata updated ${record.modified}`),
       record.abstract && h("p", { className: "ordt-abstract" }, record.abstract),
       record.services.length
-        ? h("ul", { className: "ordt-services" }, ...groupServices(record.services).map((g) => this.renderService(record, g)))
+        ? h("ul", { className: "ordt-services" }, ...servicesWithDerivedWms(record.services).map((g) => this.renderService(record, g)))
         : !record.otherLinks.length && h("p", { className: "ordt-muted" }, "No services or downloads declared in this record."),
       record.otherLinks.length > 0 &&
         h(
@@ -2028,6 +2051,12 @@ export class RndtPanel {
         h("span", { className: "ordt-host", title: service.url }, host(service.url)),
         h("span", { className: "ordt-row ordt-small ordt-service-actions" }, ...actions),
       ),
+      service.derivedFrom &&
+        h(
+          "p",
+          { className: "ordt-note" },
+          "Not declared in the record: the WMS of the same ArcGIS service as its WMTS, which GeoLibre plugins cannot add.",
+        ),
       area,
     );
   }
@@ -2086,7 +2115,10 @@ export class RndtPanel {
     nameOf: (name: string) => string;
     setOnMap: (name: string, on: boolean) => void;
   } {
-    const readable = new Map(layers.map((l) => [l.name, readableTitle(l.name, l.title)]));
+    // ArcGIS names its WMS layers 0, 1, 2…: then even a code-like title says more.
+    const shownTitle = (l: { name: string; title: string }) =>
+      readableTitle(l.name, l.title) ?? (/^\d+$/.test(l.name) && l.title.trim() ? l.title.trim() : null);
+    const readable = new Map(layers.map((l) => [l.name, shownTitle(l)]));
     const enabled = layers.filter((l) => !disabledReason(l.name));
     // Nothing ticked without a reason: the wanted layer, or the only one.
     const first = enabled.some((l) => l.name === wanted) ? wanted : enabled.length === 1 ? enabled[0].name : null;
@@ -2260,7 +2292,8 @@ export class RndtPanel {
         caps.getMapUrl = declared;
       }
       if (!caps.layers.length) {
-        this.note(area, "The WMS lists no named layers.", "error", { record, service });
+        if (service.derivedFrom) this.note(area, "This ArcGIS service has no WMS layers.", "info");
+        else this.note(area, "The WMS lists no named layers.", "error", { record, service });
         return;
       }
       countEl.textContent = layerCount(caps.layers.length);
@@ -2358,7 +2391,9 @@ export class RndtPanel {
       showTicked(list);
       sync();
     } catch (error) {
-      this.note(area, `WMS error: ${errorMessage(error)}`, "error", { record, service });
+      // A WMS the record does not declare is a guess: its absence is not a fault to report.
+      if (service.derivedFrom) this.note(area, "This ArcGIS service offers no WMS, only the WMTS above, which GeoLibre plugins cannot add yet.", "info");
+      else this.note(area, `WMS error: ${errorMessage(error)}`, "error", { record, service });
     }
   }
 

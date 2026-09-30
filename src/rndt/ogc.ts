@@ -289,6 +289,17 @@ export function bestMatchingLayer(title: string, layers: { name: string; title: 
 }
 
 /**
+ * The WMS of an ArcGIS service, from its WMTS link: ArcGIS publishes
+ * `<site>/rest/services/<path>/<MapServer|ImageServer>/WMTS` and, when the WMS
+ * capability is on, `<site>/services/<path>/<MapServer|ImageServer>/WMSServer`.
+ * Null for any other URL.
+ */
+export function arcgisWmsFromWmts(url: string): string | null {
+  const match = /^(https?:\/\/[^?#]+?)\/rest\/services\/(.+?)\/(MapServer|ImageServer)\/WMTS(?:[/?#]|$)/i.exec(url);
+  return match ? `${match[1]}/services/${match[2]}/${match[3]}/WMSServer` : null;
+}
+
+/**
  * A GetMap for a small tile in EPSG:3857 at the centre of `bbox` (WGS84), to
  * test whether a server draws a layer in that system when it does not declare
  * it (ArcGIS servers often serve it anyway).

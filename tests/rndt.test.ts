@@ -416,3 +416,16 @@ describe("EPSG:3857 test tile", () => {
     expect(await answersWithImage(host([...new TextEncoder().encode("<?xml version")]), "u")).toBe(false);
   });
 });
+
+describe("WMS of an ArcGIS service, from its WMTS", () => {
+  it("maps the REST WMTS path to the WMSServer path", async () => {
+    const { arcgisWmsFromWmts } = await import("../src/rndt/ogc");
+    expect(arcgisWmsFromWmts("https://www.cartografia.servizirl.it/arcgis2/rest/services/BaseMap/ortofoto2003/ImageServer/WMTS?service=WMTS")).toBe(
+      "https://www.cartografia.servizirl.it/arcgis2/services/BaseMap/ortofoto2003/ImageServer/WMSServer",
+    );
+    expect(arcgisWmsFromWmts("https://webgis.arpa.piemonte.it/ags/rest/services/geologia/Geo_Piemonte_250k/MapServer/WMTS/1.0.0/WMTSCapabilities.xml")).toBe(
+      "https://webgis.arpa.piemonte.it/ags/services/geologia/Geo_Piemonte_250k/MapServer/WMSServer",
+    );
+    expect(arcgisWmsFromWmts("https://idt2.regione.veneto.it/gwc/service/wmts")).toBeNull();
+  });
+});

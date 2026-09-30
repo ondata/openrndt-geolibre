@@ -1313,3 +1313,42 @@ describe("WMS layers that do not declare EPSG:3857", () => {
     expect(item.textContent).toContain("the server did not draw a test tile in it");
   });
 });
+
+describe("WMS derived from an ArcGIS WMTS", () => {
+  const wmts = "https://www.cartografia.servizirl.it/arcgis2/rest/services/BaseMap/ortofoto2003/ImageServer/WMTS?service=WMTS";
+  const search = JSON.stringify({
+    total: 1,
+    start: 1,
+    results: [{ id: "r_lombar:ortofoto2003", title: "Ortofoto 2003 - WMTS", _source: { apiso_Type_s: "service", links_s: [wmts] } }],
+  });
+
+  async function open(answer: (url: string) => string) {
+    const ctx = await mountPanel((url) => (url.includes("/rest/metadata/search") ? search : answer(url)));
+    ctx.container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const item = openDetail(ctx.container.querySelector<HTMLElement>(".ordt-result")!);
+    for (let i = 0; i < 4; i++) await flush();
+    return { ...ctx, item };
+  }
+
+  it("lists the WMS of the same service, marked as not declared", async () => {
+    const caps = `<WMS_Capabilities version="1.3.0"><Capability><Request><GetMap><DCPType><HTTP><Get><OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://www.cartografia.servizirl.it/arcgis2/services/BaseMap/ortofoto2003/ImageServer/WMSServer"/></Get></HTTP></DCPType></GetMap></Request>
+<Layer><CRS>EPSG:3857</CRS><Layer><Name>0</Name><Title>ortofoto2003</Title><CRS>EPSG:3857</CRS></Layer></Layer></Capability></WMS_Capabilities>`;
+    const { item, requested } = await open(() => caps);
+    const kinds = Array.from(item.querySelectorAll(".ordt-service .ordt-badge-service"), (b) => b.textContent);
+    expect(kinds).toEqual(["WMTS", "WMS"]);
+    expect(requested.some((u) => u.startsWith("https://www.cartografia.servizirl.it/arcgis2/services/BaseMap/ortofoto2003/ImageServer/WMSServer?"))).toBe(true);
+    expect(item.textContent).toContain("Not declared in the record");
+    expect(item.querySelectorAll('[aria-label="WMS layers"] input')).toHaveLength(1);
+    // ArcGIS layer "0": its title is shown instead of the number.
+    expect(item.querySelector('[aria-label="WMS layers"] .ordt-layer-title')!.textContent).toBe("ortofoto2003");
+  });
+
+  it("says so, without an error report, when the service has no WMS", async () => {
+    const { item } = await open(() => {
+      throw new Error("HTTP 400");
+    });
+    expect(item.textContent).toContain("This ArcGIS service offers no WMS");
+    expect(item.querySelector(".ordt-report")).toBeNull();
+  });
+});
