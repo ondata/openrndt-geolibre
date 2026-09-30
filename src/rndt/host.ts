@@ -41,6 +41,8 @@ export interface RndtHostExtras {
    * (no mailto:).
    */
   openExternalUrl?: (url: string) => void;
+  /** Ids of the layers in the project, top to bottom (GeoLibre 3.1.0). */
+  getLayers?: () => string[];
   /** Save a text file through the system "Save as" dialog (GeoLibre 3.1.0). */
   exportTextFile?: (
     filename: string,

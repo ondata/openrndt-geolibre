@@ -193,6 +193,16 @@ function showTicked(list: HTMLElement): void {
   if (row) list.scrollTop = row.offsetTop - 4;
 }
 
+/**
+ * The layer to tick when the list opens: the one the record's link names, else,
+ * for a dataset record, the layer closest to its title. A service record
+ * describes the whole service: nothing is picked for the user.
+ */
+function wantedLayer(record: RndtRecord, service: ServiceGroup, layers: { name: string; title: string }[]): string | null {
+  if (service.layerHint) return service.layerHint;
+  return record.type === "service" ? null : bestMatchingLayer(record.title, layers);
+}
+
 /** Layers that can be ticked. */
 function enabledCount(layers: { name: string }[], disabledReason: (name: string) => string | null): number {
   return layers.filter((l) => !disabledReason(l.name)).length;
@@ -588,6 +598,10 @@ export class RndtPanel {
   private lastForm: SearchForm | null = null;
   /** Gives each layer list its own radio group name. */
   private layerListSeq = 0;
+  /** Layer rows of the open detail view, to tell apart layers that would get the same name. */
+  private detailRows: { kind: string; code: string; title: () => string; row: HTMLElement }[] = [];
+  /** WMS layers added from this panel ("GetMap URL|layer" → GeoLibre layer id), to spot them in the project. */
+  private addedWms = new Map<string, string>();
   private copyQueryEl!: HTMLButtonElement;
   private footprintsToggleEl!: HTMLButtonElement;
 
@@ -1761,6 +1775,7 @@ export class RndtPanel {
     if (!record || !this.root) return;
     this.detailId = id;
     this.footprintsLayer?.select(id);
+    this.detailRows = [];
     this.detailEl.replaceChildren(...this.renderDetail(record).filter((c): c is Node | string => !!c));
     this.detailEl.hidden = false;
     this.root.classList.add("ordt-in-detail");
@@ -1772,6 +1787,7 @@ export class RndtPanel {
     if (this.detailId === null) return;
     const id = this.detailId;
     this.detailId = null;
+    this.detailRows = [];
     this.detailEl.hidden = true;
     this.detailEl.replaceChildren();
     this.root?.classList.remove("ordt-in-detail");
@@ -2014,6 +2030,22 @@ export class RndtPanel {
     );
   }
 
+  /** Flag the rows of one kind of service whose readable names are the same in the open record. */
+  private markSameNames(): void {
+    const groups = new Map<string, HTMLElement[]>();
+    for (const entry of this.detailRows) {
+      const key = `${entry.kind}\n${entry.title().trim().toLowerCase()}`;
+      groups.set(key, [...(groups.get(key) ?? []), entry.row]);
+    }
+    for (const rows of groups.values()) for (const row of rows) row.classList.toggle("ordt-layer-same-name", rows.length > 1);
+  }
+
+  /** True when a WMS layer added from this panel is still in the project. */
+  private wmsOnMap(getMapUrl: string, name: string): boolean {
+    const id = this.addedWms.get(`${getMapUrl}|${name}`);
+    return !!id && (this.app.getLayers?.() ?? []).includes(id);
+  }
+
   /**
    * Layer list for a WMS/WFS (#7): one row per layer, its readable name on
    * top (the capabilities title if it reads as a name, else a title from RNDT)
@@ -2030,11 +2062,19 @@ export class RndtPanel {
     serviceUrl: string,
     mode: "multi" | "single",
     ariaLabel: string,
+    kind: string,
     disabledReason: (name: string) => string | null = () => null,
-  ): { list: HTMLElement; controls: HTMLElement[]; selected: () => string[]; nameOf: (name: string) => string } {
+  ): {
+    list: HTMLElement;
+    controls: HTMLElement[];
+    selected: () => string[];
+    nameOf: (name: string) => string;
+    setOnMap: (name: string, on: boolean) => void;
+  } {
     const readable = new Map(layers.map((l) => [l.name, readableTitle(l.name, l.title)]));
     const enabled = layers.filter((l) => !disabledReason(l.name));
-    const first = enabled.some((l) => l.name === wanted) ? wanted : (enabled[0]?.name ?? null);
+    // Nothing ticked without a reason: the wanted layer, or the only one.
+    const first = enabled.some((l) => l.name === wanted) ? wanted : enabled.length === 1 ? enabled[0].name : null;
     const group = `ordt-layers-${++this.layerListSeq}`;
     const rows = new Map<string, { row: HTMLElement; input: HTMLInputElement; title: HTMLElement; code: HTMLElement }>();
     for (const layer of layers) {
@@ -2056,7 +2096,9 @@ export class RndtPanel {
         h("span", { className: "ordt-layer-text" }, title, code, reason && h("span", { className: "ordt-layer-reason" }, reason)),
       );
       rows.set(layer.name, { row, input, title, code });
+      this.detailRows.push({ kind, code: layer.name, title: () => readable.get(layer.name) || layer.name, row });
     }
+    this.markSameNames();
     const list = h(
       "div",
       { className: "ordt-layers", role: mode === "single" ? "radiogroup" : "group", "aria-label": ariaLabel },
@@ -2093,6 +2135,7 @@ export class RndtPanel {
       const r = rows.get(name)!;
       r.title.textContent = title;
       r.code.hidden = false;
+      this.markSameNames();
     };
     if (layers.some((l) => !readable.get(l.name))) {
       const status = h("p", { className: "ordt-note", "data-kind": "busy" }, "Looking up readable names in RNDT…");
@@ -2165,7 +2208,19 @@ export class RndtPanel {
       list,
       controls,
       selected: () => Array.from(rows).filter(([, r]) => r.input.checked && !r.input.disabled).map(([name]) => name),
-      nameOf: (name) => readable.get(name) || name,
+      // Two layers of the record with the same title (a plan in force and one
+      // adopted, Fiesole) keep their code in the name, or GeoLibre's layer
+      // list would show them alike.
+      nameOf: (name) => {
+        const title = readable.get(name) || name;
+        return title !== name && rows.get(name)!.row.classList.contains("ordt-layer-same-name") ? `${title} (${name})` : title;
+      },
+      setOnMap: (name, on) => {
+        const r = rows.get(name)!;
+        r.row.classList.toggle("ordt-layer-on-map", on);
+        r.row.querySelector(".ordt-layer-tag")?.remove();
+        if (on) r.title.after(h("span", { className: "ordt-layer-tag" }, "on the map"));
+      },
     };
   }
 
@@ -2194,8 +2249,16 @@ export class RndtPanel {
           ? null
           : `Not offered in EPSG:3857 (only ${layer.crs.slice(0, 6).join(", ")}${layer.crs.length > 6 ? ", …" : ""}): GeoLibre plugins cannot display it yet.`;
       };
-      const wanted = service.layerHint ?? bestMatchingLayer(record.title, caps.layers);
-      const { list, controls, selected, nameOf } = this.layerList(caps.layers, wanted, service.url, "multi", "WMS layers", outside3857);
+      const wanted = wantedLayer(record, service, caps.layers);
+      const { list, controls, selected, nameOf, setOnMap } = this.layerList(
+        caps.layers,
+        wanted,
+        service.url,
+        "multi",
+        "WMS layers",
+        "WMS",
+        outside3857,
+      );
       const add = h("button", { className: "ordt-button ordt-primary", type: "button" });
       const result = h("p", { className: "ordt-note", hidden: true });
       const sync = () => {
@@ -2206,12 +2269,14 @@ export class RndtPanel {
       if (controls.some((c) => c.tagName === "INPUT")) add.title = "Ticked layers hidden by the filter are added too";
       list.addEventListener("change", sync);
       add.addEventListener("click", () => {
-        const names = selected();
+        // A layer added from here and still in the project is not added again.
+        const already = selected().filter((name) => this.wmsOnMap(caps.getMapUrl, name));
+        const names = selected().filter((name) => !already.includes(name));
         const failed: string[] = [];
         for (const name of names) {
           const layer = byName.get(name)!;
           try {
-            this.app.addWmsLayer!(nameOf(name), {
+            const id = this.app.addWmsLayer!(nameOf(name), {
               url: caps.getMapUrl,
               layers: name,
               version: caps.version.startsWith("1.3") ? "1.3.0" : "1.1.1",
@@ -2219,6 +2284,8 @@ export class RndtPanel {
               transparent: true,
               bounds: layer.bbox && !bboxError(layer.bbox) ? layer.bbox : undefined,
             });
+            this.addedWms.set(`${caps.getMapUrl}|${name}`, id);
+            setOnMap(name, true);
           } catch (error) {
             failed.push(`${nameOf(name)}: ${errorMessage(error)}`);
           }
@@ -2227,10 +2294,15 @@ export class RndtPanel {
         result.hidden = false;
         result.dataset.kind = failed.length ? "error" : "info";
         result.textContent = [
-          `Added ${added} of ${names.length} ${names.length === 1 ? "layer" : "layers"}, named with their titles.`,
+          names.length > 0 && `Added ${added} of ${names.length} ${names.length === 1 ? "layer" : "layers"}, named with their titles.`,
+          already.length > 0 &&
+            `Already on the map, not added again: ${already.map(nameOf).join("; ")}. Remove ${already.length === 1 ? "it" : "them"} from Layers to add ${already.length === 1 ? "it" : "them"} again.`,
           ...failed.map((f) => `Could not add ${f}`),
-        ].join(" ");
+        ]
+          .filter(Boolean)
+          .join(" ");
       });
+      for (const name of caps.layers.map((l) => l.name)) if (this.wmsOnMap(caps.getMapUrl, name)) setOnMap(name, true);
       const note = enabledCount(caps.layers, outside3857) === 0
         ? h("p", { className: "ordt-note", "data-kind": "error" }, "No layer of this WMS is offered in EPSG:3857: GeoLibre plugins cannot display them yet.")
         : null;
@@ -2265,10 +2337,15 @@ export class RndtPanel {
         return;
       }
       countEl.textContent = layerCount(caps.featureTypes.length);
-      const wanted = service.layerHint ?? bestMatchingLayer(record.title, caps.featureTypes);
-      const { list, controls, selected, nameOf } = this.layerList(caps.featureTypes, wanted, service.url, "single", "WFS feature types");
+      const wanted = wantedLayer(record, service, caps.featureTypes);
+      const { list, controls, selected, nameOf } = this.layerList(caps.featureTypes, wanted, service.url, "single", "WFS feature types", "WFS");
       const inView = h("input", { type: "checkbox", checked: true });
       const add = h("button", { className: "ordt-button ordt-primary", type: "button" }, "Add features");
+      const syncAdd = () => {
+        add.disabled = selected().length === 0;
+        add.title = add.disabled ? "Pick a feature type first" : "";
+      };
+      list.addEventListener("change", syncAdd);
       const result = h("p", { className: "ordt-note", hidden: true });
       add.addEventListener("click", () => {
         void (async () => {
@@ -2332,7 +2409,7 @@ export class RndtPanel {
             result.append(" ", reportControl(record, service, `WFS error: ${message}`));
             this.logError(record, service, `WFS error: ${message}`);
           } finally {
-            add.disabled = false;
+            syncAdd();
           }
         })();
       });
@@ -2345,6 +2422,7 @@ export class RndtPanel {
         result,
       );
       showTicked(list);
+      syncAdd();
     } catch (error) {
       this.note(area, `WFS error: ${errorMessage(error)}`, "error", { record, service });
     }

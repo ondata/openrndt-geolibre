@@ -19,6 +19,15 @@ const openDetail = (card: HTMLElement) => {
   return card.closest(".ordt-panel")!.querySelector<HTMLElement>(".ordt-detail-view")!;
 };
 
+/** Tick the first layer that can be ticked in a WMS list, if none is ticked yet. */
+const tickFirstWms = (item: HTMLElement) => {
+  const list = item.querySelector<HTMLElement>('[aria-label="WMS layers"]')!;
+  if (list.querySelector("input:checked")) return;
+  const box = list.querySelector<HTMLInputElement>("input:not(:disabled)")!;
+  box.checked = true;
+  box.dispatchEvent(new Event("change", { bubbles: true }));
+};
+
 const chipLabels = (container: HTMLElement) =>
   Array.from(container.querySelectorAll(".ordt-chip"), (c) => c.firstChild!.textContent);
 
@@ -105,6 +114,7 @@ describe("RNDT panel", () => {
     // The capabilities are read as the view opens: no "Add to map…" step.
     await flush();
     expect(requested.some((u) => /REQUEST=GetCapabilities/.test(u))).toBe(true);
+    tickFirstWms(item);
     const addLayer = Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find(
       (b) => b.textContent === "Add to map (1)",
     )!;
@@ -140,6 +150,7 @@ describe("RNDT panel", () => {
         )!;
         const item = openDetail(card);
         await flush();
+        tickFirstWms(item);
         Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent === "Add to map (1)")!.click();
         const options = vi.mocked(host.addWmsLayer!).mock.calls[0][1];
         expect(new URL(options.url).protocol).toBe(scheme);
@@ -1123,6 +1134,23 @@ describe("Detail view", () => {
 });
 
 describe("WMS layer checklist", () => {
+  it("ticks nothing for a service record: it describes the whole service", async () => {
+    const { container } = await mountPanel((url) =>
+      url.includes("/rest/metadata/search") ? fixture("search-services.json") : fixture("wms-piemonte-111.xml"),
+    );
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const card = Array.from(container.querySelectorAll<HTMLElement>(".ordt-result")).find(
+      (li) => li.querySelector(".ordt-badge-service")?.textContent === "WMS" && li.textContent!.includes("service"),
+    )!;
+    const item = openDetail(card);
+    await flush();
+    await flush();
+    expect(item.querySelectorAll('[aria-label="WMS layers"] input:checked')).toHaveLength(0);
+    const add = item.querySelector<HTMLButtonElement>(".ordt-service .ordt-primary")!;
+    expect([add.textContent, add.disabled]).toEqual(["Select a layer", true]);
+  });
+
   it("adds every ticked layer, named with its title, and says which one failed", async () => {
     const { host, container } = await mountPanel((url) =>
       url.includes("/rest/metadata/search") ? fixture("search-services.json") : fixture("wms-piemonte-111.xml"),
@@ -1137,6 +1165,7 @@ describe("WMS layer checklist", () => {
     await flush();
     const boxes = Array.from(item.querySelectorAll<HTMLInputElement>('[aria-label="WMS layers"] input[type="checkbox"]:not(:disabled)'));
     expect(boxes.length).toBeGreaterThan(1);
+    tickFirstWms(item);
     expect(boxes.filter((b) => b.checked)).toHaveLength(1);
     const second = boxes.find((b) => !b.checked)!;
     second.checked = true;
@@ -1156,5 +1185,75 @@ describe("WMS layer checklist", () => {
     expect(calls[1][1].layers).toBe(second.value);
     expect(item.textContent).toContain("Added 1 of 2 layers");
     expect(item.textContent).toContain(`Could not add ${secondTitle}: bad bounds`);
+  });
+});
+
+describe("WMS layers with the same name, or already on the map", () => {
+  // Two layers with one title, like Fiesole's plan in force and adopted plan.
+  const caps = `<WMS_Capabilities version="1.3.0"><Capability><Request><GetMap><DCPType><HTTP><Get><OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://example.org/wms"/></Get></HTTP></DCPType></GetMap></Request>
+<Layer><CRS>EPSG:3857</CRS>
+<Layer><Name>aree_urb_vigente</Name><Title>Zonizzazione dei centri abitati</Title><CRS>EPSG:3857</CRS></Layer>
+<Layer><Name>aree_urb_adottato</Name><Title>Zonizzazione dei centri abitati</Title><CRS>EPSG:3857</CRS></Layer>
+</Layer></Capability></WMS_Capabilities>`;
+
+  async function openTwin() {
+    const ctx = await mountPanel((url) => {
+      if (url.includes("/rest/metadata/search") && url.includes("f=csw")) throw new Error("no RNDT lookup here");
+      if (url.includes("/rest/metadata/search")) return fixture("search-services.json");
+      return caps;
+    });
+    ctx.container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const card = Array.from(ctx.container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
+      li.querySelector(".ordt-badge-service")?.textContent === "WMS",
+    )!;
+    const item = openDetail(card);
+    await flush();
+    await flush();
+    const list = item.querySelector<HTMLElement>('[aria-label="WMS layers"]')!;
+    const box = (code: string) => list.querySelector<HTMLInputElement>(`input[value="${code}"]`)!;
+    const tick = (code: string, on: boolean) => {
+      box(code).checked = on;
+      box(code).dispatchEvent(new Event("change", { bubbles: true }));
+    };
+    const addButton = () => Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent!.startsWith("Add to map"))!;
+    return { ...ctx, item, list, box, tick, addButton };
+  }
+
+  it("keeps the code in the name when two layers share a title", async () => {
+    const { host, list, box, tick, addButton } = await openTwin();
+    expect(list.querySelectorAll(".ordt-layer-same-name")).toHaveLength(2);
+    tick("aree_urb_vigente", true);
+    tick("aree_urb_adottato", true);
+    addButton().click();
+    expect(vi.mocked(host.addWmsLayer!).mock.calls.map((c) => c[0])).toEqual([
+      "Zonizzazione dei centri abitati (aree_urb_vigente)",
+      "Zonizzazione dei centri abitati (aree_urb_adottato)",
+    ]);
+    expect(box("aree_urb_vigente").closest(".ordt-layer")!.textContent).toContain("on the map");
+  });
+
+  it("does not add again a layer still on the map, and says so", async () => {
+    const { host, item, tick, addButton } = await openTwin();
+    let ids: string[] = [];
+    let n = 0;
+    host.getLayers = () => ids;
+    vi.mocked(host.addWmsLayer!).mockImplementation(() => {
+      const id = `wms-${++n}`;
+      ids = [...ids, id];
+      return id;
+    });
+    tick("aree_urb_vigente", true);
+    addButton().click();
+    expect(host.addWmsLayer).toHaveBeenCalledTimes(1);
+
+    addButton().click();
+    expect(host.addWmsLayer).toHaveBeenCalledTimes(1);
+    expect(item.textContent).toContain("Already on the map, not added again: Zonizzazione dei centri abitati (aree_urb_vigente).");
+
+    // Removed from the project: it can be added again.
+    ids = [];
+    addButton().click();
+    expect(host.addWmsLayer).toHaveBeenCalledTimes(2);
   });
 });

@@ -1066,3 +1066,19 @@ a.ordt-menu-item {
 .ordt-footer-links {
   align-items: center;
 }
+
+/* Two layers of the record with the same title: the code tells them apart. */
+.ordt-layer-same-name .ordt-layer-code {
+  font-weight: 600;
+  color: var(--ordt-fg);
+}
+
+.ordt-layer-tag {
+  align-self: flex-start;
+  padding: 0 6px;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--ordt-primary);
+  border: 1px solid var(--ordt-primary);
+  border-radius: 8px;
+}
