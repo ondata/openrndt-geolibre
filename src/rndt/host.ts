@@ -23,6 +23,12 @@ export interface RndtHostExtras {
   /** Leave `sourcePath` unset for remote data: GeoLibre treats it as a local file to watch and restore. */
   addGeoJsonLayer?: (name: string, data: FeatureCollection, sourcePath?: string) => string;
   addWmsLayer?: (name: string, options: WmsLayerOptions) => string;
+  /**
+   * A raster layer from a tile URL template, handed to MapLibre as it is:
+   * `{z}/{x}/{y}` or `{bbox-epsg-3857}`. The webview fetches the tiles, so
+   * the server must send CORS headers (ArcGIS Server does by default).
+   */
+  addTileLayer?: (name: string, url: string, options?: { attribution?: string; bounds?: Bbox }) => string;
   fetchArrayBuffer?: (url: string) => Promise<ArrayBuffer>;
   /**
    * Desktop-native downloader of GeoLibre's Add Vector Layer, with a 180 s
@@ -189,12 +195,31 @@ export async function answersWithImage(host: RndtHost, url: string): Promise<boo
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           return response.arrayBuffer();
         })();
-    const b = new Uint8Array(buffer.slice(0, 12));
-    const png = b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47;
-    const jpeg = b[0] === 0xff && b[1] === 0xd8;
-    const gif = b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46;
-    const webp = b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50;
-    return png || jpeg || gif || webp;
+    return isImage(buffer);
+  } catch {
+    return false;
+  }
+}
+
+/** PNG, JPEG, GIF or WebP, by their first bytes. */
+function isImage(buffer: ArrayBuffer): boolean {
+  const b = new Uint8Array(buffer.slice(0, 12));
+  const png = b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47;
+  const jpeg = b[0] === 0xff && b[1] === 0xd8;
+  const gif = b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46;
+  const webp = b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50;
+  return png || jpeg || gif || webp;
+}
+
+/**
+ * True when the browser itself gets an image from the URL. Tiles of a plugin
+ * tile layer are fetched by the webview, unlike WMS tiles, so a server
+ * without CORS headers draws nothing although it answers.
+ */
+export async function browserGetsImage(url: string): Promise<boolean> {
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(IMAGE_PROBE_TIMEOUT_MS) });
+    return response.ok && isImage(await response.arrayBuffer());
   } catch {
     return false;
   }

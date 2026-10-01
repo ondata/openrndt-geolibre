@@ -11,7 +11,20 @@ import {
   type Option,
 } from "./constants";
 import { FootprintsLayer } from "./footprints-layer";
-import { answersWithImage, browserNeedsHttp, drawnBbox, fetchJson, fetchText, fetchTextFrom, GEO_EDITOR_PLUGIN_ID, type RndtHost } from "./host";
+import {
+  ARCGIS_KIND,
+  arcgisExportUrl,
+  arcgisQueryUrl,
+  arcgisRestFromWmts,
+  parseArcgisCount,
+  parseArcgisLayer,
+  parseArcgisService,
+  parseArcgisUrl,
+  scaleNote,
+  throwArcgisError,
+  type ArcgisUrl,
+} from "./arcgis";
+import { answersWithImage, browserGetsImage, browserNeedsHttp, drawnBbox, fetchJson, fetchText, fetchTextFrom, GEO_EDITOR_PLUGIN_ID, type RndtHost } from "./host";
 import {
   bestMatchingLayer,
   buildGetFeatureUrl,
@@ -23,6 +36,7 @@ import {
   parseWmsCapabilities,
   pickJsonFormat,
   preselectedName,
+  probeBbox3857,
   probeGetMapUrl,
   arcgisWmsFromWmts,
   serviceBaseUrl,
@@ -151,26 +165,40 @@ function isGeoJsonUrl(url: string): boolean {
 interface ServiceGroup extends RndtService {
   /** Layer or feature type named by any of the merged links. */
   layerHint: string | null;
-  /** Set on a WMS the record does not declare, derived from this ArcGIS WMTS link. */
+  /** Set on a WMS or ArcGIS REST service the record does not declare, derived from this ArcGIS WMTS link. */
   derivedFrom?: string;
 }
 
+/** One key for every link to the same ArcGIS REST service, scheme and case aside. */
+function arcgisKey(url: string): string | null {
+  const parsed = parseArcgisUrl(url);
+  return parsed ? parsed.serviceUrl.replace(/^https?:\/\//i, "").toLowerCase() : null;
+}
+
 /**
- * The record's services plus, for each ArcGIS WMTS, the WMS of the same
- * service (GeoLibre plugins cannot add a WMTS; the WMS reprojects on request).
- * Not added when the record already declares that WMS.
+ * The record's services plus, for each ArcGIS WMTS, the WMS and the ArcGIS
+ * REST service of the same service (GeoLibre plugins cannot add a WMTS; both
+ * reproject on request). Each is added only when the record does not
+ * already declare it.
  */
 function servicesWithDerivedWms(services: RndtService[]): ServiceGroup[] {
   const groups = groupServices(services);
   const key = (url: string) => serviceBaseUrl(url).replace(/^https?:\/\//i, "").toLowerCase();
   const declared = new Set(groups.filter((g) => g.kind === "WMS").map((g) => key(g.url)));
+  const declaredRest = new Set(groups.filter((g) => g.kind === ARCGIS_KIND).map((g) => arcgisKey(g.url)));
   const derived: ServiceGroup[] = [];
   for (const group of groups) {
     if (group.kind !== "WMTS") continue;
     const wms = arcgisWmsFromWmts(group.url);
-    if (!wms || declared.has(key(wms))) continue;
-    declared.add(key(wms));
-    derived.push({ kind: "WMS", url: wms, layerHint: null, derivedFrom: group.url });
+    if (wms && !declared.has(key(wms))) {
+      declared.add(key(wms));
+      derived.push({ kind: "WMS", url: wms, layerHint: null, derivedFrom: group.url });
+    }
+    const rest = arcgisRestFromWmts(group.url);
+    if (rest && !declaredRest.has(arcgisKey(rest))) {
+      declaredRest.add(arcgisKey(rest));
+      derived.push({ kind: ARCGIS_KIND, url: rest, layerHint: null, derivedFrom: group.url });
+    }
   }
   return [...groups, ...derived];
 }
@@ -184,7 +212,13 @@ export function groupServices(services: RndtService[]): ServiceGroup[] {
   const groups = new Map<string, ServiceGroup>();
   for (const service of services) {
     let key = service.url;
-    if (["WMS", "WFS", "WCS", "WMTS"].includes(service.kind)) {
+    let hint = preselectedName(service.url);
+    const arcgis = service.kind === ARCGIS_KIND ? parseArcgisUrl(service.url) : null;
+    if (arcgis) {
+      // `…/MapServer` and `…/MapServer/3` are one service; the layer is a hint.
+      key = `${ARCGIS_KIND} ${arcgisKey(service.url)}`;
+      hint = arcgis.layerId;
+    } else if (["WMS", "WFS", "WCS", "WMTS"].includes(service.kind)) {
       try {
         // The scheme is left out: a record may declare the same endpoint as
         // http:// and https:// (Emilia-Romagna WMS, 2026-09-27). A final
@@ -196,13 +230,13 @@ export function groupServices(services: RndtService[]): ServiceGroup[] {
         // Not a parseable URL: keep it on its own.
       }
     }
-    const hint = preselectedName(service.url);
     const existing = groups.get(key);
     if (existing) {
       existing.layerHint ??= hint;
       if (/^http:/i.test(existing.url) && /^https:/i.test(service.url)) existing.url = service.url;
     } else {
-      groups.set(key, { ...service, layerHint: hint });
+      // An ArcGIS group keeps the service URL: the layer comes from the hint.
+      groups.set(key, { ...service, url: arcgis ? arcgis.serviceUrl : service.url, layerHint: hint });
     }
   }
   return Array.from(groups.values());
@@ -312,7 +346,7 @@ export function errorReportText(report: ReturnType<typeof errorReport>): string 
 /** Layers above which the layer menu gets a filter field (Veneto WFS: 1,068). */
 const FILTER_THRESHOLD = 30;
 
-const LINK_KINDS: LinkKind[] = ["WMS", "WFS"];
+const LINK_KINDS: LinkKind[] = ["WMS", "WFS", "ArcGIS REST"];
 const KIND_OPTIONS: Option[] = [
   { value: "all", label: "All" },
   { value: "data", label: "Data" },
@@ -513,8 +547,8 @@ const RESOURCES_NOTE =
   "This is the type of the record, not what you can do with it: a dataset record often links to a WMS or WFS too. The cadastral maps are about 7,700 dataset records, each with a WMS and a WFS, while the national cadastral service is a single service record. To find what you can add to the map, use Available as.";
 
 const AVAILABLE_AS_HELP = [
-  "Keeps the records that link to a WMS or WFS, the services this plugin can add to the map, whatever the record type. With both boxes ticked, one of the two is enough: idrografia finds about 1,130 records, 590 of them with a WMS or WFS.",
-  "The check looks for wms or wfs in the link address, so it matches the WMS and WFS badges of the results in about 99 cases out of 100.",
+  "Keeps the records that link to a WMS, a WFS or an ArcGIS REST service, the services this plugin can add to the map, whatever the record type. With more boxes ticked, one of them is enough: idrografia finds about 1,130 records, 590 of them with a WMS or WFS.",
+  "The check looks for wms or wfs in the link address, so it matches the WMS and WFS badges of the results in about 99 cases out of 100. ArcGIS REST looks for a MapServer, ImageServer or FeatureServer under rest/services: about 1,600 records, about 650 of them with no WMS or WFS (Arpae Emilia-Romagna, Regione Lombardia, Arpa Piemonte).",
 ];
 
 const THEME_HELP = [
@@ -837,6 +871,11 @@ export class RndtPanel {
         {},
         'Lucene sends the text as it is, so characters such as / : ( ) " are query syntax: 42/2004 works in All words but is an error in Lucene.',
       ),
+      h(
+        "p",
+        {},
+        'A record id alone, as "Copy id" gives it (r_veneto:c11023040561_RovereVer), opens that record whatever the filters.',
+      ),
     );
     const fieldHelp = h(
       "div",
@@ -863,11 +902,6 @@ export class RndtPanel {
         "p",
         {},
         "Lucene ignores this choice: write the field in the query, e.g. title:ortofoto.",
-      ),
-      h(
-        "p",
-        {},
-        'A record id alone, as "Copy id" gives it (r_veneto:c11023040561_RovereVer), opens that record whatever the filters.',
       ),
     );
     const fieldSelect = select(SEARCH_FIELDS, "", {
@@ -2069,6 +2103,7 @@ export class RndtPanel {
     actions.push(this.copyButton(service.url));
     if (service.kind === "WMS" && this.app.addWmsLayer) void this.openWms(record, service, area, countEl);
     else if (service.kind === "WFS" && this.app.addGeoJsonLayer) void this.openWfs(record, service, area, countEl);
+    else if (service.kind === ARCGIS_KIND && (this.app.addTileLayer || this.app.addGeoJsonLayer)) void this.openArcgis(record, service, area, countEl);
     return h(
       "li",
       { className: "ordt-service" },
@@ -2084,7 +2119,7 @@ export class RndtPanel {
         h(
           "p",
           { className: "ordt-note" },
-          "Not declared in the record: the WMS of the same ArcGIS service as its WMTS, which GeoLibre plugins cannot add.",
+          `Not declared in the record: the ${service.kind === "WMS" ? "WMS" : "REST endpoint"} of the same ArcGIS service as its WMTS, which GeoLibre plugins cannot add.`,
         ),
       area,
     );
@@ -2424,7 +2459,7 @@ export class RndtPanel {
       sync();
     } catch (error) {
       // A WMS the record does not declare is a guess: its absence is not a fault to report.
-      if (service.derivedFrom) this.note(area, "This ArcGIS service offers no WMS, only the WMTS above, which GeoLibre plugins cannot add yet.", "info");
+      if (service.derivedFrom) this.note(area, "This ArcGIS service offers no WMS.", "info");
       else this.note(area, `WMS error: ${errorMessage(error)}`, "error", { record, service });
     }
   }
@@ -2534,6 +2569,241 @@ export class RndtPanel {
     } catch (error) {
       this.note(area, `WFS error: ${errorMessage(error)}`, "error", { record, service });
     }
+  }
+
+  /**
+   * An ArcGIS REST service: its layers as images, through a tile layer on its
+   * `export` request (GeoLibre's own ArcGIS layers do the same), and one
+   * layer's features as GeoJSON from its `query`, page by page.
+   */
+  private async openArcgis(record: RndtRecord, service: ServiceGroup, area: HTMLElement, countEl: HTMLElement): Promise<void> {
+    const parsed = parseArcgisUrl(service.url)!;
+    this.note(area, "Reading the ArcGIS service…", "busy");
+    try {
+      const fetched = await fetchTextFrom(this.app, `${parsed.serviceUrl}?f=json`);
+      let json: unknown;
+      try {
+        json = JSON.parse(fetched.text);
+      } catch {
+        throw new Error("the service description is not JSON");
+      }
+      // The URL that answered: an http link upgraded to https stays so for the tiles.
+      const arcgis: ArcgisUrl = { ...parsed, serviceUrl: fetched.url.replace(/\?.*$/, "") };
+      const info = parseArcgisService(json, arcgis.type);
+      const image = arcgis.type === "ImageServer";
+      const layers = image
+        ? [{ name: "0", title: String((json as { name?: unknown }).name ?? "").split("/").pop() || record.title, minScale: 0, maxScale: 0, hasFeatures: false }]
+        : info.layers;
+      if (!layers.length) {
+        if (service.derivedFrom) this.note(area, "This ArcGIS service has no layers to add.", "info");
+        else this.note(area, "The ArcGIS service lists no layers.", "error", { record, service });
+        return;
+      }
+      const canDraw = info.drawsImage && !!this.app.addTileLayer;
+      const canQuery = info.hasGeoJson && !!this.app.addGeoJsonLayer && layers.some((l) => l.hasFeatures);
+      if (!canDraw && !canQuery) {
+        this.note(area, info.hasQuery ? "This ArcGIS service gives neither images nor GeoJSON features (ArcGIS before 10.4): it cannot be added." : "This ArcGIS service gives neither images nor features: it cannot be added.", "info");
+        return;
+      }
+      countEl.textContent = layerCount(layers.length);
+
+      // The webview fetches the tiles of a plugin tile layer itself, so a
+      // server without CORS headers would leave the layer blank: one small
+      // image from the browser tells, and the native client tells a server
+      // error from a missing header.
+      let drawProblem: string | null = null;
+      if (canDraw) {
+        this.note(area, "Checking that the service draws in GeoLibre…", "busy");
+        const probe = arcgisExportUrl(arcgis, null, probeBbox3857(record.bbox), 64);
+        if (!(await browserGetsImage(probe))) {
+          drawProblem = (await answersWithImage(this.app, probe))
+            ? "The server draws the map, but does not let GeoLibre show it (no CORS header in its answer)."
+            : "The server did not draw a test image in EPSG:3857.";
+        }
+      }
+
+      const byName = new Map(layers.map((l) => [l.name, l]));
+      const wanted = image ? "0" : wantedLayer(record, service, layers);
+      const { list, controls, selected, nameOf, setOnMap } = this.layerList(
+        layers,
+        wanted,
+        service.url,
+        "multi",
+        "ArcGIS layers",
+        ARCGIS_KIND,
+        () => null,
+        (name) => scaleNote(byName.get(name)!),
+      );
+      const add = h("button", { className: "ordt-button ordt-primary", type: "button" });
+      const addFeatures = h("button", { className: "ordt-button", type: "button" }, "Add features");
+      const inView = h("input", { type: "checkbox", checked: true });
+      const result = h("p", { className: "ordt-note", hidden: true });
+      const sync = () => {
+        const count = selected().length;
+        add.disabled = !!drawProblem || count === 0;
+        add.textContent = count ? `Add to map (${count})` : "Select a layer";
+        const one = count === 1 ? byName.get(selected()[0])! : null;
+        addFeatures.disabled = !one?.hasFeatures;
+        addFeatures.title = !one ? "Tick one layer: its features are downloaded" : one.hasFeatures ? "" : "A raster layer: it has no features to download";
+      };
+      list.addEventListener("change", sync);
+
+      add.addEventListener("click", () => {
+        const already = selected().filter((name) => this.wmsOnMap(arcgis.serviceUrl, name));
+        const names = selected().filter((name) => !already.includes(name));
+        const failed: string[] = [];
+        for (const name of names) {
+          try {
+            const id = this.app.addTileLayer!(nameOf(name), arcgisExportUrl(arcgis, image ? null : name, "{bbox-epsg-3857}", 256), {
+              attribution: info.copyright || undefined,
+            });
+            this.addedWms.set(`${arcgis.serviceUrl}|${name}`, id);
+            setOnMap(name, true);
+          } catch (error) {
+            failed.push(`${nameOf(name)}: ${errorMessage(error)}`);
+          }
+        }
+        const added = names.length - failed.length;
+        result.hidden = false;
+        result.dataset.kind = failed.length ? "error" : "info";
+        result.textContent = [
+          names.length > 0 && `Added ${added} of ${names.length} ${names.length === 1 ? "layer" : "layers"}, named with their titles.`,
+          already.length > 0 &&
+            `Already on the map, not added again: ${already.map(nameOf).join("; ")}. Remove ${already.length === 1 ? "it" : "them"} from Layers to add ${already.length === 1 ? "it" : "them"} again.`,
+          ...failed.map((f) => `Could not add ${f}`),
+        ]
+          .filter(Boolean)
+          .join(" ");
+      });
+
+      addFeatures.addEventListener("click", () => {
+        void (async () => {
+          const name = selected()[0];
+          if (selected().length !== 1) return;
+          const view = inView.checked ? this.app.getViewBounds?.() ?? null : null;
+          const bbox = view ? clampBbox(view) : null;
+          addFeatures.disabled = true;
+          result.hidden = false;
+          result.dataset.kind = "busy";
+          result.textContent = "Counting features…";
+          try {
+            await this.addArcgisFeatures(arcgis, name, nameOf(name), bbox, result);
+          } catch (error) {
+            const message = `ArcGIS error: ${errorMessage(error)}`;
+            result.dataset.kind = "error";
+            result.textContent = message;
+            result.append(" ", reportControl(record, service, message));
+            this.logError(record, service, message);
+          } finally {
+            sync();
+          }
+        })();
+      });
+
+      for (const name of layers.map((l) => l.name)) if (this.wmsOnMap(arcgis.serviceUrl, name)) setOnMap(name, true);
+      const drawRow = canDraw
+        ? [
+            ...(drawProblem ? [h("p", { className: "ordt-note", "data-kind": "error" }, drawProblem)] : []),
+            h("div", { className: "ordt-row ordt-small" }, add, h("span", { className: "ordt-muted" }, "added as images, with their titles as layer names")),
+          ]
+        : [h("p", { className: "ordt-note" }, "This service gives no images, only features.")];
+      const featureRow = canQuery
+        ? [
+            h("label", { className: "ordt-check ordt-small" }, inView, "Only features in the current map view"),
+            h("div", { className: "ordt-row ordt-small" }, addFeatures, h("span", { className: "ordt-muted" }, "of the one ticked layer")),
+          ]
+        : !image && info.hasQuery
+          ? [h("p", { className: "ordt-note" }, "Features cannot be downloaded: the service gives no GeoJSON (ArcGIS before 10.4).")]
+          : [];
+      area.replaceChildren(
+        ...controls.filter((c) => c.tagName === "INPUT"),
+        list,
+        ...controls.filter((c) => c.tagName !== "INPUT"),
+        ...drawRow,
+        ...featureRow,
+        result,
+      );
+      showTicked(list);
+      sync();
+    } catch (error) {
+      // A REST endpoint the record does not declare is a guess: its absence is not a fault to report.
+      if (service.derivedFrom) this.note(area, `The ArcGIS REST endpoint of this WMTS cannot be read: ${errorMessage(error)}.`, "info");
+      else this.note(area, `ArcGIS error: ${errorMessage(error)}`, "error", { record, service });
+    }
+  }
+
+  /**
+   * Download one ArcGIS layer's features as GeoJSON, page by page (servers
+   * return at most `maxRecordCount` features a request, often 1,000), asking
+   * first above WFS_MAX_FEATURES as for a WFS.
+   */
+  private async addArcgisFeatures(arcgis: ArcgisUrl, layerId: string, layerName: string, bbox: Bbox | null, result: HTMLElement): Promise<void> {
+    const layerUrl = `${arcgis.serviceUrl}/${layerId}`;
+    const layer = parseArcgisLayer(await fetchJson(this.app, `${layerUrl}?f=json`));
+    let total: number | null = null;
+    try {
+      total = parseArcgisCount(await fetchJson(this.app, arcgisQueryUrl(layerUrl, { bbox, count: true })));
+    } catch {
+      // A failed count must not block the download.
+    }
+    if (total === 0) {
+      result.dataset.kind = "info";
+      result.textContent = bbox ? "No features in the current map view." : "The service returned no features.";
+      return;
+    }
+    let limit = WFS_MAX_FEATURES;
+    if (total !== null && total > WFS_MAX_FEATURES) {
+      const choice = await askChoice(
+        result,
+        `${total.toLocaleString("en")} features in this area. Downloading them all can be slow and use a lot of memory.`,
+        [
+          { value: "all", label: "Download all" },
+          { value: "first", label: `First ${WFS_MAX_FEATURES.toLocaleString("en")} only` },
+          { value: "cancel", label: "Cancel" },
+        ],
+      );
+      if (choice === "cancel") {
+        result.dataset.kind = "info";
+        result.textContent = "Download cancelled.";
+        return;
+      }
+      if (choice === "all") limit = total;
+    }
+    const target = Math.min(limit, total ?? limit);
+    const features: FeatureCollection["features"] = [];
+    let partial = false;
+    for (let page = 0; features.length < target; page++) {
+      result.dataset.kind = "busy";
+      result.textContent = `Downloading features… ${features.length.toLocaleString("en")}${total !== null ? ` of ${target.toLocaleString("en")}` : ""}`;
+      const want = Math.min(layer.pageSize, target - features.length);
+      const url = arcgisQueryUrl(layerUrl, layer.paginates ? { bbox, offset: features.length, limit: want } : { bbox });
+      const data = await fetchJson(this.app, url, { download: true });
+      if (!isFeatureCollection(data)) {
+        throwArcgisError(data);
+        throw new Error("the response is not a GeoJSON FeatureCollection");
+      }
+      features.push(...data.features.slice(0, target - features.length));
+      // Without paging the server gives its first page only.
+      if (!layer.paginates) {
+        partial = total !== null ? features.length < total : data.features.length >= layer.pageSize;
+        break;
+      }
+      if (data.features.length < want || page > 1000) break;
+    }
+    if (!features.length) {
+      result.dataset.kind = "info";
+      result.textContent = bbox ? "No features in the current map view." : "The service returned no features.";
+      return;
+    }
+    this.app.addGeoJsonLayer!(layerName, { type: "FeatureCollection", features });
+    const added = features.length;
+    result.dataset.kind = "info";
+    result.textContent =
+      total !== null && added < total
+        ? `Added ${added.toLocaleString("en")} of ${total.toLocaleString("en")} features: the map is incomplete${partial ? ", the server gives one page only" : ""}; zoom in for the rest.`
+        : partial
+          ? `Added ${added.toLocaleString("en")} features: the server gives one page only, the map may be incomplete; zoom in for the rest.`
+          : `Added ${added.toLocaleString("en")} features.`;
   }
 
   /** How many features a download would match, or null when the server cannot tell. */

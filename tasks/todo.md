@@ -1,3 +1,41 @@
+# Plan - ArcGIS REST services (MapServer, ImageServer, FeatureServer)
+
+## Context (2026-10-01)
+
+GeoLibre adds ArcGIS REST from its Add Data dialog; plugins do not get `addArcGISLayer`, but `addTileLayer` on the service's `export` request does what it does for images, and `query?f=geojson` gives features. 653 records link ArcGIS but no WMS/WFS; 444 of them have a live service drawing EPSG:3857.
+
+## Phase 0 - Does it hold (done)
+
+- [x] `addTileLayer` keeps `{bbox-epsg-3857}` (`proxyWmsTiles` touches only `wms`); GeoLibre's own ArcGIS layers use direct tiles too → verify: GeoLibre 3.1.0 source
+- [x] CORS on `export` with Origin `http://tauri.localhost` → verify: 175 of 176 usable services
+
+## Phase 1 - Images (done)
+
+- [x] `arcgis.ts`: links, service description, errors with HTTP 200, `export` URL, scale note → verify: `tests/arcgis.test.ts` with live fixtures
+- [x] kind "ArcGIS REST" in `records.ts`, one group per service with the layer as hint → verify: tests
+- [x] `openArcgis`: layer list, browser test image (CORS), Add to map (N) → verify: panel tests, headless on Arpae, Lombardy, Piemonte, Milano
+
+## Phase 2 - Features (done)
+
+- [x] count, pages of `maxRecordCount`, 10,000 question, raster layers excluded → verify: headless, Arpae 2,006 features in 3 pages
+
+## Phase 3 - Search (done)
+
+- [x] "Available as" ArcGIS REST pill (regex on `links_s`) → verify: 1,621 records, filter = badge on 2,000 records
+- [x] REST endpoint derived from ArcGIS WMTS → verify: Arpa Piemonte NDVI
+
+## Phase 4 - Wrap-up
+
+- [x] README, Search help, LOG
+- [x] test in GeoLibre Desktop (user): Arpae Depuratori 2023 drawn, Diagnostics 0
+
+## Unresolved questions
+
+- ask upstream to expose `addArcGISLayer` to plugins (cached tiles, legend)?
+- report the 133 Milano records with a host gone to RNDT?
+
+---
+
 # Plan - fill the search form from a curl command or an RNDT URL (reverse of the `curl` button)
 
 ## Context (2026-10-01)

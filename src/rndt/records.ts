@@ -1,4 +1,5 @@
 import type { Feature, FeatureCollection } from "geojson";
+import { ARCGIS_KIND, parseArcgisUrl } from "./arcgis";
 import type { Bbox } from "./query";
 
 /** Kind of a resource attached to a record. */
@@ -68,6 +69,18 @@ export function parseEmails(value: unknown): string[] {
   return Array.from(new Set(found.filter((v) => /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(v))));
 }
 
+/**
+ * The catalogue calls "MapServer" both an ArcGIS REST service and the WMTS or
+ * WCS under it (`…/MapServer/WMTS/1.0.0/WMTSCapabilities.xml`): for such a
+ * kind the URL tells which one it is. The SOAP endpoint (`…/services/…/
+ * MapServer`, no `rest`) keeps the catalogue's name.
+ */
+function arcgisKind(kind: ServiceKind, url: string): ServiceKind {
+  if (!/^(?:Map|Image|Feature)Server$/i.test(kind)) return kind;
+  const inferred = inferKind(url);
+  return inferred === "link" ? kind : inferred;
+}
+
 /** Guess a resource kind from its URL (SERVICE parameter, path, extension). */
 export function inferKind(url: string): ServiceKind {
   let parsed: URL;
@@ -88,6 +101,7 @@ export function inferKind(url: string): ServiceKind {
     if (path.includes("wfs")) return "WFS";
   }
   if (DOWNLOAD_EXTENSIONS.some((ext) => path.endsWith(ext))) return "download";
+  if (parseArcgisUrl(url)) return ARCGIS_KIND;
   if (path.includes("wmts")) return "WMTS";
   if (path.includes("wms")) return "WMS";
   if (path.includes("wfs")) return "WFS";
@@ -128,7 +142,7 @@ export function extractServices(result: Json): RndtService[] {
     const url = typeof item.url_s === "string" ? item.url_s : "";
     let kind = typeof item.url_type_s === "string" ? normalizeKind(item.url_type_s) : "link";
     if (kind === "link") kind = inferKind(url);
-    push(kind, url);
+    push(arcgisKind(kind, url), url);
   }
 
   const links = Array.isArray(result.links) ? result.links : [];
@@ -137,7 +151,7 @@ export function extractServices(result: Json): RndtService[] {
     const href = typeof link.href === "string" ? link.href : "";
     if (!href || NON_RESOURCE_RELS.has(String(link.rel))) continue;
     const kind = typeof link.dctype === "string" ? normalizeKind(link.dctype) : inferKind(href);
-    push(kind, href);
+    push(arcgisKind(kind, href), href);
   }
 
   for (const key of ["webServices_s", "links_s"]) {

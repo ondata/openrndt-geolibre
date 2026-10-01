@@ -19,7 +19,7 @@
 
 export type ResourceKind = "all" | "data" | "services";
 /** Link types a record can offer, whatever its record type. */
-export type LinkKind = "WMS" | "WFS";
+export type LinkKind = "WMS" | "WFS" | "ArcGIS REST";
 export type TextMode = "all" | "any" | "lucene";
 /** Intersects: the record's extent touches the box; Within: it lies entirely inside. */
 export type SpatialRel = "Intersects" | "Within";
@@ -175,6 +175,15 @@ function dateClause(form: SearchForm): string | null {
  * box), so callers can show the message instead of sending a query the
  * catalogue would silently ignore (a malformed bbox returns the whole catalogue).
  */
+/**
+ * A link to an ArcGIS REST service or layer (`…/rest/services/…/MapServer`,
+ * `…/MapServer/3`, with a query string or not), as a Lucene regular
+ * expression, which must match the whole link. A wildcard cannot say it: a
+ * `/` after the `*` does not parse, and `*MapServer*` also takes the WMS and
+ * WMTS under the service. 1,621 records on 2026-10-01.
+ */
+const ARCGIS_REST_PATTERN = "/http.*\\/rest\\/services\\/.*(Map|Image|Feature)Server(\\/[0-9]+)?\\/?(\\?.*)?/";
+
 export function buildQuery(form: SearchForm): BuiltQuery {
   const clauses: string[] = [];
 
@@ -203,6 +212,7 @@ export function buildQuery(form: SearchForm): BuiltQuery {
   // the plugin cannot open (Monte Argentario, San Giovanni Valdarno).
   if (form.availableAs.length) {
     const patterns = form.availableAs.flatMap((kind) => {
+      if (kind === "ArcGIS REST") return [ARCGIS_REST_PATTERN];
       const lower = kind.toLowerCase();
       return [lower, kind, `${lower[0].toUpperCase()}${lower.slice(1)}`].map((k) => `http*${k}*`);
     });

@@ -299,18 +299,23 @@ export function arcgisWmsFromWmts(url: string): string | null {
   return match ? `${match[1]}/services/${match[2]}/${match[3]}/WMSServer` : null;
 }
 
-/**
- * A GetMap for a small tile in EPSG:3857 at the centre of `bbox` (WGS84), to
- * test whether a server draws a layer in that system when it does not declare
- * it (ArcGIS servers often serve it anyway).
- */
-export function probeGetMapUrl(getMapUrl: string, version: string, layer: string, bbox: Bbox | null): string {
+/** A 4 km square in EPSG:3857 at the centre of `bbox` (WGS84), as `minx,miny,maxx,maxy`. */
+export function probeBbox3857(bbox: Bbox | null): string {
   const [w, s, e, n] = bbox ?? [12, 41.5, 13, 42.5];
   const lon = (w + e) / 2;
   const lat = Math.max(-85, Math.min(85, (s + n) / 2));
   const x = (lon * 20037508.34) / 180;
   const y = (Math.log(Math.tan(((90 + lat) * Math.PI) / 360)) / (Math.PI / 180)) * (20037508.34 / 180);
   const half = 2000; // metres: a 4 km tile
+  return [x - half, y - half, x + half, y + half].map((v) => v.toFixed(2)).join(",");
+}
+
+/**
+ * A GetMap for a small tile in EPSG:3857 at the centre of `bbox` (WGS84), to
+ * test whether a server draws a layer in that system when it does not declare
+ * it (ArcGIS servers often serve it anyway).
+ */
+export function probeGetMapUrl(getMapUrl: string, version: string, layer: string, bbox: Bbox | null): string {
   const v13 = version.startsWith("1.3");
   const url = new URL(getMapUrl);
   const params: [string, string][] = [
@@ -320,7 +325,7 @@ export function probeGetMapUrl(getMapUrl: string, version: string, layer: string
     ["LAYERS", layer],
     ["STYLES", ""],
     [v13 ? "CRS" : "SRS", "EPSG:3857"],
-    ["BBOX", [x - half, y - half, x + half, y + half].map((v) => v.toFixed(2)).join(",")],
+    ["BBOX", probeBbox3857(bbox)],
     ["WIDTH", "64"],
     ["HEIGHT", "64"],
     ["FORMAT", "image/png"],

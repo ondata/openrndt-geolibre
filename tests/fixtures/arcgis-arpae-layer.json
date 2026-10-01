@@ -1,0 +1,14 @@
+{
+  "currentVersion": 10.91,
+  "id": 1,
+  "name": "Depuratori - ed.2023",
+  "type": "Feature Layer",
+  "geometryType": "esriGeometryPoint",
+  "copyrightText": "",
+  "capabilities": "Map,Query,Data",
+  "maxRecordCount": 1000,
+  "supportedQueryFormats": "JSON, geoJSON",
+  "advancedQueryCapabilities": {
+    "supportsPagination": true
+  }
+}

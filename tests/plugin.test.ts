@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import plugin from "../src/geolibre";
 import type { GeoLibreRightPanelRegistration } from "../src/lib/geolibre/host-api";
 import { PANEL_ID } from "../src/rndt/constants";
@@ -1361,12 +1361,12 @@ describe("WMS derived from an ArcGIS WMTS", () => {
     return { ...ctx, item };
   }
 
-  it("lists the WMS of the same service, marked as not declared", async () => {
+  it("lists the WMS and the REST endpoint of the same service, marked as not declared", async () => {
     const caps = `<WMS_Capabilities version="1.3.0"><Capability><Request><GetMap><DCPType><HTTP><Get><OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://www.cartografia.servizirl.it/arcgis2/services/BaseMap/ortofoto2003/ImageServer/WMSServer"/></Get></HTTP></DCPType></GetMap></Request>
 <Layer><CRS>EPSG:3857</CRS><Layer><Name>0</Name><Title>ortofoto2003</Title><CRS>EPSG:3857</CRS></Layer></Layer></Capability></WMS_Capabilities>`;
     const { item, requested } = await open(() => caps);
     const kinds = Array.from(item.querySelectorAll(".ordt-service .ordt-badge-service"), (b) => b.textContent);
-    expect(kinds).toEqual(["WMTS", "WMS"]);
+    expect(kinds).toEqual(["WMTS", "WMS", "ArcGIS REST"]);
     expect(requested.some((u) => u.startsWith("https://www.cartografia.servizirl.it/arcgis2/services/BaseMap/ortofoto2003/ImageServer/WMSServer?"))).toBe(true);
     expect(item.textContent).toContain("Not declared in the record");
     expect(item.querySelectorAll('[aria-label="WMS layers"] input')).toHaveLength(1);
@@ -1380,5 +1380,96 @@ describe("WMS derived from an ArcGIS WMTS", () => {
     });
     expect(item.textContent).toContain("This ArcGIS service offers no WMS");
     expect(item.querySelector(".ordt-report")).toBeNull();
+  });
+});
+
+describe("ArcGIS REST services", () => {
+  const ARPAE = "https://servizi-gis.arpae.it/server/rest/services/Geoportal/ACQUEPressioni/MapServer";
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]).buffer;
+  const search = JSON.stringify({
+    total: 1,
+    start: 1,
+    results: [
+      {
+        id: "arpa:depuratori",
+        title: "Depuratori - ed.2023",
+        _source: { apiso_Type_s: "dataset", links_s: [ARPAE, `${ARPAE}/1`] },
+      },
+    ],
+  });
+  const feature = (i: number) => ({ type: "Feature", id: i, geometry: { type: "Point", coordinates: [9.4, 44.9] }, properties: { i } });
+
+  async function open(answer: (url: string) => string | ArrayBuffer, browserDraws = true) {
+    vi.stubGlobal("fetch", async () => (browserDraws ? new Response(png) : Promise.reject(new TypeError("Failed to fetch"))));
+    const ctx = createHost(() => "");
+    ctx.host.fetchArrayBuffer = vi.fn(async (url: string) => {
+      ctx.requested.push(url);
+      if (url.includes("/rest/metadata/search")) return encode(search);
+      const out = answer(url);
+      return typeof out === "string" ? encode(out) : out;
+    });
+    ctx.host.addTileLayer = vi.fn(() => "tile-1");
+    plugin.activate(ctx.host);
+    const container = document.createElement("div");
+    document.body.append(container);
+    ctx.getPanel()!.render(container);
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const item = openDetail(container.querySelector<HTMLElement>(".ordt-result")!);
+    for (let i = 0; i < 6; i++) await flush();
+    return { ...ctx, item };
+  }
+
+  const service = (url: string) =>
+    url.startsWith(`${ARPAE}?f=json`) ? fixture("arcgis-arpae-mapserver.json") : /\/export\?/.test(url) ? png : "{}";
+  const button = (item: HTMLElement, text: string | RegExp) =>
+    Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find((b) => (typeof text === "string" ? b.textContent === text : text.test(b.textContent!)))!;
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("lists the service once, with the linked layer ticked, and adds it as an image", async () => {
+    const { host, item } = await open(service);
+    expect(Array.from(item.querySelectorAll(".ordt-service .ordt-badge-service"), (b) => b.textContent)).toEqual(["ArcGIS REST"]);
+    const boxes = item.querySelectorAll<HTMLInputElement>('[aria-label="ArcGIS layers"] input');
+    expect(boxes).toHaveLength(16);
+    expect(Array.from(boxes).filter((b) => b.checked).map((b) => b.value)).toEqual(["1"]);
+    button(item, "Add to map (1)").click();
+    expect(host.addTileLayer).toHaveBeenCalledWith("Depuratori - ed.2023", expect.stringContaining(`${ARPAE}/export?bbox={bbox-epsg-3857}&`), expect.anything());
+    expect(vi.mocked(host.addTileLayer!).mock.calls[0][1]).toContain("layers=show%3A1");
+    expect(item.querySelector('[aria-label="ArcGIS layers"] .ordt-layer-tag')!.textContent).toBe("on the map");
+  });
+
+  it("keeps Add to map off, and says why, when the browser cannot get the images", async () => {
+    const { item } = await open(service, false);
+    expect(button(item, "Add to map (1)").disabled).toBe(true);
+    expect(item.textContent).toContain("no CORS header");
+  });
+
+  it("downloads the ticked layer's features page by page", async () => {
+    const { host, item, requested } = await open((url) => {
+      if (url.startsWith(`${ARPAE}/1?f=json`)) return fixture("arcgis-arpae-layer.json");
+      if (url.includes("returnCountOnly=true")) return JSON.stringify({ count: 2500 });
+      if (url.includes("/1/query?")) {
+        const offset = Number(new URL(url).searchParams.get("resultOffset"));
+        const n = Math.min(1000, 2500 - offset);
+        return JSON.stringify({ type: "FeatureCollection", features: Array.from({ length: n }, (_, i) => feature(offset + i)) });
+      }
+      return service(url);
+    });
+    button(item, "Add features").click();
+    for (let i = 0; i < 12; i++) await flush();
+    const pages = requested.filter((u) => u.includes("f=geojson")).map((u) => new URL(u).searchParams.get("resultOffset"));
+    expect(pages).toEqual(["0", "1000", "2000"]);
+    expect(requested.find((u) => u.includes("returnCountOnly"))).toContain("geometry=12%2C41%2C13%2C42");
+    const [name, data] = vi.mocked(host.addGeoJsonLayer!).mock.calls[0];
+    expect(name).toBe("Depuratori - ed.2023");
+    expect(data.features).toHaveLength(2500);
+    expect(item.textContent).toContain("Added 2,500 features.");
+  });
+
+  it("reports a service that needs a login", async () => {
+    const { item } = await open(() => JSON.stringify({ error: { code: 499, message: "Token Required", details: [] } }));
+    expect(item.textContent).toContain('ArcGIS error: the server answers 499, "Token Required" (the service needs a login)');
+    expect(item.querySelector(".ordt-report")).not.toBeNull();
   });
 });

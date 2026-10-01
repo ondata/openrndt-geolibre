@@ -1,0 +1,170 @@
+{
+  "currentVersion": 10.91,
+  "serviceDescription": "",
+  "mapName": "ACQUE - Fattori di pressione",
+  "copyrightText": "",
+  "layers": [
+    {
+      "id": 0,
+      "name": "Depuratori",
+      "parentLayerId": -1,
+      "subLayerIds": null,
+      "minScale": 0,
+      "maxScale": 0,
+      "type": "Feature Layer"
+    },
+    {
+      "id": 1,
+      "name": "Depuratori - ed.2023",
+      "parentLayerId": -1,
+      "subLayerIds": null,
+      "minScale": 0,
+      "maxScale": 0,
+      "type": "Feature Layer"
+    },
+    {
+      "id": 2,
+      "name": "Depuratori - ed.2021",
+      "parentLayerId": -1,
+      "subLayerIds": null,
+      "minScale": 0,
+      "maxScale": 0,
+      "type": "Feature Layer"
+    },
+    {
+      "id": 3,
+      "name": "Depuratori - ed.2019",
+      "parentLayerId": -1,
+      "subLayerIds": null,
+      "minScale": 0,
+      "maxScale": 0,
+      "type": "Feature Layer"
+    },
+    {
+      "id": 4,
+      "name": "Depuratori >= 2000 a.e. - ed.2016",
+      "parentLayerId": -1,
+      "subLayerIds": null,
+      "minScale": 0,
+      "maxScale": 0,
+      "type": "Feature Layer"
+    },
+    {
+      "id": 5,
+      "name": "Depuratori 200-1999 a.e. - ed.2016",
+      "parentLayerId": -1,
+      "subLayerIds": null,
+      "minScale": 0,
+      "maxScale": 0,
+      "type": "Feature Layer"
+    },
+    {
+      "id": 6,
+      "name": "Agglomerati urbani >= 50 a.e.",
+      "parentLayerId": -1,
+      "subLayerIds": null,
+      "minScale": 0,
+      "maxScale": 0,
+      "type": "Feature Layer"
+    },
+    {
+      "id": 7,
+      "name": "Agglomerati urbani<50 a.e.",
+      "parentLayerId": -1,
+      "subLayerIds": null,
+      "minScale": 0,
+      "maxScale": 0,
+      "type": "Feature Layer"
+    },
+    {
+      "id": 8,
+      "name": "Agglomerati urbani >= 50 a.e. - ed.2023",
+      "parentLayerId": -1,
+      "subLayerIds": null,
+      "minScale": 0,
+      "maxScale": 0,
+      "type": "Feature Layer"
+    },
+    {
+      "id": 9,
+      "name": "Agglomerati urbani<50 a.e. - ed.2023",
+      "parentLayerId": -1,
+      "subLayerIds": null,
+      "minScale": 0,
+      "maxScale": 0,
+      "type": "Feature Layer"
+    },
+    {
+      "id": 10,
+      "name": "Agglomerati urbani >= 50 a.e. - ed.2021",
+      "parentLayerId": -1,
+      "subLayerIds": null,
+      "minScale": 0,
+      "maxScale": 0,
+      "type": "Feature Layer"
+    },
+    {
+      "id": 11,
+      "name": "Agglomerati urbani<50 a.e. - ed.2021",
+      "parentLayerId": -1,
+      "subLayerIds": null,
+      "minScale": 0,
+      "maxScale": 0,
+      "type": "Feature Layer"
+    },
+    {
+      "id": 12,
+      "name": "Agglomerati urbani >= 50 a.e. - ed.2018",
+      "parentLayerId": -1,
+      "subLayerIds": null,
+      "minScale": 0,
+      "maxScale": 0,
+      "type": "Feature Layer"
+    },
+    {
+      "id": 13,
+      "name": "Agglomerati urbani<50 a.e. - ed.2018",
+      "parentLayerId": -1,
+      "subLayerIds": null,
+      "minScale": 0,
+      "maxScale": 0,
+      "type": "Feature Layer"
+    },
+    {
+      "id": 14,
+      "name": "Agglomerati urbani >= 2000 a.e. - ed.2016",
+      "parentLayerId": -1,
+      "subLayerIds": null,
+      "minScale": 0,
+      "maxScale": 0,
+      "type": "Feature Layer"
+    },
+    {
+      "id": 15,
+      "name": "Agglomerati urbani 200-1999 a.e. - ed.2016",
+      "parentLayerId": -1,
+      "subLayerIds": null,
+      "minScale": 0,
+      "maxScale": 0,
+      "type": "Feature Layer"
+    }
+  ],
+  "spatialReference": {
+    "wkid": 25832,
+    "latestWkid": 25832
+  },
+  "fullExtent": {
+    "xmin": 516021.764,
+    "ymin": 4849940.9653,
+    "xmax": 801311.4782,
+    "ymax": 4996573.1425,
+    "spatialReference": {
+      "wkid": 25832,
+      "latestWkid": 25832
+    }
+  },
+  "capabilities": "Map,Query,Data",
+  "supportedQueryFormats": "JSON, geoJSON",
+  "maxRecordCount": 1000,
+  "singleFusedMapCache": false
+}
