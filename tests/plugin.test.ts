@@ -471,6 +471,36 @@ describe("RNDT panel", () => {
     expect(new URL(requested.at(-1)!).searchParams.get("q")).toMatch(/^EnteResponsabile_s:/);
   });
 
+  it("opens a record from its id, whatever the filters", async () => {
+    const all = JSON.parse(fixture("search-alberi.json"));
+    const one = JSON.stringify({ ...all, total: 1, results: all.results.slice(0, 1) });
+    const id = all.results[0].id as string;
+    const { requested, container } = await mountPanel(() => one);
+    container.querySelector<HTMLInputElement>('input[name="text"]')!.value = id;
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    expect(requested).toHaveLength(1);
+    const url = new URL(requested[0]);
+    expect(url.searchParams.get("q")).toBe(`(fileid:"${id}")`);
+    expect(url.searchParams.get("bbox")).toBeNull();
+    const detail = container.querySelector<HTMLElement>(".ordt-detail-view")!;
+    expect(detail.hidden).toBe(false);
+    expect(detail.textContent).toContain(all.results[0].title);
+    expect(chipLabels(container)).toEqual([]);
+  });
+
+  it("searches as usual when the id-like text is not a record id", async () => {
+    const { requested, container } = await mountPanel((url) =>
+      url.includes("fileid") ? JSON.stringify({ start: 1, num: 20, total: 0, results: [] }) : fixture("search-alberi.json"),
+    );
+    container.querySelector<HTMLInputElement>('input[name="text"]')!.value = "keywords_s:alberi";
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    expect(requested).toHaveLength(2);
+    expect(new URL(requested[1]).searchParams.get("q")).not.toContain("fileid");
+    expect(container.querySelectorAll(".ordt-result")).toHaveLength(5);
+  });
+
   it("shows form errors without calling the catalogue", async () => {
     const { requested, container } = await mountPanel(() => "{}");
     container.querySelector<HTMLSelectElement>('select[name="where"]')!.value = "box";

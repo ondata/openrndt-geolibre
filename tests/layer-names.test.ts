@@ -5,6 +5,8 @@ import { RNDT_BASE_URL } from "../src/rndt/constants";
 import type { RndtHost } from "../src/rndt/host";
 import {
   findTitle,
+  improvesTitle,
+  isDamagedTitle,
   isReadableTitle,
   layerCodeUrl,
   layerTitlesUrl,
@@ -40,6 +42,30 @@ describe("readable titles", () => {
   it("gives the capabilities title only when it reads as a name", () => {
     expect(readableTitle("M2185:L7015", "Ciclovie")).toBe("Ciclovie");
     expect(readableTitle("RIFIUTI:ADM", "ADM")).toBeNull();
+  });
+});
+
+describe("damaged titles (U+FFFD from the server)", () => {
+  const damaged = "Terre di uso civico a Rover\uFFFD Veronese (VR)";
+
+  it("spots the lost letter", () => {
+    expect(isDamagedTitle(damaged)).toBe(true);
+    expect(isDamagedTitle("Terre di uso civico a Roverè Veronese (VR)")).toBe(false);
+  });
+
+  it("takes any RNDT title when there is none", () => {
+    expect(improvesTitle("rv:x", null, "c11023040561_RovereVer")).toBe(true);
+  });
+
+  it("replaces a damaged title only with a whole, readable one", () => {
+    const name = "rv:s1_ps_veneto_est_asc_04feb2023";
+    expect(improvesTitle(name, "Velocit\uFFFD media", "Velocità media di deformazione del terreno")).toBe(true);
+    expect(improvesTitle("rv:c11023040561_roverever", damaged, "c11023040561_RovereVer")).toBe(false);
+    expect(improvesTitle(name, "Velocit\uFFFD media", "Velocit\uFFFD media di deformazione")).toBe(false);
+  });
+
+  it("keeps a whole title", () => {
+    expect(improvesTitle("PPR:v_alberi", "Alberi monumentali", "Alberi monumentali e notevoli")).toBe(false);
   });
 });
 

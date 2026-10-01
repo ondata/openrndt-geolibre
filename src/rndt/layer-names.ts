@@ -44,6 +44,25 @@ export function isReadableTitle(name: string, title: string): boolean {
   return /^[\p{L}'’-]{3,}$/u.test(t);
 }
 
+/**
+ * True when the title holds U+FFFD: a letter was lost on the server, not in
+ * decoding. Veneto's GeoServer (2026-10-01) serves 24 such titles, "Rover�
+ * Veronese", and RNDT has the whole one for 11 of them.
+ */
+export function isDamagedTitle(title: string): boolean {
+  return title.includes("�");
+}
+
+/**
+ * Whether an RNDT title should replace the current one: always when there is
+ * none, and over a damaged title only when it reads as a name and is whole
+ * (for Roverè RNDT has only the code `c11023040561_RovereVer`).
+ */
+export function improvesTitle(name: string, current: string | null | undefined, candidate: string): boolean {
+  if (!current) return true;
+  return isDamagedTitle(current) && isReadableTitle(name, candidate) && !isDamagedTitle(candidate);
+}
+
 /** The capabilities title when it reads as a name, else null. */
 export function readableTitle(name: string, title: string): string | null {
   return isReadableTitle(name, title) ? title.trim() : null;

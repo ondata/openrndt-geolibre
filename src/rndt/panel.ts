@@ -30,7 +30,7 @@ import {
   upgradeToHttps,
   type WfsCapabilities,
 } from "./ogc";
-import { bboxError, buildCurlCommand, buildSearchUrl, clampBbox, emptyForm, type Bbox, type ResourceKind, type LinkKind, type SearchForm, type SpatialRel, type TextMode } from "./query";
+import { bboxError, buildCurlCommand, buildSearchUrl, clampBbox, emptyForm, idForm, recordIdIn, type Bbox, type ResourceKind, type LinkKind, type SearchForm, type SpatialRel, type TextMode } from "./query";
 import { footprints, parseSearchResponse, type RndtRecord, type RndtService } from "./records";
 import {
   appendErrorLog,
@@ -43,6 +43,8 @@ import {
 } from "./settings";
 import {
   findTitle,
+  improvesTitle,
+  isDamagedTitle,
   lookupLayerTitleByCode,
   lookupLayerTitles,
   lookupOneLayerTitle,
@@ -862,6 +864,11 @@ export class RndtPanel {
         {},
         "Lucene ignores this choice: write the field in the query, e.g. title:ortofoto.",
       ),
+      h(
+        "p",
+        {},
+        'A record id alone, as "Copy id" gives it (r_veneto:c11023040561_RovereVer), opens that record whatever the filters.',
+      ),
     );
     const fieldSelect = select(SEARCH_FIELDS, "", {
       name: "field",
@@ -1624,19 +1631,20 @@ export class RndtPanel {
   }
 
   private async search(start: number, form?: SearchForm): Promise<void> {
+    // A record id typed or pasted in the search box (as "Copy id" gives it)
+    // opens that record, whatever the filters: "Where" starts from the map view.
+    const id = form ? null : recordIdIn(this.field<HTMLInputElement>("text").value);
     let current: SearchForm;
+    let url: string | null = null;
     try {
       current = form ?? this.readForm();
-    } catch (error) {
-      this.setStatus(errorMessage(error), "error");
-      return;
-    }
-    let url: string;
-    try {
       url = buildSearchUrl(RNDT_BASE_URL, current, start, PAGE_SIZE);
     } catch (error) {
-      this.setStatus(errorMessage(error), "error");
-      return;
+      if (!id) {
+        this.setStatus(errorMessage(error), "error");
+        return;
+      }
+      current = emptyForm();
     }
     const seq = ++this.requestSeq;
     this.setStatus("Searching the RNDT catalogue…", "busy");
@@ -1644,10 +1652,30 @@ export class RndtPanel {
       // A page of 20 results weighs about 1 MB (each carries its whole ISO XML,
       // which the catalogue cannot leave out): past the 8 s native budget of
       // the small-document path on a slow day (2026-09-27), so take the long one.
-      const page = parseSearchResponse(await fetchJson(this.app, url, { download: true }), RNDT_BASE_URL);
+      const fetchPage = async (pageUrl: string) =>
+        parseSearchResponse(await fetchJson(this.app, pageUrl, { download: true }), RNDT_BASE_URL);
+      let page: Awaited<ReturnType<typeof fetchPage>> | null = null;
+      let byId = false;
+      if (id) {
+        const found = await fetchPage(buildSearchUrl(RNDT_BASE_URL, idForm(id), 1, PAGE_SIZE));
+        if (found.total === 1) {
+          [page, current, start, byId] = [found, idForm(id), 1, true];
+        }
+      }
+      if (!page) {
+        // Not an id after all: the form's own error, if it had one.
+        if (!url) throw new Error(`No record with id ${id}, and the form cannot be searched.`);
+        page = await fetchPage(url);
+      }
       if (seq !== this.requestSeq) return; // a newer search is running
       this.lastForm = current;
-      if (!form) {
+      if (byId) {
+        // The filters on the form were not applied: no chips for them.
+        this.chipsEl.replaceChildren();
+        this.summaryEl.hidden = false;
+        this.showFilters(false);
+        this.showHelp(false);
+      } else if (!form) {
         // A search from the form: fold the filters so the results get the room.
         this.renderChips();
         this.summaryEl.hidden = false;
@@ -1663,6 +1691,7 @@ export class RndtPanel {
       this.footprintsOverlay()?.setData(footprints(page.records));
       this.renderResults();
       this.updateFootprintControls();
+      if (byId) this.openDetail(page.records[0].id);
     } catch (error) {
       if (seq !== this.requestSeq) return;
       this.setStatus(`Search failed: ${errorMessage(error)}`, "error");
@@ -2184,25 +2213,30 @@ export class RndtPanel {
       controls.push(filter);
     }
 
+    // A damaged title is shown, but RNDT is still asked for a whole one.
+    const wantsTitle = (name: string) => {
+      const title = readable.get(name);
+      return !title || isDamagedTitle(title);
+    };
     const setTitle = (name: string, title: string) => {
+      if (!improvesTitle(name, readable.get(name), title)) return false;
       readable.set(name, title);
       const r = rows.get(name)!;
       r.title.textContent = title;
       r.code.hidden = false;
       this.markSameNames();
+      return true;
     };
-    if (layers.some((l) => !readable.get(l.name))) {
+    if (layers.some((l) => wantsTitle(l.name))) {
       const status = h("p", { className: "ordt-note", "data-kind": "busy" }, "Looking up readable names in RNDT…");
       controls.push(status);
       void lookupLayerTitles(this.app, RNDT_BASE_URL, serviceUrl).then((lookup) => {
         if (lookup.mode === "all") {
           let found = 0;
           for (const name of rows.keys()) {
-            if (readable.get(name)) continue;
+            if (!wantsTitle(name)) continue;
             const title = findTitle(lookup.found, name);
-            if (!title) continue;
-            setTitle(name, title);
-            found++;
+            if (title && setTitle(name, title)) found++;
           }
           const report = () => {
             status.hidden = found === 0;
@@ -2210,7 +2244,7 @@ export class RndtPanel {
             status.textContent = `Readable names from RNDT for ${found.toLocaleString("en")} of ${layers.length.toLocaleString("en")} layers.`;
           };
           report();
-          const missing = Array.from(rows.keys()).filter((name) => !readable.get(name));
+          const missing = Array.from(rows.keys()).filter(wantsTitle);
           if (!missing.length) return;
           // Some records name the layer only inside their ISO XML: when the
           // user reaches the list, search RNDT for each layer still without a
@@ -2224,9 +2258,7 @@ export class RndtPanel {
             const worker = async () => {
               for (let name = missing.shift(); name; name = missing.shift()) {
                 const title = await lookupLayerTitleByCode(this.app, RNDT_BASE_URL, serviceUrl, name);
-                if (!title) continue;
-                setTitle(name, title);
-                found++;
+                if (title && setTitle(name, title)) found++;
               }
             };
             void Promise.all(Array.from({ length: 4 }, worker)).then(report);
@@ -2239,7 +2271,7 @@ export class RndtPanel {
         // now and on every change; each layer is asked once.
         const asked = new Set<string>();
         const lookupTicked = async () => {
-          const todo = Array.from(rows).filter(([name, r]) => r.input.checked && !readable.get(name) && !asked.has(name));
+          const todo = Array.from(rows).filter(([name, r]) => r.input.checked && wantsTitle(name) && !asked.has(name));
           if (!todo.length) return;
           status.dataset.kind = "busy";
           status.textContent = "Looking up the readable name of the selected layer in RNDT…";

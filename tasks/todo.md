@@ -1,3 +1,32 @@
+# Plan - fill the search form from a curl command or an RNDT URL (reverse of the `curl` button)
+
+## Context (2026-10-01)
+
+The `curl` button copies the search on screen as `curl -sG …/rest/metadata/search --data-urlencode 'q=…' …` (`buildCurlCommand`, `src/rndt/query.ts`). The user wants the reverse: paste a command (or a search URL) into the plugin, get the form filled, run it. The form already has a Lucene text mode (`textMode: "lucene"`), so any clause the plugin did not write can still be kept as raw Lucene.
+
+## Phase 0 - Search by record id (done 2026-10-01)
+
+- [x] an id alone in the search box opens the record (`fileid:"…"`), filters ignored; not an id → normal search → verify: unit and panel tests, live on 3 ids
+
+## Phase 1 - Parser (pure, in `query.ts`)
+
+- [ ] `parseSearchRequest(input)`: accepts the plugin's curl (`-G`, `--data-urlencode`, `-d`, `\` line breaks, single and double quotes) and a plain search URL; returns `q`, `bbox`, `spatialRel`, `sort`, `start` → verify: unit tests on the plugin's own output and on a hand-written URL
+- [ ] `formFromQuery(built)`: splits `q` on top-level `AND` and maps back each clause the plugin writes (text group and field, keywords, organisation with Hide/Only, INSPIRE themes, open data, Available as, date, Type and service types); unknown clauses go together into the text as Lucene → verify: round trip `formFromQuery(parse(buildCurlCommand(form))) == form` on a table of forms covering every field
+- [ ] reject anything that is not an RNDT search (other host or path) with a clear message → verify: test
+
+## Phase 2 - Panel
+
+- [ ] entry point (see questions), fills the form, opens Advanced filters when they are used, runs the search from the `start` in the command → verify: headless, paste a copied curl, same results and same chips as before
+- [ ] message saying which parts became raw Lucene, if any → verify: headless with a hand-written query
+
+## Unresolved questions
+
+- entry point: paste into the search box (detected when it starts with `curl` or holds `/rest/metadata/search`), or an item "Paste curl or URL…" in the ⋯ menu with a text area? I'd go with the search box: no new UI.
+- `num` in the command (page size) ignored, the panel keeps 20?
+- base URL other than `geodati.gov.it/RNDT`: refuse, or accept since the base URL can be changed in openrndt?
+
+---
+
 # Plan - make the repo public for testers (no GeoLibre plugin registry submission yet)
 
 ## Context (2026-09-30)

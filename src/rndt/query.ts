@@ -231,6 +231,21 @@ export function buildQuery(form: SearchForm): BuiltQuery {
   return built;
 }
 
+/**
+ * The text as an RNDT record id, or null. Ids are `<prefix>:<local part>`
+ * and can hold more colons (`r_basili:51db0c0e:15171e5a981:-78ae`): all 500
+ * of a sample had one, none had a space, quote or bracket (2026-10-01).
+ */
+export function recordIdIn(text: string): string | null {
+  const t = text.trim();
+  return /^[^\s:"()]+:[^\s"()]+$/.test(t) ? t : null;
+}
+
+/** A form that finds one record by id, whatever the other filters (`id:` finds nothing, `fileid:` does). */
+export function idForm(id: string): SearchForm {
+  return { ...emptyForm(), textMode: "lucene", text: `fileid:"${escapePhrase(id)}"` };
+}
+
 /** REST parameters for a page of results (JSON format), in request order. */
 function searchParams(form: SearchForm, start: number, num: number): [string, string][] {
   const built = buildQuery(form);

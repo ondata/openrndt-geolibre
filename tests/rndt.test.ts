@@ -14,7 +14,7 @@ import {
   preselectedName,
   supportsWebMercator,
 } from "../src/rndt/ogc";
-import { buildCurlCommand, buildQuery, buildSearchUrl, clampBbox, emptyForm, type Bbox, type SearchForm } from "../src/rndt/query";
+import { buildCurlCommand, buildQuery, buildSearchUrl, clampBbox, emptyForm, idForm, recordIdIn, type Bbox, type SearchForm } from "../src/rndt/query";
 import { extractOtherLinks, extractServices, footprints, inferKind, parseSearchResponse } from "../src/rndt/records";
 
 const fixture = (name: string) => readFileSync(join(__dirname, "fixtures", name), "utf8");
@@ -427,5 +427,23 @@ describe("WMS of an ArcGIS service, from its WMTS", () => {
       "https://webgis.arpa.piemonte.it/ags/services/geologia/Geo_Piemonte_250k/MapServer/WMSServer",
     );
     expect(arcgisWmsFromWmts("https://idt2.regione.veneto.it/gwc/service/wmts")).toBeNull();
+  });
+});
+
+describe("record ids in the search box", () => {
+  it.each([
+    ["r_veneto:c11023040561_RovereVer", "r_veneto:c11023040561_RovereVer"],
+    ["  r_basili:51db0c0e:15171e5a981:-78ae ", "r_basili:51db0c0e:15171e5a981:-78ae"],
+    ["keywords_s:ortofoto", "keywords_s:ortofoto"],
+    ["ortofoto", null],
+    ["uso civico", null],
+    ['title:"uso civico"', null],
+    ["(a:b)", null],
+  ])("%s → %s", (text, expected) => {
+    expect(recordIdIn(text)).toBe(expected);
+  });
+
+  it("finds the record by fileid, with no other filter", () => {
+    expect(buildQuery(idForm("r_veneto:c11023040561_RovereVer"))).toEqual({ q: '(fileid:"r_veneto:c11023040561_RovereVer")' });
   });
 });

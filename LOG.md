@@ -1,5 +1,10 @@
 # LOG
 
+## 2026-10-01
+
+- **Search by record id**: a record id typed or pasted alone in the search box (`<prefix>:<local part>`, as "Copy id" gives it) opens that record in the detail view, with its footprint selected, whatever the filters: "Where" starts from the map view, so a record elsewhere would otherwise be missed. RNDT finds it with `q=fileid:"<id>"` (`id:` finds nothing); checked live on `r_veneto:c11023040561_RovereVer`, `r_basili:51db0c0e:15171e5a981:-78ae` and `age:D_A512_AVERSA`, one result each. All 500 ids of a sample have a colon and none has a space, quote or bracket. Text of that shape that is not an id (`keywords_s:alberi`) gets 0 results and runs as a normal search, one request (about 0.2 s) later. Line in Search help and README.
+- **Layer titles damaged on the server**: Veneto's WMS `idt2-geoserver.regione.veneto.it/geoserver/wms` serves valid UTF-8, but 24 of its 1,330 layer titles hold U+FFFD (bytes `EF BF BD`) where an accented letter was ("Terre di uso civico a Rover� Veronese (VR)", "Velocit� media…"); no title has a whole accented letter. The letter is lost upstream, not a decoding problem. Such a title counted as readable, so RNDT was never asked. Now `isDamagedTitle` marks it: it is still shown, RNDT is asked, and its title replaces it only when it reads as a name and is whole (`improvesTitle`). Live: RNDT gives the whole title for 11 of 24 (the 8 "Velocità media di deformazione…", "Viabilità silvopastorale", "Valutazione dell'accessibilità al bosco", "…Piniè e Peloso di Cadore…"); for Roverè it has only the code `c11023040561_RovereVer`, so the damaged title stays. To report to Regione Veneto.
+
 ## 2026-09-30
 
 - **0.1.0-alpha.6** released as a GitHub pre-release with the zip: WMS derived from ArcGIS WMTS, EPSG:3857 test tile, back link that highlights and shows the card, Clear all from one filter. Checked by the user in GeoLibre Desktop: Lombardy's Ortofoto 2024 on the map through the derived WMS.
