@@ -1,5 +1,5 @@
 import type { Feature, FeatureCollection, Geometry, Position } from "geojson";
-import type { Bbox } from "./query";
+import { bboxError, type Bbox } from "./query";
 
 /** Parsing of WMS/WFS GetCapabilities and URL building, framework-free. */
 
@@ -216,6 +216,20 @@ export function parseWmsCapabilities(xml: string, requestUrl: string): WmsCapabi
 /** GeoLibre's plugin `addWmsLayer` requests Web Mercator tiles unless it is given a `crs`. */
 export function supportsWebMercator(layer: WmsLayer): boolean {
   return layer.crs.some((c) => /^EPSG:(3857|900913)$/i.test(c));
+}
+
+/**
+ * The extent to give a WMS layer added from a record: GeoLibre asks tiles
+ * only inside it and zooms to it from the Layers panel. A national service
+ * declares the whole country (the cadastral WMS: 2..19 E, 33..48 N) while the
+ * catalogue has one dataset record per municipality: then the record's own
+ * extent, when it lies inside the layer's. Otherwise the layer's, if valid.
+ */
+export function wmsLayerBounds(layerBbox: Bbox | null, recordBbox: Bbox | null, recordType: string): Bbox | undefined {
+  const layer = layerBbox && !bboxError(layerBbox) ? layerBbox : undefined;
+  if (!layer || recordType !== "dataset" || !recordBbox || bboxError(recordBbox)) return layer;
+  const inside = recordBbox[0] >= layer[0] && recordBbox[1] >= layer[1] && recordBbox[2] <= layer[2] && recordBbox[3] <= layer[3];
+  return inside ? recordBbox : layer;
 }
 
 /** Geographic systems GeoLibre Desktop redraws into Web Mercator (its `GEOGRAPHIC_WMS_CRS`). */

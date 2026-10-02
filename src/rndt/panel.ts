@@ -46,6 +46,7 @@ import {
   serviceBaseUrl,
   supportsWebMercator,
   upgradeToHttps,
+  wmsLayerBounds,
   type WfsCapabilities,
   type WmsLayer,
 } from "./ogc";
@@ -2464,7 +2465,7 @@ export class RndtPanel {
               version: caps.version.startsWith("1.3") ? "1.3.0" : "1.1.1",
               format: "image/png",
               transparent: true,
-              bounds: layer.bbox && !bboxError(layer.bbox) ? layer.bbox : undefined,
+              bounds: wmsLayerBounds(layer.bbox, record.bbox, record.type),
               ...(crsOf(layer) !== "EPSG:3857" && { crs: crsOf(layer)! }),
             });
             this.addedWms.set(`${caps.getMapUrl}|${name}`, id);

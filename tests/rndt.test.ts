@@ -404,6 +404,22 @@ describe("HTTP to HTTPS", () => {
   });
 });
 
+describe("extent of a WMS layer added from a record", () => {
+  it("is the record's when a dataset lies inside the layer's extent", async () => {
+    const { wmsLayerBounds } = await import("../src/rndt/ogc");
+    const italy: [number, number, number, number] = [2, 33, 19, 48];
+    const camastra: [number, number, number, number] = [13.7844622, 37.2124016, 13.8278335, 37.2832807];
+    expect(wmsLayerBounds(italy, camastra, "dataset")).toEqual(camastra);
+    // A service record describes the whole service; a record wider than the layer keeps the layer's.
+    expect(wmsLayerBounds(italy, camastra, "service")).toEqual(italy);
+    expect(wmsLayerBounds(camastra, italy, "dataset")).toEqual(camastra);
+    expect(wmsLayerBounds(italy, null, "dataset")).toEqual(italy);
+    // No valid layer extent: none, as before.
+    expect(wmsLayerBounds(null, camastra, "dataset")).toBeUndefined();
+    expect(wmsLayerBounds([19, 33, 2, 48], camastra, "dataset")).toBeUndefined();
+  });
+});
+
 describe("SLD of a WFS feature type", () => {
   it("asks GetStyles to the WMS of the same GeoServer", async () => {
     const { getStylesUrl } = await import("../src/rndt/ogc");
