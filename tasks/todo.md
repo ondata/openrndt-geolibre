@@ -1,3 +1,64 @@
+# Plan - Publish to the GeoLibre plugin registry (issue #16)
+
+## Context (2026-10-02)
+
+Checked against the issue's checklist:
+
+- **Repo visibility**: `ondata/openrndt-geolibre` is public now, the `homepage` works.
+- **Pre-release versions**: GeoLibre's `isNewerVersion` (`apps/geolibre-desktop/src/lib/plugin-registry.ts`) compares only the numeric core; with equal cores the only upgrade is pre-release → stable. So `0.1.0-alpha.9` → `0.1.0-alpha.10` shows no Update, `0.1.0-alpha.9` → `0.1.0` does. Each registry release needs a higher numeric core.
+- **`minGeoLibreVersion`**: by `packages/plugins/src/types.ts` at each tag, `registerRightPanel` and `fetchVectorUrl` are in 2.6.0 already, `deactivatePluginOnClose` from 2.9.0, `getViewBounds` from 3.0.0, `getLayers` from 3.1.0, `importLayerStyle` from 3.2.0. All optional in the plugin except `registerRightPanel`. Tested only on Desktop 3.1.0 and 3.2.0.
+- **Folder layout**: `dist/index.js` + `dist/style.css` is already used in the registry (`plugins/geoenergy-catalog`).
+- **Validation**: `scripts/validate_plugins.mjs` imports the entry in Node and compares `id`/`name`/`version` across registry, manifest and export; our bundle imports in Node and exports the three fields.
+- **Registry**: 15 plugins, last PR merged 2026-09-28 (#61). No fork of `opengeos/geolibre-plugins` under `aborruso` or `ondata` yet.
+- Not verified: the plugin in GeoLibre's web build (CORS on third-party WMS/WFS), the Install/Update/Uninstall flow from a registry.
+
+## Phase 0 - Decisions (user)
+
+- [x] version to publish: `0.1.0` stable; `minGeoLibreVersion`: `3.2.0`; fork under `ondata`; web build tested locally before the PR (user, 2026-10-02)
+- [ ] `author` and `categories`: proposed "onData" and `["Data"]`, to confirm before the PR
+
+## Phase 1 - Rehearsal in a registry clone (done, nothing pushed)
+
+- [x] clone `opengeos/geolibre-plugins` in `tmp/geolibre-plugins`, branch `add-openrndt-geolibre`; `plugin.json` and `dist/` in `plugins/openrndt-geolibre/`; entry in `plugin-registry.json` → verified: `node scripts/validate_plugins.mjs` passes (16 entries)
+- [x] `npm ci && npm run minify && npm run minify:check` → verified: check passes, 163 KB → 117 KB, bundle still imports
+- [x] `uvx pre-commit run --all-files` → verified: second run changes nothing
+
+## Phase 2 - Install flow and web build (done)
+
+- [x] registry served on `http://localhost:8090`, GeoLibre 3.2.0 web (`tmp/geolibre-3.2.0`) with `VITE_GEOLIBRE_PLUGIN_REGISTRY_URL` → verified: the plugin is listed in Settings → Manage Plugins, with description, author and category
+- [x] Install and Uninstall → verified in the dialog and in the Plugins menu. Update button not seen: a web install is the manifest URL, after a reload the app already runs the version served
+- [x] in the browser: search failed, fixed (`fetchVectorUrl` null = read it yourself); then search, footprints, Liguria WMS and WFS work in the dev build
+- [x] servers without CORS: not tested further (user, 2026-10-02): a known limit of the web version, not solvable in the plugin, fine in Desktop → README, Known limits
+
+## Phase 3 - Release for the registry (this repo)
+
+- [x] 0.1.0 in `constants.ts`, `plugin.json`, `package.json`, `package-lock.json`; 195 tests, `tsc`, ESLint, build clean; bundle copied to the registry clone
+- [ ] commit, tag `v0.1.0`, GitHub release with the zip (waits for the user's go)
+- [ ] check in GeoLibre Desktop that 0.1.0 still searches and downloads WFS (the `fetchVectorUrl` change touches that path)
+
+## Phase 4 - PR to `opengeos/geolibre-plugins`
+
+- [ ] fork under `ondata`, push the branch, open the PR (English), CORS limit of the web version stated → verify: Test Plugins, Lint and Minify green
+- [ ] try the PR preview `https://opengeos.org/pages-preview/geolibre-plugins/pr-<N>/` → verify: plugin loads, search works
+
+## Phase 5 - Wrap-up (after the merge)
+
+- [ ] README: status line, install from Manage Plugins; how a release reaches the registry (bump in `plugin.json` and in the entry, PR) → verify: steps repeatable from the text alone
+- [ ] LOG, close #16
+
+## Review (so far)
+
+- The rehearsal found one real defect, the search failing in the web version, fixed with a unit test.
+- Not verified: the Update button; the plugin in a production web build (the dev server proxies WMS tiles, so it hides CORS failures); 0.1.0 in GeoLibre Desktop.
+
+## Unresolved questions
+
+- `author` "onData" and `categories` `["Data"]`: ok?
+- README says "Status: alpha": keep it with 0.1.0?
+- registry updates: every release or only chosen ones (each is a reviewed PR)?
+
+---
+
 # Plan - WMS outside EPSG:3857 with GeoLibre 3.2.0 (`crs` in `addWmsLayer`, issue #1)
 
 ## Context (2026-10-02)

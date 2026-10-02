@@ -35,7 +35,8 @@ export interface RndtHostExtras {
   /**
    * Desktop-native downloader of GeoLibre's Add Vector Layer, with a 180 s
    * budget instead of the 8 s tile budget of `fetchArrayBuffer`. Resolves to
-   * null when no loader could serve the URL; unset on the web.
+   * null when no loader could serve the URL, which in a browser is the answer
+   * for most URLs.
    */
   fetchVectorUrl?: (url: string) => Promise<File | null>;
   fitBounds?: (bounds: Bbox) => void;
@@ -94,16 +95,18 @@ export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 }
 
 async function fetchOnce(host: RndtHost, url: string, options: FetchOptions): Promise<string> {
+  const budget = options.download ? DOWNLOAD_TIMEOUT_MS : REQUEST_TIMEOUT_MS;
   if (options.download && host.fetchVectorUrl) {
-    const file = await withTimeout(host.fetchVectorUrl(url), DOWNLOAD_TIMEOUT_MS);
-    if (!file) throw new Error("download failed, see GeoLibre Diagnostics");
-    return file.text();
+    // Null is "read it yourself": GeoLibre in a browser serves only zipped
+    // shapefiles and GitHub raw files this way (3.2.0), so go on below.
+    const file = await withTimeout(host.fetchVectorUrl(url), budget);
+    if (file) return file.text();
   }
   if (host.fetchArrayBuffer) {
-    const buffer = await withTimeout(host.fetchArrayBuffer(url), REQUEST_TIMEOUT_MS);
+    const buffer = await withTimeout(host.fetchArrayBuffer(url), budget);
     return new TextDecoder().decode(buffer);
   }
-  const response = await fetch(url, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+  const response = await fetch(url, { signal: AbortSignal.timeout(budget) });
   if (!response.ok) throw new Error(`HTTP ${response.status} from ${new URL(url).host}`);
   return response.text();
 }

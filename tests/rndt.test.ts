@@ -294,6 +294,16 @@ describe("data downloads", () => {
     expect(small).toEqual(["https://x.it/search"]);
   });
 
+  it("reads a download itself when the vector downloader answers null (GeoLibre in a browser)", async () => {
+    const { fetchJson } = await import("../src/rndt/host");
+    const host = {
+      ...base,
+      fetchVectorUrl: async () => null,
+      fetchArrayBuffer: async () => new TextEncoder().encode('{"a":1}').buffer as ArrayBuffer,
+    };
+    expect(await fetchJson(host, "https://x.it/search", { download: true })).toEqual({ a: 1 });
+  });
+
   it("reports a download the host could not serve", async () => {
     const { fetchJson } = await import("../src/rndt/host");
     // The DNS check after the failure goes through the host too, and fails here.
@@ -305,7 +315,7 @@ describe("data downloads", () => {
       },
     };
     await expect(fetchJson(host, "https://x.it/wfs", { download: true })).rejects.toThrow(
-      /cannot reach x\.it: download failed/,
+      /cannot reach x\.it: offline/,
     );
   });
 });
