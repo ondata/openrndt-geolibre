@@ -24,7 +24,7 @@ import {
   throwArcgisError,
   type ArcgisUrl,
 } from "./arcgis";
-import { answersWithImage, browserGetsImage, browserNeedsHttp, drawnBbox, fetchJson, fetchText, fetchTextFrom, GEO_EDITOR_PLUGIN_ID, testTile, type RndtHost } from "./host";
+import { answersWithImage, BROWSER_BLOCK_NOTE, browserGetsImage, browserNeedsHttp, drawnBbox, fetchJson, fetchText, fetchTextFrom, GEO_EDITOR_PLUGIN_ID, isDesktop, testTile, type RndtHost } from "./host";
 import {
   bestMatchingLayer,
   buildGetFeatureUrl,
@@ -311,9 +311,10 @@ export function errorReport(
   now = new Date(),
 ): { to: string[]; cc: string[]; subject: string; body: string } {
   const toContact = record.contactEmails.length > 0;
+  const app = isDesktop() ? "GeoLibre Desktop" : "GeoLibre";
   const intro = toContact
-    ? `vi scrivo come referenti del servizio ${service.kind} indicato in una scheda del Repertorio Nazionale dei Dati Territoriali (RNDT). Ho provato ad aggiungerlo a una mappa (GeoLibre Desktop, plugin openrndt-geolibre), ma il caricamento ha dato errore. Metto in copia il RNDT.`
-    : `vi ringrazio per il catalogo RNDT. Ho provato ad aggiungere a una mappa un servizio ${service.kind} indicato in una scheda del catalogo (GeoLibre Desktop, plugin openrndt-geolibre), ma il caricamento ha dato errore.`;
+    ? `vi scrivo come referenti del servizio ${service.kind} indicato in una scheda del Repertorio Nazionale dei Dati Territoriali (RNDT). Ho provato ad aggiungerlo a una mappa (${app}, plugin openrndt-geolibre), ma il caricamento ha dato errore. Metto in copia il RNDT.`
+    : `vi ringrazio per il catalogo RNDT. Ho provato ad aggiungere a una mappa un servizio ${service.kind} indicato in una scheda del catalogo (${app}, plugin openrndt-geolibre), ma il caricamento ha dato errore.`;
   return {
     to: toContact ? record.contactEmails : [RNDT_EMAIL],
     cc: toContact ? [RNDT_EMAIL] : [],
@@ -2142,6 +2143,8 @@ export class RndtPanel {
     kind: "info" | "error" | "busy" = "info",
     report?: { record: RndtRecord; service: RndtService },
   ): void {
+    // A server without CORS headers is not at fault: nothing to report to its owner.
+    if (message.includes(BROWSER_BLOCK_NOTE)) report = undefined;
     if (report) this.logError(report.record, report.service, message);
     area.replaceChildren(
       h("p", { className: "ordt-note", "data-kind": kind }, message, report && " ", report && reportControl(report.record, report.service, message)),
@@ -2593,8 +2596,10 @@ export class RndtPanel {
             result.textContent = message.startsWith("cannot reach")
               ? `WFS error: ${message}. Large layers can be slow: zoom in and keep "Only features in the current map view" checked.`
               : `WFS error: ${message}`;
-            result.append(" ", reportControl(record, service, `WFS error: ${message}`));
-            this.logError(record, service, `WFS error: ${message}`);
+            if (!message.includes(BROWSER_BLOCK_NOTE)) {
+              result.append(" ", reportControl(record, service, `WFS error: ${message}`));
+              this.logError(record, service, `WFS error: ${message}`);
+            }
           } finally {
             syncAdd();
           }
@@ -2758,8 +2763,10 @@ export class RndtPanel {
             const message = `ArcGIS error: ${errorMessage(error)}`;
             result.dataset.kind = "error";
             result.textContent = message;
-            result.append(" ", reportControl(record, service, message));
-            this.logError(record, service, message);
+            if (!message.includes(BROWSER_BLOCK_NOTE)) {
+              result.append(" ", reportControl(record, service, message));
+              this.logError(record, service, message);
+            }
           } finally {
             sync();
           }

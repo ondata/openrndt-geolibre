@@ -46,7 +46,7 @@ When a service fails, the panel offers **Copy error report**: a ready-to-paste e
 ## Known limits
 
 - WMS layers not offered in `EPSG:3857` (for example the Agenzia delle Entrate cadastral WMS, native in `EPSG:6706`) need GeoLibre Desktop 3.2.0 or later: the plugin asks them in a system the layer lists and GeoLibre redraws the tiles. With an older GeoLibre they stay disabled, and the panel says so. A group layer that answers every request with one fixed picture (the cadastral `Cartografia_Catastale`) is disabled: tick its layers instead.
-- In GeoLibre's web version the browser reads the services itself, so a WMS, WFS or ArcGIS server that sends no CORS headers cannot be shown there. The plugin cannot work around it; the same services work in GeoLibre Desktop, which reads them through its native client.
+- In GeoLibre's web version the browser reads the services itself, so a WMS, WFS or ArcGIS server that sends no CORS headers cannot be shown there. The plugin cannot work around it: the panel says so, and offers no error report since the server is not at fault. The same services work in GeoLibre Desktop, which reads them through its native client.
 - WFS services without a GeoJSON output format cannot be added.
 - ArcGIS REST layers are added as images through the service's `export` request, which GeoLibre's own ArcGIS layers use too: no cached tiles, no legend. Features need ArcGIS 10.4 or later (GeoJSON output); services that need a login cannot be added. The images are fetched by the webview, so the server must send CORS headers: the panel checks one test image first and says so when they are missing.
 - GeoLibre Desktop opens no `mailto:` link from a plugin, so the error report is copied to the clipboard instead of opening your mail client.

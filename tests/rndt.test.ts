@@ -371,6 +371,43 @@ describe("HTTP to HTTPS", () => {
     await expect(fetchTextFrom(host, "http://x.it/wms")).rejects.toThrow("cannot reach x.it (tried HTTPS and HTTP): timeout");
   });
 
+  describe("a server the browser may not read", () => {
+    const host = {
+      addMapControl: () => true,
+      removeMapControl: () => undefined,
+      fetchArrayBuffer: async (): Promise<ArrayBuffer> => {
+        throw new TypeError("Failed to fetch");
+      },
+    };
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      delete (window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
+    });
+
+    it("says so when the server answers a request without CORS", async () => {
+      const { fetchTextFrom } = await import("../src/rndt/host");
+      vi.stubGlobal("fetch", vi.fn(async () => new Response(null)));
+      await expect(fetchTextFrom(host, "https://x.it/wms")).rejects.toThrow(
+        "x.it answers, but a web page cannot read it: the server sends no CORS headers. The service works in GeoLibre Desktop",
+      );
+    });
+
+    it("keeps the plain error when the server does not answer at all", async () => {
+      const { fetchTextFrom } = await import("../src/rndt/host");
+      vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new TypeError("Failed to fetch"))));
+      await expect(fetchTextFrom(host, "https://x.it/wms")).rejects.toThrow("cannot reach x.it: Failed to fetch");
+    });
+
+    it("does not ask in GeoLibre Desktop, where the native client needs no CORS", async () => {
+      const { fetchTextFrom } = await import("../src/rndt/host");
+      const fetchMock = vi.fn(async () => new Response(null));
+      vi.stubGlobal("fetch", fetchMock);
+      (window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+      await expect(fetchTextFrom(host, "https://x.it/wms")).rejects.toThrow("cannot reach x.it: Failed to fetch");
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+  });
+
   it("says a server is gone when the DNS does not know its name", async () => {
     const { fetchTextFrom } = await import("../src/rndt/host");
     const asked: string[] = [];

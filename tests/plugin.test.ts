@@ -1094,6 +1094,27 @@ describe("Report the error", () => {
     expect(text).toMatch(/Data e ora \(UTC\): \d{4}-\d\d-\d\d \d\d:\d\d/);
   });
 
+  it("offers no report for a service the web version cannot read (no CORS headers)", async () => {
+    const fetchMock = vi.fn(async () => new Response(null));
+    vi.stubGlobal("fetch", fetchMock);
+    const { container } = await mountPanel((url) => {
+      if (url.includes("/rest/metadata/search")) return fixture("search-alberi.json");
+      throw new TypeError("NetworkError when attempting to fetch resource.");
+    });
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const card = Array.from(container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
+      Array.from(li.querySelectorAll(".ordt-badge-service")).some((b) => b.textContent === "WMS"),
+    )!;
+    const item = openDetail(card);
+    for (let i = 0; i < 6; i++) await flush();
+    vi.unstubAllGlobals();
+
+    expect(fetchMock).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ mode: "no-cors" }));
+    expect(item.textContent).toMatch(/WMS error: \S+ answers, but a web page cannot read it: the server sends no CORS headers\. The service works in GeoLibre Desktop/);
+    expect(item.querySelector(".ordt-report")).toBeNull();
+  });
+
   it("addresses RNDT alone when the record names no contact", async () => {
     const { errorReport, errorReportText } = await import("../src/rndt/panel");
     const record = {

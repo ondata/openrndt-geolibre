@@ -142,9 +142,34 @@ export async function fetchTextFrom(
   if (await nameIsMissing(host, hostname)) {
     throw new Error(`server ${hostname} does not exist: its name is not in the DNS`);
   }
+  // In a browser a server without CORS headers fails like one that is down
+  // (a TypeError, "Failed to fetch" or "NetworkError"), but it is fine: an
+  // opaque request tells them apart. Not a fault to report to its owner.
+  if (!isDesktop() && lastError instanceof Error && lastError.name === "TypeError" && (await answersOpaque(candidates[0]))) {
+    throw new Error(`${hostname} answers, ${BROWSER_BLOCK_NOTE}`);
+  }
   const reason = lastError instanceof Error ? lastError.message : String(lastError);
   const tried = candidates.length > 1 ? " (tried HTTPS and HTTP)" : "";
   throw new Error(`cannot reach ${new URL(url).host}${tried}: ${reason}`);
+}
+
+/** GeoLibre Desktop (Tauri), whose native client reads services without CORS. */
+export function isDesktop(): boolean {
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+}
+
+/** End of the error for a service the web version cannot read; no error report is offered for it. */
+export const BROWSER_BLOCK_NOTE =
+  "but a web page cannot read it: the server sends no CORS headers. The service works in GeoLibre Desktop";
+
+/** True when the browser gets an answer it may not read (a request without CORS). */
+async function answersOpaque(url: string): Promise<boolean> {
+  try {
+    await fetch(url, { mode: "no-cors", signal: AbortSignal.timeout(BROWSER_PROBE_TIMEOUT_MS) });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Public DNS-over-HTTPS resolver, answers in JSON ("Status": 3 is NXDOMAIN). */
