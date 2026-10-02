@@ -1,7 +1,7 @@
 /** Plugin id; must match `geolibre-plugin/plugin.json`. */
 export const PLUGIN_ID = "openrndt-geolibre";
 export const PLUGIN_NAME = "RNDT catalogue";
-export const PLUGIN_VERSION = "0.1.0";
+export const PLUGIN_VERSION = "0.1.1";
 
 /** Right-panel id, unique across plugins. */
 export const PANEL_ID = "openrndt-geolibre-search";
