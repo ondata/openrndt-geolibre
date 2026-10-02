@@ -50,6 +50,7 @@ When a service fails, the panel offers **Copy error report**: a ready-to-paste e
 - ArcGIS REST layers are added as images through the service's `export` request, which GeoLibre's own ArcGIS layers use too: no cached tiles, no legend. Features need ArcGIS 10.4 or later (GeoJSON output); services that need a login cannot be added. The images are fetched by the webview, so the server must send CORS headers: the panel checks one test image first and says so when they are missing.
 - GeoLibre Desktop opens no `mailto:` link from a plugin, so the error report is copied to the clipboard instead of opening your mail client.
 - Footprints are a temporary map overlay, not a project layer, and need the MapLibre renderer.
+- Footprints and "Zoom to extent" use the extent each record declares, as it is: when the metadata is wrong the footprint is in the wrong place (all 100 records of Comune di Capannori are drawn in Ethiopia), and a search by area does not find the record. The plugin does not try to correct it: the wrong extents come in too many shapes (see [#13](https://github.com/ondata/openrndt-geolibre/issues/13)).
 
 ## Development
 
