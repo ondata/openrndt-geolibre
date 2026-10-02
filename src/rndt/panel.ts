@@ -591,8 +591,21 @@ const DATE_HELP: [string, string][] = [
   ],
 ];
 
+/**
+ * "Relevance" without any text is the order the catalogue indexed the records
+ * in (measured 2026-10-02: `updated` grows by milliseconds page after page),
+ * so the newest metadata come first instead. The form keeps "Relevance": as
+ * soon as a text is typed, the catalogue weighs it.
+ */
+export function withEffectiveSort(form: SearchForm): SearchForm {
+  return form.sort === "" && form.text.trim() === "" ? { ...form, sort: "apiso_Modified_dt:desc" } : form;
+}
+
 const SORT_HELP: [string, string][] = [
-  ["Relevance", "the records that best match the words searched come first"],
+  [
+    "Relevance",
+    "the records that best match the words searched come first. Without any text the catalogue has nothing to weigh and gives the records in the order it indexed them, so the newest metadata come first instead",
+  ],
   ["Title", "alphabetical order"],
   [
     "Metadata date",
@@ -1680,7 +1693,7 @@ export class RndtPanel {
     let current: SearchForm;
     let url: string | null = null;
     try {
-      current = form ?? this.readForm();
+      current = withEffectiveSort(form ?? this.readForm());
       url = buildSearchUrl(RNDT_BASE_URL, current, start, PAGE_SIZE);
     } catch (error) {
       if (!id) {

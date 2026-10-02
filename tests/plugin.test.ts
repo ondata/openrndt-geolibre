@@ -1018,6 +1018,23 @@ describe("folded filters after a search", () => {
     expect(clearAll().hidden).toBe(true);
   });
 
+  it("sorts by metadata date, newest first, when no text is searched; by relevance with a text", async () => {
+    const { requested, container } = await mountPanel(() => fixture("search-alberi.json"));
+    const form = container.querySelector<HTMLFormElement>("form")!;
+    form.requestSubmit();
+    await flush();
+    expect(new URL(requested.at(-1)!).searchParams.get("sort")).toBe("apiso_Modified_dt:desc");
+    expect(container.querySelector<HTMLSelectElement>('[aria-label="Sort results"]')!.value).toBe("apiso_Modified_dt:desc");
+    // The form itself still says Relevance: a text brings it back.
+    expect(container.querySelector<HTMLSelectElement>('select[name="sort"]')!.value).toBe("");
+    const text = container.querySelector<HTMLInputElement>('input[name="text"]')!;
+    text.value = "alberi";
+    form.requestSubmit();
+    await flush();
+    expect(new URL(requested.at(-1)!).searchParams.get("sort")).toBeNull();
+    expect(container.querySelector<HTMLSelectElement>('[aria-label="Sort results"]')!.value).toBe("");
+  });
+
   it("sorts from the results header, from the first page", async () => {
     const { requested, container } = await mountPanel(() => fixture("search-alberi.json"));
     container.querySelector<HTMLFormElement>("form")!.requestSubmit();
