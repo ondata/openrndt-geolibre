@@ -27,7 +27,7 @@ GeoLibre 3.2.0 (2026-10-01) ships #2695, #2701 and #2707: `addWmsLayer` takes `c
 
 - [x] LOG, README (known limits); build copied to the Windows plugins folder
 - [x] test in GeoLibre Desktop 3.2.0 (user, 2026-10-02): parcels of Mesero drawn over the orthophoto in EPSG:6706, group layer disabled with its reason; one tile missing: the cadastral server answers 500 to part of the tiles asked together (reproduced with curl)
-- [ ] issue #1 closed, release 0.1.0-alpha.8
+- [x] issue #1 closed, release 0.1.0-alpha.8
 
 ## Review
 
