@@ -4,16 +4,22 @@ A [GeoLibre](https://github.com/opengeos/GeoLibre) plugin to search the **RNDT**
 
 It is the GeoLibre counterpart of the [openrndt](https://github.com/ondata/openrndt) CLI and uses the same RNDT REST API (`https://geodati.gov.it/RNDT/rest/metadata/search`).
 
-Status: **beta**, open for testing. Not yet in the GeoLibre plugin registry.
+Status: **beta**, open for testing. It is in the [GeoLibre plugin registry](https://plugins.geolibre.app/).
 
 ![The RNDT panel in GeoLibre Desktop: a record opened in the detail view, its WMS layers listed, one added to the map](docs/images/detail-view.png)
 
 ## Try it
 
-You need [GeoLibre Desktop](https://github.com/opengeos/GeoLibre/releases) (tested with 3.2.0).
+You need [GeoLibre](https://github.com/opengeos/GeoLibre/releases) 3.2.0 or later.
+
+1. In GeoLibre open **Settings > Manage Plugins**.
+2. Find **RNDT catalogue** and choose **Install**.
+3. Turn the plugin on from **Plugins > RNDT catalogue**.
+
+From a zip, for a version that is not in the registry yet:
 
 1. Download `openrndt-geolibre-<version>.zip` from the [latest release](https://github.com/ondata/openrndt-geolibre/releases).
-2. In GeoLibre open Manage Plugins, go to Settings, choose **Install from file** and pick the zip.
+2. In GeoLibre Desktop open Manage Plugins, go to Settings, choose **Install from file** and pick the zip.
 3. Restart GeoLibre, then turn the plugin on from **Plugins > RNDT catalogue**.
 
 Manual install, if you prefer: unzip into a folder named `openrndt-geolibre` inside GeoLibre's plugins folder, so that `plugin.json` and `dist/` sit directly in it, then restart GeoLibre.
@@ -87,6 +93,15 @@ npm run lint
 | `host.ts` | fetch helpers and host API methods beyond `src/lib/geolibre/host-api.ts` |
 
 `tests/fixtures/queries.json` is meant as a shared test oracle with openrndt, which should build the same queries.
+
+### A release in the plugin registry
+
+The registry is the repository [opengeos/geolibre-plugins](https://github.com/opengeos/geolibre-plugins): each version gets there with a pull request, from the fork `ondata/geolibre-plugins`.
+
+1. Release here: the version in `src/rndt/constants.ts`, `geolibre-plugin/plugin.json` and `package.json`, then `npm run package:geolibre` and a GitHub release with the zip. The version needs a higher number, not only another suffix: GeoLibre compares the numeric part alone, so between `0.2.0-alpha.1` and `0.2.0-alpha.2` it offers no update.
+2. In the fork, on a branch from an updated `main`: copy `geolibre-plugin/plugin.json` and `geolibre-plugin/dist/` to `plugins/openrndt-geolibre/`, and set the same version in the plugin's entry of `plugin-registry.json`.
+3. There, run `npm ci && npm run minify && npm run minify:check`, `node scripts/validate_plugins.mjs` and `pre-commit run --all-files`: the Minify workflow cannot push to a fork.
+4. Open the pull request. Its preview, `https://opengeos.org/pages-preview/geolibre-plugins/pr-<N>/`, runs GeoLibre's web version with the plugin loaded.
 
 ## License
 
