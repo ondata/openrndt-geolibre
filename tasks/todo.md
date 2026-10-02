@@ -1,3 +1,45 @@
+# Plan - WMS outside EPSG:3857 with GeoLibre 3.2.0 (`crs` in `addWmsLayer`, issue #1)
+
+## Context (2026-10-02)
+
+GeoLibre 3.2.0 (2026-10-01) ships #2695, #2701 and #2707: `addWmsLayer` takes `crs` and Desktop redraws the tiles into Web Mercator. The plugin (0.1.0-alpha.7) does not pass `crs` yet, so it still asks EPSG:3857. On the cadastral WMS of Agenzia delle Entrate (record "Cartografia catastale - Comune di BORORE") the map showed a blue pattern repeated in every tile. Measured with curl on `wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php`:
+
+- the group layer `Cartografia_Catastale` answers any GetMap (EPSG:3857 or EPSG:6706, any BBOX, any size) with the same 500×500 PNG of Italy with the provinces, 94,626 bytes: that is the pattern in the tiles;
+- the EPSG:3857 test tile was asked on that layer, got that PNG and marked all 11 layers as "the server drew a test tile";
+- `province` and `CP.CadastralParcel` in EPSG:3857 answer a `ServiceExceptionReport` ("Richiesta … non valida"), hence the Diagnostics errors;
+- `CP.CadastralParcel` and `fabbricati` in EPSG:6706 on a 200 m box answer a 256×256 PNG with content (91,876 and 67,722 bytes).
+
+## Phase 1 - Test tile that cannot be fooled (done)
+
+- [x] a PNG answer counts only if it has the size asked (64×64, from the IHDR); the test is asked on a layer that holds no other layers → verify: unit test with the 500×500 header, panel test
+
+## Phase 2 - Pass `crs` when the host takes it (done)
+
+- [x] `pickWmsCrs(layer, version)` in `ogc.ts`: the first geographic system the layer lists (EPSG:4326, EPSG:4258, EPSG:6706, CRS:84 only with 1.3.0), else its first `EPSG:<code>`; EPSG:3857 stays the choice when declared or when the test tile passes → verify: unit tests (cadastre EPSG:6706, Lombardy, projected only)
+- [x] host with `crs` = host with `importLayerStyle`; on it the layers are enabled with the note "asked in EPSG:6706 and redrawn by GeoLibre"; on an older host they stay disabled, "it needs GeoLibre 3.2.0 or later" → verify: panel tests with and without `importLayerStyle`
+- [x] `crs` in `WmsLayerOptions` (`host.ts`) → verify: `tsc`
+
+## Phase 3 - Group layer that returns a fixed picture (done)
+
+- [x] each group layer (at most 10) gets one test tile in its system, EPSG:3857 or geographic; an image of another size disables it with the reason → verify: panel test; live with curl, `Cartografia_Catastale` 500×500, `vestizioni` and the others 64×64
+
+## Phase 4 - Wrap-up
+
+- [x] LOG, README (known limits); build copied to the Windows plugins folder
+- [x] test in GeoLibre Desktop 3.2.0 (user, 2026-10-02): parcels of Mesero drawn over the orthophoto in EPSG:6706, group layer disabled with its reason; one tile missing: the cadastral server answers 500 to part of the tiles asked together (reproduced with curl)
+- [ ] issue #1 closed, release 0.1.0-alpha.8
+
+## Review
+
+- 190 tests green, `tsc`, ESLint and build clean. Not verified: how GeoLibre 3.2.0 draws EPSG:6706 tiles in Desktop (the user's test).
+- A group layer whose only listed system is projected gets no test: the box of the test tile is computed only in EPSG:3857 and in degrees.
+
+## Unresolved questions
+
+- note on scale limits (`MinScaleDenominator`/`MaxScaleDenominator`: parcels only below 1:5,000), as for ArcGIS: separate issue?
+
+---
+
 # Plan - ArcGIS REST services (MapServer, ImageServer, FeatureServer)
 
 ## Context (2026-10-01)
@@ -435,11 +477,12 @@ Unblocked by opengeos/GeoLibre#2702 (`importLayerStyle(layerId, text)`, SLD/QML/
 
 ## Phase 1 - Plugin
 
-- [ ] after `addGeoJsonLayer`, WMS `GetStyles` on the same GeoServer (`layers=<nome>`) → verify: test with Liguria SLD fixture `M5:L4`
-- [ ] pass the text to `importLayerStyle`; if the API is missing, or GetStyles fails, or the outcome is `unsupported-layer`, the default style stays without error → verify: UI test
-- [ ] test in GeoLibre Desktop (build from `main`): Liguria `M5:L4`, 33 classes on `classe` → verify: screenshot
+- [x] after `addGeoJsonLayer`, WMS `GetStyles` on the same GeoServer (`layers=<nome>`) → verify: unit test on the URL (2026-10-02; no Liguria fixture, the server is down)
+- [x] pass the text to `importLayerStyle`; if the API is missing, or GetStyles fails, or the outcome is not ok, the default style stays without error → verify: panel test
+- [x] test in GeoLibre Desktop 3.2.0 (user, 2026-10-02): Veneto `rv:c0501031_litologiareg_`, 3,341 features coloured by class, 1 warning from the reader
+- [ ] Liguria `M5:L4` (33 classes, `minZoom: 12`) when its server is back
 
 ## Open questions
 
-- GetStyles always, or only if the WMS capabilities of the same host has the layer?
-- `minZoom: 12` from the SLD: keep it (the layer disappears at small scale) or remove it?
+- GetStyles is always asked (one request; a server without that WMS answers no SLD)
+- `minZoom: 12` from the SLD: kept as the reader gives it (the layer disappears at small scale): to look at on Liguria

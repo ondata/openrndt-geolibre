@@ -422,6 +422,49 @@ describe("RNDT panel", () => {
     expect(item.textContent).toContain("Added 1 of 22,521 features");
   });
 
+  it("dresses WFS features with the server's SLD when the host can import a style", async () => {
+    const features = JSON.stringify({ type: "FeatureCollection", features: [{ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: [46, 13] } }] });
+    const sld = '<StyledLayerDescriptor version="1.0.0"><NamedLayer/></StyledLayerDescriptor>';
+    let styles = sld;
+    const { host, requested, container } = await mountPanel((url) =>
+      url.includes("/rest/metadata/search")
+        ? fixture("search-alberi.json")
+        : /RESULTTYPE=hits/i.test(url)
+          ? '<wfs:FeatureCollection numberMatched="1" numberReturned="0"/>'
+          : /REQUEST=GetStyles/i.test(url)
+            ? styles
+            : /REQUEST=GetFeature/i.test(url)
+              ? features
+              : fixture("wfs-fvg-200.xml"),
+    );
+    host.importLayerStyle = vi.fn(() => ({ ok: true, warnings: ["label placement"] }));
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const card = Array.from(container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
+      Array.from(li.querySelectorAll(".ordt-badge-service")).some((b) => b.textContent === "WFS"),
+    )!;
+    const item = openDetail(card);
+    await flush();
+    const add = () => Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent === "Add features")!;
+    add().click();
+    for (let i = 0; i < 4; i++) await flush();
+
+    const getStyles = new URL(requested.find((u) => /REQUEST=GetStyles/i.test(u))!);
+    expect(getStyles.searchParams.get("SERVICE")).toBe("WMS");
+    expect(getStyles.searchParams.get("LAYERS")).toBeTruthy();
+    expect(host.importLayerStyle).toHaveBeenCalledWith("geojson-1", sld);
+    expect(item.textContent).toContain("Added 1 features. Drawn with the server's style, except 1 part GeoLibre cannot show.");
+
+    // A server that answers no SLD: the default style stays, without an error.
+    styles = '<ServiceExceptionReport><ServiceException>no WMS here</ServiceException></ServiceExceptionReport>';
+    add().click();
+    for (let i = 0; i < 4; i++) await flush();
+    expect(host.importLayerStyle).toHaveBeenCalledTimes(1);
+    expect(item.textContent).toContain("Added 1 features.");
+    expect(item.textContent).not.toContain("server's style");
+    expect(item.textContent).not.toContain("WFS error");
+  });
+
   it("filters on a record's organisation, keeping the other filters", async () => {
     const { requested, container } = await mountPanel(() => fixture("search-alberi.json"));
     container.querySelector<HTMLInputElement>('input[name="text"]')!.value = "alberi";
@@ -487,6 +530,21 @@ describe("RNDT panel", () => {
     expect(detail.hidden).toBe(false);
     expect(detail.textContent).toContain(all.results[0].title);
     expect(chipLabels(container)).toEqual([]);
+  });
+
+  it("opens the record with exactly that id when the catalogue also finds longer ids", async () => {
+    // fileid:"r_liguri:D.5" finds r_liguri:D.5, r_liguri:D.5.DS and r_liguri:D.5.VS.
+    const all = JSON.parse(fixture("search-alberi.json"));
+    const id = all.results[1].id as string;
+    const results = [{ ...all.results[0], id: `${id}.DS` }, all.results[1], { ...all.results[2], id: `${id}.VS` }];
+    const { requested, container } = await mountPanel(() => JSON.stringify({ ...all, total: 3, results }));
+    container.querySelector<HTMLInputElement>('input[name="text"]')!.value = id;
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    expect(requested).toHaveLength(1);
+    const detail = container.querySelector<HTMLElement>(".ordt-detail-view")!;
+    expect(detail.hidden).toBe(false);
+    expect(detail.textContent).toContain(all.results[1].title);
   });
 
   it("searches as usual when the id-like text is not a record id", async () => {
@@ -1300,16 +1358,27 @@ describe("WMS layers with the same name, or already on the map", () => {
 });
 
 describe("WMS layers that do not declare EPSG:3857", () => {
-  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]).buffer;
+  /** The first 24 bytes of a PNG of `size` × `size` pixels. */
+  const png = (size: number) =>
+    new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52, 0, 0, size >> 8, size & 255, 0, 0, size >> 8, size & 255]).buffer;
 
-  async function openAde(drawsTile: boolean) {
+  /**
+   * `drawsTile`: every GetMap answers a tile of the size asked. Otherwise the
+   * server answers as the cadastral one does: one 500×500 picture for the
+   * group layer whatever the request, an error document for the others in
+   * EPSG:3857.
+   */
+  async function openAde(drawsTile: boolean, hostTakesCrs = false) {
     const ctx = createHost((url) =>
       url.includes("/rest/metadata/search") ? fixture("search-services.json") : fixture("wms-ade-130.xml"),
     );
+    if (hostTakesCrs) ctx.host.importLayerStyle = () => undefined;
     const plain = ctx.host.fetchArrayBuffer!;
-    ctx.host.fetchArrayBuffer = vi.fn(async (url: string) =>
-      /REQUEST=GetMap/i.test(url) && drawsTile ? png : plain(url),
-    );
+    ctx.host.fetchArrayBuffer = vi.fn(async (url: string) => {
+      if (!/REQUEST=GetMap/i.test(url)) return plain(url);
+      if (drawsTile) return png(64);
+      return /LAYERS=Cartografia_Catastale/.test(url) ? png(500) : plain(url);
+    });
     plugin.activate(ctx.host);
     const container = document.createElement("div");
     document.body.append(container);
@@ -1336,11 +1405,46 @@ describe("WMS layers that do not declare EPSG:3857", () => {
     expect(item.textContent).not.toContain("No layer of this WMS is offered in EPSG:3857");
   });
 
+  it("asks the test tile on a layer that holds no other layers", async () => {
+    const { host } = await openAde(false);
+    const probe = vi.mocked(host.fetchArrayBuffer!).mock.calls.map((c) => c[0]).find((u) => /REQUEST=GetMap/i.test(u))!;
+    expect(new URL(probe).searchParams.get("LAYERS")).toBe("province");
+  });
+
+  it("adds them in a system they list when the host takes a crs", async () => {
+    const { host, item } = await openAde(false, true);
+    const box = (name: string) => item.querySelector<HTMLInputElement>(`[aria-label="WMS layers"] input[value="${name}"]`)!;
+    expect(box("CP.CadastralParcel").disabled).toBe(false);
+    expect(item.textContent).toContain("Not offered in EPSG:3857: asked in EPSG:6706 and redrawn by GeoLibre.");
+    // The group answered the test tile with a picture of another size.
+    expect(box("Cartografia_Catastale").disabled).toBe(true);
+    expect(box("Cartografia_Catastale").closest("label")!.title).toContain("one fixed picture");
+    // A group to skip is no fault: not in red.
+    expect(box("Cartografia_Catastale").closest("label")!.querySelector(".ordt-layer-reason")).toBeNull();
+    expect(box("Cartografia_Catastale").closest("label")!.querySelector(".ordt-layer-note")!.textContent).toContain("A group of the layers below");
+    const groupTest = vi.mocked(host.fetchArrayBuffer!).mock.calls.map((c) => c[0]).find((u) => /LAYERS=Cartografia_Catastale/.test(u))!;
+    expect(new URL(groupTest).searchParams.get("CRS")).toBe("EPSG:6706");
+
+    box("CP.CadastralParcel").checked = true;
+    box("CP.CadastralParcel").dispatchEvent(new Event("change", { bubbles: true }));
+    Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent!.startsWith("Add to map"))!.click();
+    expect(host.addWmsLayer).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ layers: "CP.CadastralParcel", crs: "EPSG:6706" }));
+  });
+
+  it("passes no crs when the server draws EPSG:3857", async () => {
+    const { host, item } = await openAde(true, true);
+    const box = item.querySelector<HTMLInputElement>('[aria-label="WMS layers"] input[value="CP.CadastralParcel"]')!;
+    box.checked = true;
+    box.dispatchEvent(new Event("change", { bubbles: true }));
+    Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent!.startsWith("Add to map"))!.click();
+    expect(vi.mocked(host.addWmsLayer!).mock.calls[0][1]).not.toHaveProperty("crs");
+  });
+
   it("keeps them disabled when the test tile is an error", async () => {
     const { item } = await openAde(false);
     const boxes = Array.from(item.querySelectorAll<HTMLInputElement>('[aria-label="WMS layers"] input'));
     expect(boxes.every((b) => b.disabled)).toBe(true);
-    expect(item.textContent).toContain("the server did not draw a test tile in it");
+    expect(item.textContent).toContain("the server did not draw a test tile in it: it needs GeoLibre 3.2.0 or later.");
   });
 });
 

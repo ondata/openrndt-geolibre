@@ -15,6 +15,8 @@ export interface WmsLayerOptions {
   format?: string;
   transparent?: boolean;
   version?: string;
+  /** System the tiles are requested in, redrawn into Web Mercator by GeoLibre Desktop (3.2.0). */
+  crs?: string;
   attribution?: string;
   bounds?: Bbox;
 }
@@ -47,6 +49,12 @@ export interface RndtHostExtras {
    * (no mailto:).
    */
   openExternalUrl?: (url: string) => void;
+  /**
+   * Applies an SLD, QML or Mapbox GL style to a vector layer, as "Import
+   * style" of the Layers panel does (GeoLibre 3.2.0). Its presence also tells
+   * a host whose `addWmsLayer` takes `crs`, which an older one drops in silence.
+   */
+  importLayerStyle?: (layerId: string, text: string) => { ok: boolean; warnings: string[]; reason?: string };
   /** Ids of the layers in the project, top to bottom (GeoLibre 3.1.0). */
   getLayers?: () => string[];
   /** Save a text file through the system "Save as" dialog (GeoLibre 3.1.0). */
@@ -182,22 +190,44 @@ export async function browserNeedsHttp(httpsUrl: string): Promise<boolean> {
 /** Time allowed to the one-tile test of a WMS in EPSG:3857. */
 const IMAGE_PROBE_TIMEOUT_MS = 8000;
 
+async function probeBytes(host: RndtHost, url: string): Promise<ArrayBuffer> {
+  if (host.fetchArrayBuffer) return withTimeout(host.fetchArrayBuffer(url), IMAGE_PROBE_TIMEOUT_MS);
+  const response = await fetch(url, { signal: AbortSignal.timeout(IMAGE_PROBE_TIMEOUT_MS) });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.arrayBuffer();
+}
+
 /**
  * True when the URL answers with an image (PNG, JPEG, GIF or WebP by their
  * first bytes), false on an error document, an HTTP error or no answer.
  */
 export async function answersWithImage(host: RndtHost, url: string): Promise<boolean> {
   try {
-    const buffer = host.fetchArrayBuffer
-      ? await withTimeout(host.fetchArrayBuffer(url), IMAGE_PROBE_TIMEOUT_MS)
-      : await (async () => {
-          const response = await fetch(url, { signal: AbortSignal.timeout(IMAGE_PROBE_TIMEOUT_MS) });
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          return response.arrayBuffer();
-        })();
-    return isImage(buffer);
+    return isImage(await probeBytes(host, url));
   } catch {
     return false;
+  }
+}
+
+/** What a test GetMap answered: a tile of the size asked, a picture of another size, or no image. */
+export type TileAnswer = "tile" | "other-size" | "none";
+
+/**
+ * Asks one test tile of `size` pixels. A server may answer any request with
+ * the same picture (the 500×500 map of Italy of the cadastral WMS group layer
+ * `Cartografia_Catastale`, 2026-10-02): a PNG of another size is not a tile.
+ */
+export async function testTile(host: RndtHost, url: string, size: number): Promise<TileAnswer> {
+  try {
+    const buffer = await probeBytes(host, url);
+    if (!isImage(buffer)) return "none";
+    // A PNG has its width and height at bytes 16-23 (IHDR); other formats are taken as they come.
+    const b = new Uint8Array(buffer);
+    if (b[0] !== 0x89 || buffer.byteLength < 24) return "tile";
+    const view = new DataView(buffer);
+    return view.getUint32(16) === size && view.getUint32(20) === size ? "tile" : "other-size";
+  } catch {
+    return "none";
   }
 }
 

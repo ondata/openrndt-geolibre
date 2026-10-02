@@ -24,7 +24,7 @@ import {
   throwArcgisError,
   type ArcgisUrl,
 } from "./arcgis";
-import { answersWithImage, browserGetsImage, browserNeedsHttp, drawnBbox, fetchJson, fetchText, fetchTextFrom, GEO_EDITOR_PLUGIN_ID, type RndtHost } from "./host";
+import { answersWithImage, browserGetsImage, browserNeedsHttp, drawnBbox, fetchJson, fetchText, fetchTextFrom, GEO_EDITOR_PLUGIN_ID, testTile, type RndtHost } from "./host";
 import {
   bestMatchingLayer,
   buildGetFeatureUrl,
@@ -32,10 +32,14 @@ import {
   parseHitsCount,
   capabilitiesUrl,
   fixAxisOrder,
+  GEOGRAPHIC_CRS,
+  getStylesUrl,
   parseWfsCapabilities,
   parseWmsCapabilities,
   pickJsonFormat,
+  pickWmsCrs,
   preselectedName,
+  PROBE_TILE_SIZE,
   probeBbox3857,
   probeGetMapUrl,
   arcgisWmsFromWmts,
@@ -43,6 +47,7 @@ import {
   supportsWebMercator,
   upgradeToHttps,
   type WfsCapabilities,
+  type WmsLayer,
 } from "./ogc";
 import { bboxError, buildCurlCommand, buildSearchUrl, clampBbox, emptyForm, idForm, recordIdIn, type Bbox, type ResourceKind, type LinkKind, type SearchForm, type SpatialRel, type TextMode } from "./query";
 import { footprints, parseSearchResponse, type RndtRecord, type RndtService } from "./records";
@@ -345,6 +350,8 @@ export function errorReportText(report: ReturnType<typeof errorReport>): string 
 
 /** Layers above which the layer menu gets a filter field (Veneto WFS: 1,068). */
 const FILTER_THRESHOLD = 30;
+/** Group layers of one WMS that get a test tile: each is a request, and the list waits for them. */
+const MAX_GROUP_TESTS = 10;
 
 const LINK_KINDS: LinkKind[] = ["WMS", "WFS", "ArcGIS REST"];
 const KIND_OPTIONS: Option[] = [
@@ -1691,9 +1698,12 @@ export class RndtPanel {
       let page: Awaited<ReturnType<typeof fetchPage>> | null = null;
       let byId = false;
       if (id) {
+        // `fileid:"r_liguri:D.5"` also finds `r_liguri:D.5.DS` and `…D.5.VS`
+        // (2026-10-02): the record is the one with exactly that id.
         const found = await fetchPage(buildSearchUrl(RNDT_BASE_URL, idForm(id), 1, PAGE_SIZE));
-        if (found.total === 1) {
-          [page, current, start, byId] = [found, idForm(id), 1, true];
+        const exact = found.records.filter((r) => r.id === id);
+        if (exact.length === 1) {
+          [page, current, start, byId] = [{ ...found, total: 1, records: exact }, idForm(id), 1, true];
         }
       }
       if (!page) {
@@ -2172,6 +2182,8 @@ export class RndtPanel {
     kind: string,
     disabledReason: (name: string) => string | null = () => null,
     noteOf: (name: string) => string | null = () => null,
+    /** True when the reason is no fault to show in red (a group layer to skip). */
+    plainReason: (name: string) => boolean = () => false,
   ): {
     list: HTMLElement;
     controls: HTMLElement[];
@@ -2209,7 +2221,7 @@ export class RndtPanel {
           { className: "ordt-layer-text" },
           title,
           code,
-          reason && h("span", { className: "ordt-layer-reason" }, reason),
+          reason && h("span", { className: plainReason(layer.name) ? "ordt-layer-note" : "ordt-layer-reason" }, reason),
           !reason && noteOf(layer.name) && h("span", { className: "ordt-layer-note" }, noteOf(layer.name)),
         ),
       );
@@ -2373,22 +2385,50 @@ export class RndtPanel {
       let serverDraws3857 = false;
       if (undeclared.length) {
         this.note(area, "Checking whether the server draws EPSG:3857…", "busy");
-        const sample = undeclared.find((l) => l.bbox) ?? undeclared[0];
-        serverDraws3857 = await answersWithImage(
-          this.app,
-          probeGetMapUrl(caps.getMapUrl, caps.version, sample.name, sample.bbox ?? record.bbox),
-        );
+        const sample =
+          undeclared.find((l) => !l.group && l.bbox) ?? undeclared.find((l) => l.bbox) ?? undeclared[0];
+        serverDraws3857 =
+          (await testTile(
+            this.app,
+            probeGetMapUrl(caps.getMapUrl, caps.version, sample.name, sample.bbox ?? record.bbox),
+            PROBE_TILE_SIZE,
+          )) === "tile";
       }
+      // Without EPSG:3857, GeoLibre 3.2.0 asks the tiles in a system the
+      // layer lists and redraws them.
+      const hostTakesCrs = this.app.importLayerStyle !== undefined;
+      const crsOf = (layer: WmsLayer) =>
+        supportsWebMercator(layer) || serverDraws3857 ? "EPSG:3857" : hostTakesCrs ? pickWmsCrs(layer, caps.version) : null;
+      // A group layer may answer every request with one fixed picture, which
+      // would fill each tile of the map: one test tile per group tells.
+      const fixedPicture = new Set<string>();
+      await Promise.all(
+        caps.layers
+          .filter((l) => l.group)
+          .slice(0, MAX_GROUP_TESTS)
+          .map(async (l) => {
+            const crs = crsOf(l);
+            if (!crs || (crs !== "EPSG:3857" && !GEOGRAPHIC_CRS.includes(crs))) return;
+            const url = probeGetMapUrl(caps.getMapUrl, caps.version, l.name, l.bbox ?? record.bbox, crs);
+            if ((await testTile(this.app, url, PROBE_TILE_SIZE)) === "other-size") fixedPicture.add(l.name);
+          }),
+      );
       const outside3857 = (name: string) => {
         const layer = byName.get(name)!;
-        return supportsWebMercator(layer) || serverDraws3857
+        if (fixedPicture.has(name)) return "A group of the layers below: the server gives one fixed picture for it, whatever the area asked. Tick its layers instead.";
+        return crsOf(layer)
           ? null
-          : `Not offered in EPSG:3857 (only ${layer.crs.slice(0, 6).join(", ")}${layer.crs.length > 6 ? ", …" : ""}), and the server did not draw a test tile in it: GeoLibre plugins cannot display it yet.`;
+          : `Not offered in EPSG:3857 (only ${layer.crs.slice(0, 6).join(", ")}${layer.crs.length > 6 ? ", …" : ""}), and the server did not draw a test tile in it: ${
+              hostTakesCrs ? "GeoLibre cannot display it." : "it needs GeoLibre 3.2.0 or later."
+            }`;
       };
-      const drawnAnyway = (name: string) =>
-        serverDraws3857 && !supportsWebMercator(byName.get(name)!)
+      const drawnAnyway = (name: string) => {
+        const layer = byName.get(name)!;
+        if (supportsWebMercator(layer)) return null;
+        return serverDraws3857
           ? "EPSG:3857 not declared, but the server drew a test tile in it."
-          : null;
+          : `Not offered in EPSG:3857: asked in ${crsOf(layer)} and redrawn by GeoLibre.`;
+      };
       const wanted = wantedLayer(record, service, caps.layers);
       const { list, controls, selected, nameOf, setOnMap } = this.layerList(
         caps.layers,
@@ -2399,6 +2439,7 @@ export class RndtPanel {
         "WMS",
         outside3857,
         drawnAnyway,
+        (name) => fixedPicture.has(name),
       );
       const add = h("button", { className: "ordt-button ordt-primary", type: "button" });
       const result = h("p", { className: "ordt-note", hidden: true });
@@ -2424,6 +2465,7 @@ export class RndtPanel {
               format: "image/png",
               transparent: true,
               bounds: layer.bbox && !bboxError(layer.bbox) ? layer.bbox : undefined,
+              ...(crsOf(layer) !== "EPSG:3857" && { crs: crsOf(layer)! }),
             });
             this.addedWms.set(`${caps.getMapUrl}|${name}`, id);
             setOnMap(name, true);
@@ -2445,7 +2487,7 @@ export class RndtPanel {
       });
       for (const name of caps.layers.map((l) => l.name)) if (this.wmsOnMap(caps.getMapUrl, name)) setOnMap(name, true);
       const note = enabledCount(caps.layers, outside3857) === 0
-        ? h("p", { className: "ordt-note", "data-kind": "error" }, "No layer of this WMS is offered in EPSG:3857: GeoLibre plugins cannot display them yet.")
+        ? h("p", { className: "ordt-note", "data-kind": "error" }, `No layer of this WMS is offered in EPSG:3857: ${hostTakesCrs ? "GeoLibre cannot display them" : "they need GeoLibre 3.2.0 or later"}.`)
         : null;
       area.replaceChildren(
         ...controls.filter((c) => c.tagName === "INPUT"),
@@ -2532,15 +2574,16 @@ export class RndtPanel {
                 : "The service returned no features.";
               return;
             }
-            this.app.addGeoJsonLayer!(nameOf(name) || record.title, fixAxisOrder(data));
+            const layerId = this.app.addGeoJsonLayer!(nameOf(name) || record.title, fixAxisOrder(data));
+            const styled = await this.applyServerStyle(layerId, getStylesUrl(caps.getFeatureUrl, name));
             result.dataset.kind = "info";
             const added = data.features.length;
             result.textContent =
-              total !== null && added < total
+              (total !== null && added < total
                 ? `Added ${added.toLocaleString("en")} of ${total.toLocaleString("en")} features: the map is incomplete, zoom in for the rest.`
                 : total === null && added >= limit
                   ? `Added ${added.toLocaleString("en")} features: limit reached, the map may be incomplete; zoom in for the rest.`
-                  : `Added ${added.toLocaleString("en")} features.`;
+                  : `Added ${added.toLocaleString("en")} features.`) + styled;
           } catch (error) {
             result.dataset.kind = "error";
             // A server that does not answer in time is usually sending a big
@@ -2568,6 +2611,28 @@ export class RndtPanel {
       syncAdd();
     } catch (error) {
       this.note(area, `WFS error: ${errorMessage(error)}`, "error", { record, service });
+    }
+  }
+
+  /**
+   * Dresses a layer of downloaded features with the SLD its server draws them
+   * with (GeoLibre 3.2.0). Returns the words to add to the result, empty when
+   * the host cannot, the server gives no SLD or the style does not fit: the
+   * layer then keeps GeoLibre's default style, which is no fault to report.
+   */
+  private async applyServerStyle(layerId: string, url: string): Promise<string> {
+    if (!this.app.importLayerStyle) return "";
+    try {
+      const text = await fetchText(this.app, url);
+      if (!text.includes("StyledLayerDescriptor")) return "";
+      const outcome = this.app.importLayerStyle(layerId, text);
+      if (!outcome.ok) return "";
+      const skipped = outcome.warnings.length;
+      return skipped
+        ? ` Drawn with the server's style, except ${skipped} ${skipped === 1 ? "part" : "parts"} GeoLibre cannot show.`
+        : " Drawn with the server's style.";
+    } catch {
+      return "";
     }
   }
 

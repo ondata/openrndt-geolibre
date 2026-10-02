@@ -10,6 +10,7 @@ import {
   parseHitsCount,
   parseWfsCapabilities,
   parseWmsCapabilities,
+  pickWmsCrs,
   pickJsonFormat,
   preselectedName,
   supportsWebMercator,
@@ -169,6 +170,19 @@ describe("WMS capabilities", () => {
     expect(caps.layers.length).toBeGreaterThan(0);
     expect(caps.layers.some(supportsWebMercator)).toBe(false);
     expect(caps.layers[0].crs).toContain("EPSG:6706");
+    expect(caps.layers.filter((l) => l.group).map((l) => l.name)).toEqual(["Cartografia_Catastale", "vestizioni"]);
+  });
+
+  it("picks the system to ask a layer in when it has no EPSG:3857", () => {
+    const layer = (crs: string[]) => ({ name: "a", title: "a", crs, bbox: null, group: false });
+    const cadastre = parseWmsCapabilities(fixture("wms-ade-130.xml"), "https://x.it/wms").layers[0];
+    expect(pickWmsCrs(cadastre, "1.3.0")).toBe("EPSG:6706");
+    // Lombardy's ArcGIS orthophotos.
+    expect(pickWmsCrs(layer(["CRS:84", "EPSG:3003", "EPSG:4326"]), "1.3.0")).toBe("CRS:84");
+    expect(pickWmsCrs(layer(["CRS:84", "EPSG:3003", "EPSG:4326"]), "1.1.1")).toBe("EPSG:4326");
+    // Projected only: the first EPSG code.
+    expect(pickWmsCrs(layer(["EPSG:25833", "EPSG:3004"]), "1.1.1")).toBe("EPSG:25833");
+    expect(pickWmsCrs(layer(["AUTO:42001"]), "1.3.0")).toBeNull();
   });
 
   it("builds a GetCapabilities URL from any service URL", () => {
@@ -390,6 +404,20 @@ describe("HTTP to HTTPS", () => {
   });
 });
 
+describe("SLD of a WFS feature type", () => {
+  it("asks GetStyles to the WMS of the same GeoServer", async () => {
+    const { getStylesUrl } = await import("../src/rndt/ogc");
+    expect(getStylesUrl("https://geoservizi.regione.liguria.it/geoserver/M5/wfs", "M5:L4")).toBe(
+      "https://geoservizi.regione.liguria.it/geoserver/M5/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetStyles&LAYERS=M5%3AL4",
+    );
+    // `ows` serves both; operation parameters of the WFS are dropped, others kept.
+    const ows = new URL(getStylesUrl("https://x.it/geoserver/ows?service=WFS&map=a", "a"));
+    expect(ows.pathname).toBe("/geoserver/ows");
+    expect(ows.searchParams.get("map")).toBe("a");
+    expect(ows.searchParams.getAll("SERVICE").concat(ows.searchParams.getAll("service"))).toEqual(["WMS"]);
+  });
+});
+
 describe("EPSG:3857 test tile", () => {
   it("builds a small GetMap in EPSG:3857 at the centre of the layer", async () => {
     const { probeGetMapUrl } = await import("../src/rndt/ogc");
@@ -402,6 +430,31 @@ describe("EPSG:3857 test tile", () => {
     expect((x1 + x2) / 2).toBeCloseTo(1057535.16, 1); // 9.5° E
     expect((y1 + y2) / 2).toBeCloseTo(5700582.73, 1); // 45.5° N
     expect(new URL(probeGetMapUrl("https://x.it/wms", "1.1.1", "a", null)).searchParams.get("SRS")).toBe("EPSG:3857");
+  });
+
+  it("builds it in degrees for a geographic system, latitude first for EPSG codes in 1.3.0", async () => {
+    const { probeGetMapUrl } = await import("../src/rndt/ogc");
+    const bboxOf = (version: string, crs: string) =>
+      new URL(probeGetMapUrl("https://x.it/wms", version, "a", [9, 45, 10, 46], crs)).searchParams.get("BBOX");
+    expect(bboxOf("1.3.0", "EPSG:6706")).toBe("45.48000,9.48000,45.52000,9.52000");
+    expect(bboxOf("1.3.0", "CRS:84")).toBe("9.48000,45.48000,9.52000,45.52000");
+    expect(bboxOf("1.1.1", "EPSG:4326")).toBe("9.48000,45.48000,9.52000,45.52000");
+    expect(new URL(probeGetMapUrl("https://x.it/wms", "1.3.0", "a", null, "EPSG:6706")).searchParams.get("CRS")).toBe("EPSG:6706");
+  });
+
+  it("takes a PNG as a tile only when it has the size asked", async () => {
+    const { testTile } = await import("../src/rndt/host");
+    const host = (bytes: number[]) => ({
+      addMapControl: () => true,
+      removeMapControl: () => undefined,
+      fetchArrayBuffer: async () => new Uint8Array(bytes).buffer as ArrayBuffer,
+    });
+    const png = (size: number) => [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52, 0, 0, size >> 8, size & 255, 0, 0, size >> 8, size & 255];
+    expect(await testTile(host(png(64)), "u", 64)).toBe("tile");
+    // The cadastral group layer: the same 500×500 picture for any request.
+    expect(await testTile(host(png(500)), "u", 64)).toBe("other-size");
+    expect(await testTile(host([0xff, 0xd8, 0xff, 0xe0]), "u", 64)).toBe("tile");
+    expect(await testTile(host([...new TextEncoder().encode("<?xml version")]), "u", 64)).toBe("none");
   });
 
   it("tells an image from an error document by its first bytes", async () => {

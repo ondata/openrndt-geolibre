@@ -9,6 +9,8 @@ export interface WmsLayer {
   /** CRS/SRS codes, inherited from parent layers. */
   crs: string[];
   bbox: Bbox | null;
+  /** True for a layer that holds other layers. */
+  group: boolean;
 }
 
 export interface WmsCapabilities {
@@ -128,6 +130,20 @@ export function serviceBaseUrl(url: string): string {
 }
 
 /**
+ * The WMS GetStyles that returns the SLD a server draws a feature type with.
+ * GeoServer publishes the same layer as WFS and WMS, at `…/wfs` and `…/wms`
+ * (`…/ows` serves both); a server without that WMS answers no SLD.
+ */
+export function getStylesUrl(getFeatureUrl: string, typeName: string): string {
+  const url = new URL(serviceBaseUrl(getFeatureUrl));
+  url.pathname = url.pathname.replace(/\/wfs$/i, "/wms");
+  for (const [key, value] of [["SERVICE", "WMS"], ["VERSION", "1.1.1"], ["REQUEST", "GetStyles"], ["LAYERS", typeName]]) {
+    url.searchParams.set(key, value);
+  }
+  return url.toString();
+}
+
+/**
  * When the capabilities document was fetched over HTTPS, an operation URL it
  * declares as `http://` on the same host is upgraded too: servers that moved to
  * HTTPS often keep old `OnlineResource` values.
@@ -188,17 +204,38 @@ export function parseWmsCapabilities(xml: string, requestUrl: string): WmsCapabi
     const crs = Array.from(new Set([...inheritedCrs, ...own]));
     const bbox = wmsLayerBbox(layer) ?? inheritedBbox;
     const name = text(firstChild(layer, "Name"));
-    if (name) layers.push({ name, title: text(firstChild(layer, "Title")) || name, crs, bbox });
-    for (const child of childElements(layer, "Layer")) walk(child, crs, bbox);
+    const children = childElements(layer, "Layer");
+    if (name) layers.push({ name, title: text(firstChild(layer, "Title")) || name, crs, bbox, group: children.length > 0 });
+    for (const child of children) walk(child, crs, bbox);
   };
   const capability = descendants(doc, "Capability")[0];
   for (const top of capability ? childElements(capability, "Layer") : []) walk(top, [], null);
   return { version, getMapUrl: serviceBaseUrl(stripQueryEnd(getMapUrl)), layers };
 }
 
-/** GeoLibre's plugin `addWmsLayer` always requests Web Mercator tiles. */
+/** GeoLibre's plugin `addWmsLayer` requests Web Mercator tiles unless it is given a `crs`. */
 export function supportsWebMercator(layer: WmsLayer): boolean {
   return layer.crs.some((c) => /^EPSG:(3857|900913)$/i.test(c));
+}
+
+/** Geographic systems GeoLibre Desktop redraws into Web Mercator (its `GEOGRAPHIC_WMS_CRS`). */
+export const GEOGRAPHIC_CRS = ["EPSG:4326", "EPSG:4258", "EPSG:6706", "CRS:84"];
+
+/**
+ * The system to ask a layer in when it does not offer EPSG:3857, for
+ * `addWmsLayer`'s `crs` (GeoLibre 3.2.0): a geographic one the layer lists
+ * (CRS:84 only with WMS 1.3.0), otherwise its first `EPSG:<code>`; in the
+ * layer's own order, which starts from its native system. Null when it lists
+ * none of them.
+ */
+export function pickWmsCrs(layer: WmsLayer, version: string): string | null {
+  const listed = layer.crs.map((c) => c.toUpperCase());
+  const v13 = version.startsWith("1.3");
+  return (
+    listed.find((c) => GEOGRAPHIC_CRS.includes(c) && (c !== "CRS:84" || v13)) ??
+    listed.find((c) => /^EPSG:\d+$/.test(c) && !/^EPSG:(3857|900913)$/.test(c)) ??
+    null
+  );
 }
 
 function stripQueryEnd(url: string): string {
@@ -310,13 +347,35 @@ export function probeBbox3857(bbox: Bbox | null): string {
   return [x - half, y - half, x + half, y + half].map((v) => v.toFixed(2)).join(",");
 }
 
+/** Side in pixels of the test tile. */
+export const PROBE_TILE_SIZE = 64;
+
 /**
- * A GetMap for a small tile in EPSG:3857 at the centre of `bbox` (WGS84), to
- * test whether a server draws a layer in that system when it does not declare
- * it (ArcGIS servers often serve it anyway).
+ * A GetMap for a small tile at the centre of `bbox` (WGS84), to test whether
+ * a server draws a layer in EPSG:3857 when it does not declare it (ArcGIS
+ * servers often serve it anyway), or what it answers in a geographic `crs`.
  */
-export function probeGetMapUrl(getMapUrl: string, version: string, layer: string, bbox: Bbox | null): string {
+export function probeGetMapUrl(
+  getMapUrl: string,
+  version: string,
+  layer: string,
+  bbox: Bbox | null,
+  crs = "EPSG:3857",
+): string {
   const v13 = version.startsWith("1.3");
+  let box = probeBbox3857(bbox);
+  if (crs !== "EPSG:3857") {
+    const [w, s, e, n] = bbox ?? [12, 41.5, 13, 42.5];
+    const [lon, lat] = [(w + e) / 2, (s + n) / 2];
+    const half = 0.02; // degrees: about 4 km
+    // WMS 1.3.0 wants latitude first for the EPSG geographic systems.
+    box = (v13 && crs !== "CRS:84"
+      ? [lat - half, lon - half, lat + half, lon + half]
+      : [lon - half, lat - half, lon + half, lat + half]
+    )
+      .map((v) => v.toFixed(5))
+      .join(",");
+  }
   const url = new URL(getMapUrl);
   const params: [string, string][] = [
     ["SERVICE", "WMS"],
@@ -324,10 +383,10 @@ export function probeGetMapUrl(getMapUrl: string, version: string, layer: string
     ["REQUEST", "GetMap"],
     ["LAYERS", layer],
     ["STYLES", ""],
-    [v13 ? "CRS" : "SRS", "EPSG:3857"],
-    ["BBOX", probeBbox3857(bbox)],
-    ["WIDTH", "64"],
-    ["HEIGHT", "64"],
+    [v13 ? "CRS" : "SRS", crs],
+    ["BBOX", box],
+    ["WIDTH", String(PROBE_TILE_SIZE)],
+    ["HEIGHT", String(PROBE_TILE_SIZE)],
     ["FORMAT", "image/png"],
     ["TRANSPARENT", "true"],
   ];
