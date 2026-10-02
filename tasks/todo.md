@@ -33,8 +33,8 @@ Checked against the issue's checklist:
 ## Phase 3 - Release for the registry (this repo)
 
 - [x] 0.1.0 in `constants.ts`, `plugin.json`, `package.json`, `package-lock.json`; 195 tests, `tsc`, ESLint, build clean; bundle copied to the registry clone
-- [ ] commit, tag `v0.1.0`, GitHub release with the zip (waits for the user's go)
-- [ ] check in GeoLibre Desktop that 0.1.0 still searches and downloads WFS (the `fetchVectorUrl` change touches that path)
+- [x] commit, tag `v0.1.0`, GitHub release with the zip
+- [x] 0.1.0 checked in GeoLibre Desktop (user, 2026-10-02)
 
 ## Phase 4 - PR to `opengeos/geolibre-plugins`
 
@@ -49,7 +49,7 @@ Checked against the issue's checklist:
 ## Review (so far)
 
 - The rehearsal found one real defect, the search failing in the web version, fixed with a unit test.
-- Not verified: the Update button; the plugin in a production web build (the dev server proxies WMS tiles, so it hides CORS failures); 0.1.0 in GeoLibre Desktop.
+- Not verified: the Update button; the plugin in a production web build (the dev server proxies WMS tiles, so it hides CORS failures).
 
 ## Unresolved questions
 
