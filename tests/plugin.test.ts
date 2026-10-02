@@ -704,9 +704,18 @@ describe("map view when the plugin is turned on", () => {
     expect(activateWith([-203.3, -16.3, 3.3, 83.1])).toHaveBeenCalledWith(ITALY_BBOX);
   });
 
-  it("leaves a view that touches Italy where it is", () => {
+  it("moves to Italy the opening globe, whose bounds touch Italy without showing it", () => {
+    expect(activateWith([-180, -35.4571, 180, 90])).toHaveBeenCalledWith(ITALY_BBOX);
+  });
+
+  it("moves to Italy a view of all Europe, or one centred elsewhere", () => {
+    expect(activateWith([-30, 20, 40, 60])).toHaveBeenCalledWith(ITALY_BBOX);
+    expect(activateWith([-2, 43, 6, 49])).toHaveBeenCalledWith(ITALY_BBOX);
+  });
+
+  it("leaves a view on Italy where it is", () => {
     expect(activateWith([12, 41, 13, 42])).not.toHaveBeenCalled();
-    expect(activateWith([-30, 20, 40, 60])).not.toHaveBeenCalled();
+    expect(activateWith([-7.7924, 31.633, 30.7004, 54.1343])).not.toHaveBeenCalled();
   });
 
   it("does nothing when the map has no view yet", () => {

@@ -51,12 +51,21 @@ export const plugin: Plugin = {
     });
     host.openRightPanel?.(PANEL_ID);
     // The catalogue is Italian and the search starts on the current map view:
-    // a view that does not touch Italy (GeoLibre opens on North America) moves
-    // there. One that does is the user's own and stays.
+    // a view that is not on Italy (GeoLibre opens on North America) moves
+    // there. One that is on it is the user's own and stays: its centre falls
+    // in Italy's box and it is under 45° wide. Touching Italy is not enough:
+    // the opening globe has bounds -180..180 and shows America.
     const view = host.getViewBounds?.();
     const [west, south, east, north] = ITALY_BBOX;
+    const onItaly =
+      view &&
+      view[2] - view[0] < 45 &&
+      (view[0] + view[2]) / 2 >= west &&
+      (view[0] + view[2]) / 2 <= east &&
+      (view[1] + view[3]) / 2 >= south &&
+      (view[1] + view[3]) / 2 <= north;
     let cancelMove = () => {};
-    if (view && (view[2] < west || view[0] > east || view[3] < south || view[1] > north)) {
+    if (view && !onItaly) {
       // The panel narrows the map as it opens: a fit computed on the old width
       // leaves Italy off centre (GeoLibre Desktop 3.2.0). Wait for the map to
       // stop resizing; with a panel already open no resize comes, hence the timer.
