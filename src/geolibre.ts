@@ -55,10 +55,29 @@ export const plugin: Plugin = {
     // there. One that does is the user's own and stays.
     const view = host.getViewBounds?.();
     const [west, south, east, north] = ITALY_BBOX;
+    let cancelMove = () => {};
     if (view && (view[2] < west || view[0] > east || view[3] < south || view[1] > north)) {
-      host.fitBounds?.(ITALY_BBOX);
+      // The panel narrows the map as it opens: a fit computed on the old width
+      // leaves Italy off centre (GeoLibre Desktop 3.2.0). Wait for the map to
+      // stop resizing; with a panel already open no resize comes, hence the timer.
+      const map = host.getMap?.();
+      const move = () => {
+        cancelMove();
+        host.fitBounds?.(ITALY_BBOX);
+      };
+      let timer = setTimeout(move, 600);
+      const onResize = () => {
+        clearTimeout(timer);
+        timer = setTimeout(move, 150);
+      };
+      map?.on("resize", onResize);
+      cancelMove = () => {
+        clearTimeout(timer);
+        map?.off("resize", onResize);
+      };
     }
     disposePanel = () => {
+      cancelMove();
       unregisterMenu?.();
       host.closeRightPanel?.(PANEL_ID);
       unregister();

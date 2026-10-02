@@ -659,13 +659,46 @@ describe("closing the panel", () => {
 });
 
 describe("map view when the plugin is turned on", () => {
+  afterEach(() => vi.useRealTimers());
+
   const activateWith = (view: [number, number, number, number] | null) => {
+    vi.useFakeTimers();
     const ctx = createHost(() => "{}");
     ctx.host.getViewBounds = () => view;
     plugin.activate(ctx.host);
+    vi.advanceTimersByTime(600);
     plugin.deactivate(ctx.host);
     return vi.mocked(ctx.host.fitBounds!);
   };
+
+  it("waits for the map to take its new width beside the panel", () => {
+    vi.useFakeTimers();
+    const ctx = createHost(() => "{}");
+    ctx.host.getViewBounds = () => [-203.3, -16.3, 3.3, 83.1];
+    let onResize = () => {};
+    const map = { on: (_: string, f: () => void) => (onResize = f), off: vi.fn() };
+    ctx.host.getMap = () => map as never;
+    plugin.activate(ctx.host);
+    const fit = vi.mocked(ctx.host.fitBounds!);
+    vi.advanceTimersByTime(500);
+    onResize();
+    vi.advanceTimersByTime(140);
+    expect(fit).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(10);
+    expect(fit).toHaveBeenCalledWith(ITALY_BBOX);
+    expect(map.off).toHaveBeenCalled();
+    plugin.deactivate(ctx.host);
+  });
+
+  it("does not move the map of a plugin turned off at once", () => {
+    vi.useFakeTimers();
+    const ctx = createHost(() => "{}");
+    ctx.host.getViewBounds = () => [-203.3, -16.3, 3.3, 83.1];
+    plugin.activate(ctx.host);
+    plugin.deactivate(ctx.host);
+    vi.advanceTimersByTime(1000);
+    expect(ctx.host.fitBounds).not.toHaveBeenCalled();
+  });
 
   it("moves to Italy a view that does not touch it (GeoLibre's opening view)", () => {
     expect(activateWith([-203.3, -16.3, 3.3, 83.1])).toHaveBeenCalledWith(ITALY_BBOX);
