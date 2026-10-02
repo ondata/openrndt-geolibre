@@ -40,3 +40,6 @@ dist/
 
 # Local test material
 tmp/
+
+# Internal work plans
+tasks/
