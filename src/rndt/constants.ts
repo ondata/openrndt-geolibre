@@ -9,6 +9,9 @@ export const PANEL_ID = "openrndt-geolibre-search";
 /** RNDT REST base URL (same default as the openrndt CLI). */
 export const RNDT_BASE_URL = "https://geodati.gov.it/RNDT";
 
+/** Extent of Italy (west, south, east, north), islands included. */
+export const ITALY_BBOX: [number, number, number, number] = [6.6, 35.4, 18.6, 47.1];
+
 /** Results per page. */
 export const PAGE_SIZE = 20;
 

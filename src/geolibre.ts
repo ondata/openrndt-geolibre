@@ -1,5 +1,5 @@
 import type { GeoLibrePlugin, GeoLibreRightPanelRegistration } from "./lib/geolibre/host-api";
-import { PANEL_ID, PLUGIN_ID, PLUGIN_NAME, PLUGIN_VERSION } from "./rndt/constants";
+import { ITALY_BBOX, PANEL_ID, PLUGIN_ID, PLUGIN_NAME, PLUGIN_VERSION } from "./rndt/constants";
 import type { RndtHost } from "./rndt/host";
 import { RndtPanel } from "./rndt/panel";
 import "./rndt/panel.css";
@@ -50,6 +50,14 @@ export const plugin: Plugin = {
       ],
     });
     host.openRightPanel?.(PANEL_ID);
+    // The catalogue is Italian and the search starts on the current map view:
+    // a view that does not touch Italy (GeoLibre opens on North America) moves
+    // there. One that does is the user's own and stays.
+    const view = host.getViewBounds?.();
+    const [west, south, east, north] = ITALY_BBOX;
+    if (view && (view[2] < west || view[0] > east || view[3] < south || view[1] > north)) {
+      host.fitBounds?.(ITALY_BBOX);
+    }
     disposePanel = () => {
       unregisterMenu?.();
       host.closeRightPanel?.(PANEL_ID);

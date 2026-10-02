@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import plugin from "../src/geolibre";
 import type { GeoLibreRightPanelRegistration } from "../src/lib/geolibre/host-api";
-import { PANEL_ID } from "../src/rndt/constants";
+import { ITALY_BBOX, PANEL_ID } from "../src/rndt/constants";
 import type { RndtHost } from "../src/rndt/host";
 
 const fixture = (name: string) => readFileSync(join(__dirname, "fixtures", name), "utf8");
@@ -655,6 +655,29 @@ describe("closing the panel", () => {
     plugin.activate(ctx.host);
     expect((ctx.getPanel() as unknown as { deactivatePluginOnClose?: boolean }).deactivatePluginOnClose).toBe(true);
     plugin.deactivate(ctx.host);
+  });
+});
+
+describe("map view when the plugin is turned on", () => {
+  const activateWith = (view: [number, number, number, number] | null) => {
+    const ctx = createHost(() => "{}");
+    ctx.host.getViewBounds = () => view;
+    plugin.activate(ctx.host);
+    plugin.deactivate(ctx.host);
+    return vi.mocked(ctx.host.fitBounds!);
+  };
+
+  it("moves to Italy a view that does not touch it (GeoLibre's opening view)", () => {
+    expect(activateWith([-203.3, -16.3, 3.3, 83.1])).toHaveBeenCalledWith(ITALY_BBOX);
+  });
+
+  it("leaves a view that touches Italy where it is", () => {
+    expect(activateWith([12, 41, 13, 42])).not.toHaveBeenCalled();
+    expect(activateWith([-30, 20, 40, 60])).not.toHaveBeenCalled();
+  });
+
+  it("does nothing when the map has no view yet", () => {
+    expect(activateWith(null)).not.toHaveBeenCalled();
   });
 });
 
