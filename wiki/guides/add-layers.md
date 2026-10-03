@@ -1,0 +1,55 @@
+---
+type: Guide
+title: Add layers to the map
+description: From the detail view of a record, add WMS and ArcGIS layers as images and download WFS and ArcGIS features.
+tags: [wms, wfs, arcgis, layers]
+status: stable
+sources:
+  - id: readme
+    resource: ../../README.md
+    title: README, "What it does" and "Known limits"
+  - id: panel
+    resource: ../../src/rndt/panel.ts
+    title: The panel
+  - id: constants
+    resource: ../../src/rndt/constants.ts
+    title: WFS_MAX_FEATURES
+---
+
+# The layer lists
+
+A record's WMS, WFS and ArcGIS REST services are listed as soon as the record opens, one box per service. Each layer has a readable name on top and the code the service uses below (see [Readable layer names](../reference/layer-names.md)).
+
+A list with more than 8 layers opens folded: only the ticked rows, and a **Show all N layers** button. With nothing ticked the button reads "Show all N layers to choose from". Once unfolded, a filter field narrows the rows.
+
+# WMS
+
+Tick one or more layers and press **Add to map**. The layers are added with their titles as names.
+
+- A layer added from a dataset record is limited to the record's extent, when that is smaller than the service's (one municipality of a national service).
+- A layer not offered in `EPSG:3857` is asked in a system it lists; this needs GeoLibre Desktop 3.2.0 or later.
+- When the capabilities declare a request address on a private host, the address of the capabilities is used instead, and a note says so.
+
+# WFS
+
+Pick one feature type and press **Add features**: the features are downloaded as GeoJSON.
+
+- "Only features in the current map view" limits the download to the view.
+- Above 10,000 features the panel asks before downloading them all.[^constants]
+- With GeoLibre 3.2.0 or later the features are drawn with the style the server gives for that layer (SLD), when it has one.
+- Coordinates in a projected system are converted: see [Coordinate systems converted](../reference/coordinate-systems.md).
+- A WFS with no GeoJSON output cannot be added.
+
+# ArcGIS REST
+
+A MapServer, ImageServer or FeatureServer lists its layers the same way. Ticked layers are added as images through the service's `export` request; one layer's features can be downloaded as GeoJSON, page by page.
+
+# Already on the map
+
+A layer that is in the project already has the tag **on the map** and is not added again. This holds after a project is saved and reopened, for WMS and ArcGIS layers. Features downloaded from a WFS are not marked.
+
+# When a service fails
+
+The box of the service shows the reason. See [Services that fail](../limits/services-that-fail.md) and, for the web version, [CORS in the web version](../limits/cors-in-the-web-version.md).
+
+[^constants]: WFS_MAX_FEATURES

@@ -8,6 +8,8 @@ Status: **beta**, open for testing. It is in the [GeoLibre plugin registry](http
 
 ![The RNDT panel in GeoLibre Desktop: a record opened in the detail view, its WMS layers listed, one added to the map](docs/images/detail-view.png)
 
+More in the [wiki](wiki/index.md): guides, reference, limits, the decisions taken and how to work on the plugin.
+
 ## Try it
 
 You need [GeoLibre](https://github.com/opengeos/GeoLibre/releases) 3.2.0 or later.
@@ -84,7 +86,7 @@ Things to know:
 - When it saves, GeoLibre asks "Strip credentials?" and counts the fields of the search among them: it cannot know what an external plugin keeps in a project. Choose **Keep in file**: the search holds no key and no password. With "Strip credentials", and in a project shared with Share, the search is left out ([opengeos/GeoLibre#2821](https://github.com/opengeos/GeoLibre/issues/2821)).
 - A search is not a change for GeoLibre: the project is not marked as modified, and closing without saving loses the search without a question. Save after the search you want to keep.
 - A project that carries no search empties the panel when it is opened, so a search never passes from one project to another.
-- On a computer without the plugin: a project saved where the plugin came from Manage Plugins carries its address, and GeoLibre asks whether to load it ("Trust and load"), then shows the search. A project saved where the plugin was installed from a zip or a folder carries no address: it opens without the plugin, and the search stays unused in the file.
+- On a computer without the plugin: a project saved where the plugin came from Manage Plugins carries its address, and GeoLibre asks whether to load it ("Trust and load"), then shows the search. A project saved where the plugin was copied by hand into the plugins folder carries no address: it opens without the plugin, and the search stays unused in the file.
 
 ## Known limits
 
