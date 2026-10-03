@@ -401,6 +401,16 @@
   gap: 4px;
 }
 
+/* The button that adds the ticked layers stays in sight above the footer while its
+   service block is on screen: a long list, or the contact box, pushed it below the edge. */
+.ordt-add-row {
+  position: sticky;
+  bottom: var(--ordt-foot-h, 36px);
+  z-index: 1;
+  padding: 4px 0;
+  background: var(--ordt-bg);
+}
+
 .ordt-service-area select {
   flex: 1 1 160px;
 }

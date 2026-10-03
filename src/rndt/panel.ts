@@ -3299,7 +3299,7 @@ export class RndtPanel {
         ...controls.filter((c) => c.tagName !== "INPUT"),
         ...(note ? [note] : []),
         ...(endpoint.note ? [h("p", { className: "ordt-note" }, endpoint.note)] : []),
-        h("div", { className: "ordt-row ordt-small" }, add, h("span", { className: "ordt-muted" }, "added with their titles as layer names")),
+        h("div", { className: "ordt-row ordt-small ordt-add-row" }, add, h("span", { className: "ordt-muted" }, "added with their titles as layer names")),
         result,
       );
       showTicked(list);
@@ -3420,7 +3420,7 @@ export class RndtPanel {
         ...controls.filter((c) => c.tagName !== "INPUT"),
         h("label", { className: "ordt-check ordt-small" }, inView, "Only features in the current map view"),
         ...(endpoint.note ? [h("p", { className: "ordt-note" }, endpoint.note)] : []),
-        h("div", { className: "ordt-row ordt-small" }, add),
+        h("div", { className: "ordt-row ordt-small ordt-add-row" }, add),
         result,
       );
       showTicked(list);
@@ -3589,7 +3589,7 @@ export class RndtPanel {
       const drawRow = canDraw
         ? [
             ...(drawProblem ? [h("p", { className: "ordt-note", "data-kind": "error" }, drawProblem)] : []),
-            h("div", { className: "ordt-row ordt-small" }, add, h("span", { className: "ordt-muted" }, "added as images, with their titles as layer names")),
+            h("div", { className: "ordt-row ordt-small ordt-add-row" }, add, h("span", { className: "ordt-muted" }, "added as images, with their titles as layer names")),
           ]
         : [h("p", { className: "ordt-note" }, "This service gives no images, only features.")];
       const featureRow = canQuery
