@@ -25,7 +25,13 @@ sources:
 
 This is the way to prefer: a project saved afterwards carries the address of the plugin, so it opens on another computer too (see [Share a search](share-a-search.md)). The version offered is the one in the registry, which can be older than the latest release: see [Registry status](../upstream/registry-status.md).
 
-In the web version the list of installed plugins is kept in the browser's storage: it stays after the browser is closed, and it is per browser and per profile.
+# After a new version in the registry
+
+When the registry gets a new version, GeoLibre does not offer it as an update to who has the plugin already. At the next start the plugin is not loaded: Manage Plugins shows it as "Failed", with "Plugin at '…/plugin.json' changed since you last trusted it and was not loaded", and it is missing from the Plugins menu. In Manage Plugins uninstall it and install it again. Why: [An update needs a reinstall](../limits/update-needs-reinstall.md).
+
+# In the web version
+
+The list of installed plugins is kept in the browser's storage: it stays after the browser is closed, and it is per browser and per profile.
 
 # From a zip
 

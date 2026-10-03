@@ -4,4 +4,5 @@
 * [Strip credentials](strip-credentials.md) - When a project is saved GeoLibre counts the plugin's saved search as possible credentials; stripping them, or sharing the project, leaves the search out.
 * [A search is not a project change](unsaved-search.md) - GeoLibre does not mark the project as modified after a search, so closing without saving loses the search without a question.
 * [Project file names](project-file-names.md) - GeoLibre Desktop reopens from Open Recent only projects whose name ends with .geolibre or .geolibre.json.
+* [An update needs a reinstall](update-needs-reinstall.md) - When the registry gets a new version GeoLibre stops loading the installed plugin and shows it as failed, until it is uninstalled and installed again.
 * [Services that fail](services-that-fail.md) - The reasons a service of a record cannot be added, what the panel says for each, and what can be done.

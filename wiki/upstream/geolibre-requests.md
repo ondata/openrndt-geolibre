@@ -27,11 +27,15 @@ sources:
     resource: https://github.com/opengeos/GeoLibre/issues/2823
     title: opengeos/GeoLibre#2823
     last_modified: 2026-10-03T00:00:00Z
+  - id: i2833
+    resource: https://github.com/opengeos/GeoLibre/issues/2833
+    title: opengeos/GeoLibre#2833
+    last_modified: 2026-10-03T00:00:00Z
 ---
 
 # State on 2026-10-03
 
-All five were opened on 2026-10-03 and are open, with no answer from the maintainers yet. This page ages: check the issues themselves after its `stale_after` date.
+All six were opened on 2026-10-03 and are open, with no answer from the maintainers yet. This page ages: check the issues themselves after its `stale_after` date.
 
 | Issue | Kind | Asks | Would change here |
 |---|---|---|---|
@@ -39,6 +43,7 @@ All five were opened on 2026-10-03 and are open, with no answer from the maintai
 | [#2820](https://github.com/opengeos/GeoLibre/issues/2820) | feature | the host's proj4 for plugins, as `getDeckGL()` gives deck.gl | [proj4 in the bundle](../decisions/proj4-in-the-bundle.md) |
 | [#2821](https://github.com/opengeos/GeoLibre/issues/2821) | feature | a way for an external plugin's project state to survive "Strip credentials" | [Strip credentials](../limits/strip-credentials.md) |
 | [#2823](https://github.com/opengeos/GeoLibre/issues/2823) | feature | an `addWfsLayer` in the plugin API, so a plugin can add GeoLibre's own WFS layer (GML fallback, reprojection, refresh) | WFS without GeoJSON output: see [Services that fail](../limits/services-that-fail.md) |
+| [#2833](https://github.com/opengeos/GeoLibre/issues/2833) | feature | an update offered in Manage Plugins when the registry has a new version of an installed plugin, instead of holding the plugin back as failed | [An update needs a reinstall](../limits/update-needs-reinstall.md) |
 | [#2822](https://github.com/opengeos/GeoLibre/issues/2822) | bug | Open Recent refuses a project whose name does not end in `.geolibre.json`, with a misleading message | [Project file names](../limits/project-file-names.md) |
 
 # Why they exist

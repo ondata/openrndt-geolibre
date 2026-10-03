@@ -18,6 +18,8 @@ You need [GeoLibre](https://github.com/opengeos/GeoLibre/releases) 3.2.0 or late
 2. Find **RNDT catalogue** and choose **Install**.
 3. Turn the plugin on from **Plugins > RNDT catalogue**.
 
+After a new version reaches the registry, GeoLibre does not load the installed one and marks it "Failed" in Manage Plugins ("changed since you last trusted it"): uninstall it there and install it again. It is GeoLibre's check on plugins loaded from an address, not a broken plugin ([opengeos/GeoLibre#2833](https://github.com/opengeos/GeoLibre/issues/2833)).
+
 From a zip, for a version that is not in the registry yet:
 
 1. Download `openrndt-geolibre-<version>.zip` from the [latest release](https://github.com/ondata/openrndt-geolibre/releases).
