@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: Settings and error log
-description: The one setting of the panel, the log of failing service URLs, and where they are stored.
+description: The settings of the panel, the list of recent searches, the log of failing service URLs, and where they are stored.
 tags: [settings, error-log, storage]
 status: stable
 sources:
@@ -19,7 +19,10 @@ Opened from **Settings** (⚙) in the footer of the panel.
 
 | Setting | Default | Effect |
 |---|---|---|
+| Remember my last 20 searches | on | the searches are listed under the search box: see [Search the catalogue](../guides/search.md); turning it off clears the list |
 | Log the service URLs that fail | off | each failing service is added to the error log |
+
+Next to the first one: the number of searches kept, and **Clear history**.
 
 # Error log
 

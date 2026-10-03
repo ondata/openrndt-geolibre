@@ -15,6 +15,8 @@ export const ERROR_LOG_LIMIT = 1000;
 export interface Settings {
   /** Keep a log of the service URLs that fail. Off by default. */
   logErrors: boolean;
+  /** Keep the recent searches (see `history.ts`). On by default. */
+  rememberSearches: boolean;
 }
 
 export interface ErrorLogEntry {
@@ -55,7 +57,7 @@ function writeJson(key: string, value: unknown): void {
 
 export function loadSettings(): Settings {
   const stored = readJson(SETTINGS_KEY) as Partial<Settings> | null;
-  return { logErrors: stored?.logErrors === true };
+  return { logErrors: stored?.logErrors === true, rememberSearches: stored?.rememberSearches !== false };
 }
 
 export function saveSettings(settings: Settings): void {

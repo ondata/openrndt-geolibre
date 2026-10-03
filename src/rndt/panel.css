@@ -646,6 +646,139 @@
 
 .ordt-search-bar {
   top: 0;
+  /* Above the results header and the detail bar: its list of recent searches opens over them. */
+  z-index: 4;
+}
+
+/* Recent searches: a list under the search box, over chips and results, which it does not move. */
+.ordt-history {
+  position: absolute;
+  top: 100%;
+  left: 12px;
+  right: 12px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  background: var(--ordt-bg);
+  border: 1px solid var(--ordt-primary);
+  border-radius: var(--ordt-radius);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.18);
+}
+
+.ordt-history-head,
+.ordt-history-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 10px;
+  font-size: 11px;
+}
+
+.ordt-history-head {
+  border-bottom: 1px solid var(--ordt-border);
+}
+
+.ordt-history-foot {
+  font-size: 12px;
+  border-top: 1px solid var(--ordt-border);
+}
+
+.ordt-history-foot > :first-child {
+  margin-right: auto;
+}
+
+/* About seven entries, then it scrolls. */
+.ordt-history-list {
+  max-height: 322px;
+  overflow-y: auto;
+}
+
+.ordt-history-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 4px 5px 10px;
+  cursor: pointer;
+}
+
+.ordt-history-item[aria-selected="true"] {
+  background: var(--ordt-accent);
+}
+
+.ordt-history-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ordt-history-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.ordt-history-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+em.ordt-history-text {
+  font-weight: 400;
+}
+
+.ordt-history-sub {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ordt-history-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+}
+
+.ordt-history-kind {
+  flex: none;
+  padding: 0 5px;
+  font-size: 10px;
+  line-height: 15px;
+  border: 1px solid var(--ordt-border);
+  border-radius: 8px;
+}
+
+.ordt-history-when,
+.ordt-history-count {
+  flex: none;
+  font-size: 11px;
+}
+
+.ordt-history-remove {
+  flex: none;
+  padding: 2px 6px;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--ordt-muted);
+  background: none;
+  border: 0;
+  border-radius: calc(var(--ordt-radius) - 2px);
+  cursor: pointer;
+}
+
+.ordt-history-remove:hover {
+  color: var(--ordt-fg);
+  background: var(--ordt-border);
 }
 
 .ordt-results-head {

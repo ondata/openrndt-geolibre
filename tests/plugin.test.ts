@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import plugin from "../src/geolibre";
 import type { GeoLibreRightPanelRegistration } from "../src/lib/geolibre/host-api";
 import { ITALY_BBOX, PANEL_ID } from "../src/rndt/constants";
@@ -1314,7 +1314,7 @@ describe("Settings and the error log", () => {
     const box = container.querySelector<HTMLInputElement>('input[name="logErrors"]')!;
     box.checked = false;
     box.dispatchEvent(new Event("change"));
-    expect(JSON.parse(localStorage.getItem("openrndt-geolibre:settings")!)).toEqual({ logErrors: false });
+    expect(JSON.parse(localStorage.getItem("openrndt-geolibre:settings")!)).toEqual({ logErrors: false, rememberSearches: true });
   });
 
   it("keeps at most 1,000 entries, dropping the oldest", async () => {
@@ -1336,7 +1336,7 @@ describe("Settings and the error log", () => {
     const set = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new Error("blocked");
     });
-    expect(loadSettings()).toEqual({ logErrors: false });
+    expect(loadSettings()).toEqual({ logErrors: false, rememberSearches: true });
     expect(() => appendErrorLog({ time: "", recordId: "", recordTitle: "", organisation: "", serviceKind: "", url: "", error: "" })).not.toThrow();
     expect(readErrorLog()).toEqual([]);
     spy.mockRestore();
@@ -2324,5 +2324,207 @@ describe("A menu with no room below (#24)", () => {
     menu.getBoundingClientRect = rect(224, 304);
     button.click();
     expect([menu.hidden, menu.classList.contains("ordt-menu-up")]).toEqual([false, false]);
+  });
+});
+
+describe("Recent searches (#25)", () => {
+  const KEY = "openrndt-geolibre:history";
+  const none = JSON.stringify({ start: 1, num: 20, total: 0, results: [] });
+  const stored = () => JSON.parse(localStorage.getItem(KEY) ?? "[]") as { kind: string; form: { text: string; bbox: number[] | null; sort: string }; filters: string[]; recordId: string | null; title: string; total: number; time: string }[];
+  const box = (container: HTMLElement) => container.querySelector<HTMLInputElement>('.ordt-search-bar input[name="text"]')!;
+  const list = (container: HTMLElement) => container.querySelector<HTMLElement>(".ordt-history")!;
+  const items = (container: HTMLElement) => Array.from(list(container).querySelectorAll<HTMLElement>(".ordt-history-item"));
+  const key = (container: HTMLElement, name: string) => {
+    const event = new KeyboardEvent("keydown", { key: name, cancelable: true });
+    box(container).dispatchEvent(event);
+    return event;
+  };
+  const mousedown = (el: Element) => el.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+  async function searchFor(container: HTMLElement, text: string) {
+    box(container).value = text;
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+  }
+  const entry = (text: string, patch: Record<string, unknown> = {}) => ({
+    kind: "search",
+    form: { kind: "all", serviceTypes: [], availableAs: [], text, textMode: "all", field: "", keywords: "", organisation: "", invertOrganisation: false, inspireThemes: [], openDataOnly: false, dateField: "apiso_RevisionDate_dt", dateFrom: "", dateTo: "", bbox: null, spatialRel: "Intersects", sort: "" },
+    filters: [],
+    recordId: null,
+    title: "",
+    total: 7,
+    time: new Date().toISOString(),
+    ...patch,
+  });
+
+  beforeEach(() => localStorage.clear());
+
+  it("saves a search started from the box, and updates it for a page, the order or a filter removed", async () => {
+    let answer = fixture("search-alberi.json");
+    const { container } = await mountPanel(() => answer);
+    await searchFor(container, "alberi");
+    expect(stored().map((e) => [e.kind, e.form.text, e.filters, e.total, e.form.bbox])).toEqual([["search", "alberi", ["Map view"], 41, [12, 41, 13, 42]]]);
+
+    container.querySelector<HTMLElement>(".ordt-pager-top")!.querySelectorAll("button")[1].click();
+    await flush();
+    const sort = container.querySelector<HTMLSelectElement>(".ordt-sort")!;
+    sort.value = "title:asc";
+    sort.dispatchEvent(new Event("change"));
+    await flush();
+    expect(stored().map((e) => [e.form.text, e.form.sort])).toEqual([["alberi", "title:asc"]]);
+    container.querySelector<HTMLButtonElement>(".ordt-chip-remove")!.click();
+    await flush();
+    expect(stored().map((e) => [e.form.text, e.filters])).toEqual([["alberi", []]]);
+
+    // Another search from the box is another entry; one with no results is none.
+    await searchFor(container, "ortofoto");
+    expect(stored().map((e) => e.form.text)).toEqual(["ortofoto", "alberi"]);
+    answer = none;
+    await searchFor(container, "bombazza");
+    expect(stored().map((e) => e.form.text)).toEqual(["ortofoto", "alberi"]);
+  });
+
+  it("does not save a search a project brings, and calls its box a saved area", async () => {
+    const ctx = await mountPanel(() => fixture("search-alberi.json"));
+    plugin.applyProjectState!(ctx.host as never, { v: 1, form: { ...entry("alberi").form, bbox: [12.95, 37.6, 14.3, 38.3] }, start: 1, recordId: null });
+    await flush();
+    expect(new URL(ctx.requested.at(-1)!).searchParams.get("bbox")).toBe("12.95,37.6,14.3,38.3");
+    expect(chipLabels(ctx.container)).toEqual(["Saved area"]);
+    expect(stored()).toEqual([]);
+  });
+
+  it("opens under the search box, narrows while typing, and takes the keys", async () => {
+    localStorage.setItem(KEY, JSON.stringify([
+      entry("ortofoto", { filters: ["WMS", "Only: Regione Piemonte"], total: 1417 }),
+      { ...entry('fileid:"r_lazio:cf08"'), kind: "record", recordId: "r_lazio:cf08", title: "pericolositap3p4(mg)", total: 1 },
+      entry("", { filters: ["Map view"], time: "2026-01-05T10:00:00.000Z" }),
+    ]));
+    const { container } = await mountPanel(() => fixture("search-alberi.json"));
+    expect(box(container).getAttribute("autocomplete")).toBe("off");
+    expect(list(container).hidden).toBe(true);
+    box(container).dispatchEvent(new Event("focus"));
+    expect([list(container).hidden, box(container).getAttribute("aria-expanded")]).toEqual([false, "true"]);
+    expect(list(container).closest(".ordt-search-bar")).not.toBeNull();
+    expect(list(container).querySelector(".ordt-history-head")!.firstChild!.textContent).toBe("Recent searches");
+    const text = (el: HTMLElement, cls: string) => el.querySelector(cls)?.textContent ?? null;
+    expect(items(container).map((el) => [text(el, ".ordt-history-text"), text(el, ".ordt-history-kind"), text(el, ".ordt-history-sub"), text(el, ".ordt-history-count")])).toEqual([
+      ["ortofoto", null, "WMS · Only: Regione Piemonte", "1,417"],
+      ["pericolositap3p4(mg)", "Record", "r_lazio:cf08", null],
+      ["No text", null, "Map view", "7"],
+    ]);
+    expect(text(items(container)[2], ".ordt-history-when")).toBe("2026-01-05");
+    expect(text(items(container)[0], ".ordt-history-when")).toMatch(/^\d\d:\d\d$/);
+
+    // Letters of a filter find the entry; with none left the list closes.
+    box(container).value = "piemonte";
+    box(container).dispatchEvent(new Event("input"));
+    expect(items(container)).toHaveLength(1);
+    expect(list(container).querySelector(".ordt-history-head")!.firstChild!.textContent).toBe("1 of 3 recent searches");
+    box(container).value = "zzz";
+    box(container).dispatchEvent(new Event("input"));
+    expect(list(container).hidden).toBe(true);
+    box(container).value = "";
+    box(container).dispatchEvent(new Event("input"));
+
+    // Down, down, up; Delete removes the highlighted entry; Esc closes and keeps the text.
+    const selected = () => items(container).findIndex((el) => el.getAttribute("aria-selected") === "true");
+    key(container, "ArrowDown");
+    key(container, "ArrowDown");
+    expect(selected()).toBe(1);
+    key(container, "ArrowUp");
+    expect(selected()).toBe(0);
+    key(container, "ArrowUp");
+    expect(selected()).toBe(-1);
+    key(container, "ArrowDown");
+    key(container, "Delete");
+    expect(stored().map((e) => e.kind)).toEqual(["record", "search"]);
+    box(container).value = "pe";
+    box(container).dispatchEvent(new Event("input"));
+    expect(key(container, "Escape").defaultPrevented).toBe(true);
+    expect([list(container).hidden, box(container).value]).toEqual([true, "pe"]);
+    // With the list closed Esc is the browser's own.
+    expect(key(container, "Escape").defaultPrevented).toBe(false);
+  });
+
+  it("removes one entry with its ×, and all of them after asking", async () => {
+    localStorage.setItem(KEY, JSON.stringify([entry("a"), entry("b"), entry("c")]));
+    const { container } = await mountPanel(() => fixture("search-alberi.json"));
+    box(container).dispatchEvent(new Event("focus"));
+    mousedown(items(container)[1].querySelector(".ordt-history-remove")!);
+    expect(stored().map((e) => e.form.text)).toEqual(["a", "c"]);
+    expect(list(container).hidden).toBe(false);
+    const foot = () => list(container).querySelector<HTMLElement>(".ordt-history-foot")!;
+    expect(foot().textContent).toBe("Clear historyOn this computer only");
+    mousedown(foot().querySelector("button")!);
+    expect(foot().textContent).toBe("Clear all 2 searches?ClearKeep");
+    mousedown(foot().querySelectorAll("button")[1]);
+    expect(foot().textContent).toBe("Clear historyOn this computer only");
+    mousedown(foot().querySelector("button")!);
+    mousedown(foot().querySelector("button")!);
+    expect([list(container).hidden, localStorage.getItem(KEY)]).toEqual([true, null]);
+    // An empty history opens nothing.
+    box(container).dispatchEvent(new Event("focus"));
+    expect(list(container).hidden).toBe(true);
+  });
+
+  it("runs an entry again with its filters, on its saved area", async () => {
+    localStorage.setItem(KEY, JSON.stringify([
+      entry("vecchia"),
+      entry("ortofoto", { form: { ...entry("ortofoto").form, bbox: [7.5, 44, 9.5, 46], availableAs: ["WMS"] }, filters: ["WMS", "Map view"] }),
+    ]));
+    const { container, requested, host } = await mountPanel(() => fixture("search-alberi.json"));
+    box(container).dispatchEvent(new Event("focus"));
+    mousedown(items(container)[1]);
+    await flush();
+    const params = new URL(requested.at(-1)!).searchParams;
+    expect([params.get("bbox"), params.get("start")]).toEqual(["7.5,44,9.5,46", "1"]);
+    expect(params.get("q")).toContain("(ortofoto)");
+    expect(host.fitBounds).toHaveBeenCalledWith([7.5, 44, 9.5, 46]);
+    expect([list(container).hidden, box(container).value]).toEqual([true, "ortofoto"]);
+    // The chip names the saved area; the entry goes back on top and still says what the area was.
+    expect(chipLabels(container)).toEqual(["WMS", "Saved area"]);
+    expect(stored().map((e) => [e.form.text, e.filters])).toEqual([["ortofoto", ["WMS", "Map view"]], ["vecchia", []]]);
+  });
+
+  it("keeps a record opened by its id, with its title, and opens it again", async () => {
+    const page = JSON.parse(fixture("search-alberi.json"));
+    const record = page.results[0];
+    const id = record.id ?? record._source.fileid;
+    const one = JSON.stringify({ ...page, total: 1, results: [record] });
+    const { container, requested } = await mountPanel((url) => (url.includes("fileid") ? one : fixture("search-alberi.json")));
+    await searchFor(container, id);
+    expect(stored().map((e) => [e.kind, e.recordId, e.title, e.filters])).toEqual([["record", id, container.querySelector(".ordt-detail-title")!.textContent, []]]);
+    await searchFor(container, "alberi");
+    box(container).dispatchEvent(new Event("focus"));
+    expect(items(container).map((el) => el.querySelector(".ordt-history-kind")?.textContent ?? "")).toEqual(["", "Record"]);
+    const before = requested.length;
+    mousedown(items(container)[1]);
+    await flush();
+    expect(requested.length).toBeGreaterThan(before);
+    expect(requested.at(-1)).toContain("fileid");
+    expect(container.querySelector<HTMLElement>(".ordt-detail-view")!.hidden).toBe(false);
+    expect(stored().map((e) => e.kind)).toEqual(["record", "search"]);
+  });
+
+  it("can be turned off in Settings, which clears the list", async () => {
+    localStorage.setItem(KEY, JSON.stringify([entry("a"), entry("b")]));
+    const { container } = await mountPanel(() => fixture("search-alberi.json"));
+    const toggle = container.querySelector<HTMLInputElement>('input[name="rememberSearches"]')!;
+    const size = () => container.querySelector(".ordt-history-size")!.textContent;
+    expect(toggle.checked).toBe(true);
+    box(container).dispatchEvent(new Event("focus"));
+    expect(size()).toBe("2 searches");
+    await searchFor(container, "alberi");
+    expect(size()).toBe("3 searches");
+    toggle.checked = false;
+    toggle.dispatchEvent(new Event("change"));
+    expect([size(), localStorage.getItem(KEY)]).toEqual(["0 searches", null]);
+    await searchFor(container, "ortofoto");
+    expect(localStorage.getItem(KEY)).toBeNull();
+    toggle.checked = true;
+    toggle.dispatchEvent(new Event("change"));
+    await searchFor(container, "ortofoto");
+    expect(stored().map((e) => e.form.text)).toEqual(["ortofoto"]);
+    container.querySelector<HTMLButtonElement>(".ordt-clear-history")!.click();
+    expect([size(), localStorage.getItem(KEY)]).toEqual(["0 searches", null]);
   });
 });

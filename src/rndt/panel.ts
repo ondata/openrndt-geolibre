@@ -51,6 +51,7 @@ import {
   type WfsCapabilities,
   type WmsLayer,
 } from "./ogc";
+import { clearHistory, loadHistory, matchesEntry, saveHistory, whenLabel, withEntry, withTopUpdated, withoutEntry, type HistoryEntry } from "./history";
 import type { PanelState } from "./project-state";
 import type { LinkSearch } from "./url-params";
 import { agentText } from "./agent-text";
@@ -77,6 +78,8 @@ import {
 
 type Child = Node | string | null | undefined | false;
 type Where = "anywhere" | "view" | "drawn" | "box";
+/** Where a search comes from, for the history: see `remember`. */
+type SearchOrigin = "new" | "refine" | "page" | "none";
 
 /** Minimal DOM builder: `on*` props become listeners, the rest are properties or attributes. */
 function h<K extends keyof HTMLElementTagNameMap>(
@@ -763,6 +766,19 @@ export class RndtPanel {
   private settingsToggleEl!: HTMLButtonElement;
   private logCountEl!: HTMLElement;
   private settings: Settings = loadSettings();
+  /** Recent searches, newest first (see `history.ts`). */
+  private history: HistoryEntry[] = loadHistory();
+  private historyEl!: HTMLElement;
+  private historyCountEl!: HTMLElement;
+  /** The highlighted entry of the open list, or -1 for the search box. */
+  private historyHi = -1;
+  private historyConfirm = false;
+  /** Whether the first entry of the history is the search on screen. */
+  private tracksTop = false;
+  /** Set before a submit that changes the search on screen (a chip removed) instead of starting one. */
+  private refining = false;
+  /** The box of a search run again from the history or a project, and what its area was called. */
+  private savedArea: { box: string; label: string } | null = null;
   private footprintsLayer: FootprintsLayer | null = null;
   private records: RndtRecord[] = [];
   private total = 0;
@@ -837,6 +853,11 @@ export class RndtPanel {
         event.preventDefault();
         this.app.openExternalUrl(link.href);
       });
+      // A press outside the search bar closes the list of recent searches.
+      this.root.addEventListener("mousedown", (event) => {
+        // The path, not `contains`: the list redraws itself on a press, and its old rows are detached by now.
+        if (!event.composedPath().includes(this.searchBarEl)) this.showHistory(false);
+      });
       // A click anywhere else closes the open ⋯ menus.
       this.root.addEventListener("click", (event) => {
         for (const menu of this.root!.querySelectorAll<HTMLElement>(".ordt-menu:not([hidden])")) {
@@ -897,7 +918,9 @@ export class RndtPanel {
     }
     if (JSON.stringify(state) === JSON.stringify(this.projectState())) return;
     this.writeForm(state.form);
-    void this.search(state.start, undefined, state.recordId);
+    // The box of a project is a saved area too. A search a project brings was not made here: not in the history.
+    if (state.form.bbox) this.savedArea = { box: this.field<HTMLInputElement>("box").value.trim(), label: "Saved area" };
+    void this.search(state.start, undefined, state.recordId, "none");
   }
 
   /**
@@ -1248,6 +1271,13 @@ export class RndtPanel {
       helpSection("Where", whereHelp),
       helpSection("Available as", availableAsHelp),
       helpSection("Sort by", sortHelp),
+      helpSection(
+        "Recent searches",
+        textHelp("ordt-history-help", [
+          "A click in the search box lists your last 20 searches, newest first, with their filters; a record opened by its id is listed with its title. A click runs one again; typing narrows the list; × removes an entry.",
+          "A search made on the map view is run again on the area it had then. The list stays on this computer; Settings turns it off.",
+        ]),
+      ),
     );
 
     const form = h(
@@ -1257,7 +1287,10 @@ export class RndtPanel {
         id: FORM_ID,
         onsubmit: (event: Event) => {
           event.preventDefault();
-          void this.search(1);
+          const origin = this.refining ? "refine" : "new";
+          this.refining = false;
+          this.showHistory(false);
+          void this.search(1, undefined, null, origin);
         },
         onchange: () => this.updateAdvancedCount(),
         oninput: () => this.updateAdvancedCount(),
@@ -1382,19 +1415,249 @@ export class RndtPanel {
 
   /** Text box and Search button: outside the form so they can stay on top, tied to it by `form`. */
   private buildSearchBar(): HTMLElement {
+    this.historyEl = h("div", { className: "ordt-history", id: "ordt-history", role: "listbox", "aria-label": "Recent searches", hidden: true });
+    // The panel's own list of recent searches takes the place of the browser's autocomplete.
+    const input: HTMLInputElement = h("input", {
+      className: "ordt-input ordt-grow",
+      name: "text",
+      type: "search",
+      form: FORM_ID,
+      placeholder: "Search titles, abstracts, keywords…",
+      "aria-label": "Free text",
+      autocomplete: "off",
+      role: "combobox",
+      "aria-expanded": "false",
+      "aria-controls": "ordt-history",
+      onfocus: () => this.showHistory(true),
+      onclick: () => this.showHistory(true),
+      oninput: () => {
+        this.historyHi = -1;
+        this.showHistory(true);
+      },
+      onkeydown: (event: KeyboardEvent) => this.historyKey(event),
+    });
+    // mousedown, not click: the box keeps the focus, and the list does not close before the choice is read.
+    this.historyEl.addEventListener("mousedown", (event) => {
+      event.preventDefault();
+      const target = event.target as HTMLElement;
+      const action = target.closest<HTMLElement>("[data-history]")?.dataset.history;
+      const item = target.closest<HTMLElement>(".ordt-history-item");
+      const entry = item ? this.shownHistory()[Number(item.dataset.index)] : undefined;
+      if (action === "remove" && entry) this.removeFromHistory(entry);
+      else if (action === "ask") this.historyConfirm = true;
+      else if (action === "keep") this.historyConfirm = false;
+      else if (action === "clear") this.forgetHistory();
+      else if (entry) return this.runEntry(entry);
+      this.renderHistory();
+    });
     return h(
       "div",
       { className: "ordt-row ordt-search-bar" },
-      h("input", {
-        className: "ordt-input ordt-grow",
-        name: "text",
-        type: "search",
-        form: FORM_ID,
-        placeholder: "Search titles, abstracts, keywords…",
-        "aria-label": "Free text",
-      }),
+      input,
       h("button", { className: "ordt-button ordt-primary", type: "submit", form: FORM_ID }, "Search"),
+      this.historyEl,
     );
+  }
+
+  /** The entries the list shows: all of them, or the ones holding the letters typed. */
+  private shownHistory(): HistoryEntry[] {
+    const typed = this.field<HTMLInputElement>("text").value;
+    return this.history.filter((entry) => matchesEntry(entry, typed));
+  }
+
+  /** Open the list under the search box, or close it. With nothing to show it stays closed. */
+  private showHistory(show: boolean): void {
+    if (!show) {
+      this.historyHi = -1;
+      this.historyConfirm = false;
+    }
+    this.historyEl.hidden = !show;
+    this.renderHistory();
+  }
+
+  private renderHistory(): void {
+    const input = this.field<HTMLInputElement>("text");
+    const shown = this.shownHistory();
+    if (!shown.length) this.historyEl.hidden = true;
+    input.setAttribute("aria-expanded", String(!this.historyEl.hidden));
+    if (this.historyCountEl) {
+      const n = this.history.length;
+      this.historyCountEl.textContent = `${n} ${n === 1 ? "search" : "searches"}`;
+    }
+    if (this.historyEl.hidden) return this.historyEl.replaceChildren();
+    this.historyHi = Math.min(this.historyHi, shown.length - 1);
+    const filtered = shown.length < this.history.length;
+    const total = this.history.length;
+    this.historyEl.replaceChildren(
+      h(
+        "div",
+        { className: "ordt-history-head ordt-muted" },
+        h("span", {}, filtered ? `${shown.length} of ${total} recent searches` : "Recent searches"),
+        h("span", {}, "↑↓ Enter · Esc"),
+      ),
+      h(
+        "div",
+        { className: "ordt-history-list" },
+        ...shown.map((entry, index) => {
+          const record = entry.kind === "record";
+          const sub = record ? entry.recordId! : entry.filters.length ? entry.filters.join(" · ") : "No filters";
+          return h(
+            "div",
+            {
+              className: "ordt-history-item",
+              role: "option",
+              "data-index": String(index),
+              "aria-selected": String(index === this.historyHi),
+              onmouseenter: () => {
+                this.historyHi = index;
+                for (const el of this.historyEl.querySelectorAll(".ordt-history-item")) {
+                  el.setAttribute("aria-selected", String(el === this.historyEl.querySelectorAll(".ordt-history-item")[index]));
+                }
+              },
+            },
+            h(
+              "div",
+              { className: "ordt-history-main" },
+              h(
+                "div",
+                { className: "ordt-history-row" },
+                record || entry.form.text.trim()
+                  ? h("span", { className: "ordt-history-text" }, record ? entry.title : entry.form.text.trim())
+                  : h("em", { className: "ordt-history-text ordt-muted" }, "No text"),
+                h("span", { className: "ordt-history-when ordt-muted" }, whenLabel(entry.time)),
+              ),
+              h(
+                "div",
+                { className: "ordt-history-row ordt-muted" },
+                record && h("span", { className: "ordt-history-kind" }, "Record"),
+                h("span", { className: record ? "ordt-history-sub ordt-history-id" : "ordt-history-sub", title: sub }, sub),
+                !record && h("span", { className: "ordt-history-count" }, entry.total.toLocaleString("en")),
+              ),
+            ),
+            h(
+              "button",
+              { className: "ordt-history-remove", type: "button", tabIndex: -1, "data-history": "remove", title: "Remove from history", "aria-label": "Remove from history" },
+              "×",
+            ),
+          );
+        }),
+      ),
+      this.historyConfirm
+        ? h(
+            "div",
+            { className: "ordt-history-foot" },
+            h("span", {}, `Clear all ${total} ${total === 1 ? "search" : "searches"}?`),
+            h("button", { className: "ordt-link ordt-danger", type: "button", tabIndex: -1, "data-history": "clear" }, "Clear"),
+            h("button", { className: "ordt-link", type: "button", tabIndex: -1, "data-history": "keep" }, "Keep"),
+          )
+        : h(
+            "div",
+            { className: "ordt-history-foot" },
+            h("button", { className: "ordt-link ordt-danger", type: "button", tabIndex: -1, "data-history": "ask" }, "Clear history"),
+            h("span", { className: "ordt-muted" }, "On this computer only"),
+          ),
+    );
+    this.historyEl.querySelector('[aria-selected="true"]')?.scrollIntoView?.({ block: "nearest" });
+  }
+
+  /**
+   * Keys of the search box with the list: ↓ opens it or goes down, ↑ goes up
+   * and back to the box, Enter runs the highlighted entry (with none, the form
+   * is submitted as always), Esc closes and keeps the text, Delete removes the
+   * highlighted entry. Highlighting does not rewrite the box: an entry carries
+   * filters too.
+   */
+  private historyKey(event: KeyboardEvent): void {
+    const open = !this.historyEl.hidden;
+    const shown = this.shownHistory();
+    if (event.key === "ArrowDown" && shown.length) {
+      event.preventDefault();
+      this.historyHi = open ? Math.min(shown.length - 1, this.historyHi + 1) : 0;
+      this.showHistory(true);
+    } else if (event.key === "ArrowUp" && open) {
+      event.preventDefault();
+      this.historyHi = Math.max(-1, this.historyHi - 1);
+      this.renderHistory();
+    } else if (event.key === "Enter" && open && this.historyHi >= 0) {
+      event.preventDefault();
+      this.runEntry(shown[this.historyHi]);
+    } else if (event.key === "Escape" && open) {
+      // A search input empties itself on Esc: here Esc only closes the list.
+      event.preventDefault();
+      this.showHistory(false);
+    } else if (event.key === "Delete" && open && this.historyHi >= 0) {
+      event.preventDefault();
+      this.removeFromHistory(shown[this.historyHi]);
+      this.renderHistory();
+    }
+  }
+
+  private removeFromHistory(entry: HistoryEntry): void {
+    if (this.history[0] === entry) this.tracksTop = false;
+    this.history = withoutEntry(this.history, entry);
+    saveHistory(this.history);
+  }
+
+  private forgetHistory(): void {
+    this.history = [];
+    this.tracksTop = false;
+    this.historyConfirm = false;
+    clearHistory();
+  }
+
+  /**
+   * Run an entry of the history again, from page 1, with all its filters. Its
+   * area is the box saved then: the map goes to it, and its chip reads "Saved
+   * area", since the view of now has nothing to do with it.
+   */
+  private runEntry(entry: HistoryEntry): void {
+    this.showHistory(false);
+    if (entry.kind === "record") {
+      this.field<HTMLInputElement>("text").value = entry.recordId!;
+      void this.search(1);
+      return;
+    }
+    this.writeForm(entry.form);
+    if (entry.form.bbox) {
+      const named = entry.filters.map((f) => f.replace(/^Inside: /, "")).find((f) => /^(Map view|Drawn shapes|Saved area|Box )/.test(f));
+      this.savedArea = { box: this.field<HTMLInputElement>("box").value.trim(), label: named ?? "Saved area" };
+      this.app.fitBounds?.(entry.form.bbox);
+    }
+    void this.search(1);
+  }
+
+  /**
+   * Keep the search just made in the history. A search started from the box, a
+   * link or an entry adds one; a change of the search on screen (`refine`: a
+   * chip removed; `page`: a page, the order) updates the entry on top. Not
+   * kept: a search with no results, one restored from a project (`none`), any
+   * with the setting off.
+   */
+  private remember(origin: SearchOrigin, form: SearchForm, record: RndtRecord | null): void {
+    if (origin === "none" || !this.settings.rememberSearches || this.total === 0) {
+      this.tracksTop = false;
+      return;
+    }
+    if (origin === "page" && !this.tracksTop) return;
+    const saved = this.savedArea && this.isSavedArea() ? this.savedArea.label : null;
+    const entry: HistoryEntry = {
+      kind: record ? "record" : "search",
+      form: { ...form },
+      filters: record ? [] : this.activeChips().map((chip) => (saved ? chip.label.replace("Saved area", saved) : chip.label)),
+      recordId: record ? record.id : null,
+      title: record ? record.title : "",
+      total: this.total,
+      time: new Date().toISOString(),
+    };
+    this.history = origin === "new" || !this.tracksTop ? withEntry(this.history, entry) : withTopUpdated(this.history, entry);
+    this.tracksTop = true;
+    saveHistory(this.history);
+    this.renderHistory();
+  }
+
+  /** Whether the box in the form is the one a saved search brought. */
+  private isSavedArea(): boolean {
+    return !!this.savedArea && this.field<HTMLInputElement>("box").value.trim() === this.savedArea.box;
   }
 
   /** Active filters as removable chips, "Edit filters" and "Clear all". Shown only with a filter: see {@link syncSummary}. */
@@ -1413,6 +1676,7 @@ export class RndtPanel {
         title: "Remove all filters and search again; the text stays",
         onclick: () => {
           this.clearFilters();
+          this.refining = true;
           this.formEl.requestSubmit();
         },
       },
@@ -1523,15 +1787,51 @@ export class RndtPanel {
       },
     });
     this.logCountEl = h("span", { className: "ordt-muted" });
+    const historyBox: HTMLInputElement = h("input", {
+      type: "checkbox",
+      name: "rememberSearches",
+      checked: this.settings.rememberSearches,
+      onchange: () => {
+        this.settings = { ...this.settings, rememberSearches: historyBox.checked };
+        saveSettings(this.settings);
+        // Who turns it off wants nothing left.
+        if (!historyBox.checked) this.forgetHistory();
+        this.renderHistory();
+      },
+    });
+    this.historyCountEl = h("span", { className: "ordt-muted ordt-history-size" });
     return h(
       "section",
       { className: "ordt-settings", id: "ordt-settings", hidden: true },
       h("h3", {}, "Settings"),
+      h("label", { className: "ordt-check" }, historyBox, "Remember my last 20 searches"),
+      h(
+        "p",
+        { className: "ordt-note" },
+        "Text, filters and area of each search, and the record opened by id. They are listed under the search box. Turning this off also clears the list.",
+      ),
+      h(
+        "div",
+        { className: "ordt-row ordt-small" },
+        this.historyCountEl,
+        h(
+          "button",
+          {
+            className: "ordt-link ordt-clear-history",
+            type: "button",
+            onclick: () => {
+              this.forgetHistory();
+              this.renderHistory();
+            },
+          },
+          "Clear history",
+        ),
+      ),
       h("label", { className: "ordt-check" }, logBox, "Log service URLs that fail (unreachable or errors)"),
       h(
         "p",
         { className: "ordt-note" },
-        "Each failure adds a line: time (UTC), record, organisation, service type, URL, error. Up to 1,000 lines, the oldest leave first. Settings and log stay on this computer.",
+        "Each failure adds a line: time (UTC), record, organisation, service type, URL, error. Up to 1,000 lines, the oldest leave first. Settings, history and log stay on this computer.",
       ),
       h(
         "div",
@@ -1612,7 +1912,7 @@ export class RndtPanel {
   private changeSort(): void {
     this.field<HTMLSelectElement>("sort").value = this.sortEl.value;
     this.updateAdvancedCount();
-    if (this.lastForm) void this.search(1, { ...this.lastForm, sort: this.sortEl.value });
+    if (this.lastForm) void this.search(1, { ...this.lastForm, sort: this.sortEl.value }, null, "page");
   }
 
   /** Empty every filter, the area too (Anywhere); the text and the sort order stay. Nothing is searched. */
@@ -1710,7 +2010,14 @@ export class RndtPanel {
     }
     const where = this.field<HTMLSelectElement>("where");
     if (where.value !== "anywhere") {
-      const area = where.value === "box" ? `Box ${this.field("box").value.trim()}` : where.value === "view" ? "Map view" : "Drawn shapes";
+      const area =
+        where.value === "box"
+          ? this.isSavedArea()
+            ? "Saved area"
+            : `Box ${this.field("box").value.trim()}`
+          : where.value === "view"
+            ? "Map view"
+            : "Drawn shapes";
       chips.push({
         label: checkedValue(this.formEl, "spatialRel") === "Within" ? `Inside: ${area}` : area,
         clear: () => {
@@ -1773,6 +2080,7 @@ export class RndtPanel {
               title: "Remove this filter and search again",
               onclick: () => {
                 chip.clear();
+                this.refining = true;
                 this.formEl.requestSubmit();
               },
             },
@@ -1855,7 +2163,9 @@ export class RndtPanel {
     input.value = "";
     this.syncClearButtons();
     input.focus();
-    if (this.lastForm) this.formEl.requestSubmit();
+    if (!this.lastForm) return;
+    this.refining = true;
+    this.formEl.requestSubmit();
   }
 
   private field<T extends HTMLInputElement | HTMLSelectElement>(name: string): T {
@@ -1919,7 +2229,7 @@ export class RndtPanel {
     this.statusEl.dataset.kind = kind;
   }
 
-  private async search(start: number, form?: SearchForm, openId: string | null = null): Promise<void> {
+  private async search(start: number, form?: SearchForm, openId: string | null = null, origin: SearchOrigin = "new"): Promise<void> {
     // A record id typed or pasted in the search box (as "Copy id" gives it)
     // opens that record, whatever the filters: "Where" starts from the map view.
     const id = form ? null : recordIdIn(this.field<HTMLInputElement>("text").value);
@@ -1984,6 +2294,7 @@ export class RndtPanel {
       this.footprintsOverlay()?.setData(footprints(page.records));
       this.renderResults();
       this.updateFootprintControls();
+      this.remember(origin, current, byId ? page.records[0] : null);
       if (byId) this.openDetail(page.records[0].id);
       // A record saved as open that the catalogue no longer gives in this page: the list stays.
       else if (openId) this.openDetail(openId);
@@ -1998,6 +2309,7 @@ export class RndtPanel {
     this.records = [];
     this.total = 0;
     this.lastForm = null;
+    this.tracksTop = false;
     this.footprintsLayer?.clear();
     if (this.copyQueryEl) this.copyQueryEl.disabled = true;
     if (this.footprintsToggleEl) this.updateFootprintControls();
@@ -2164,7 +2476,7 @@ export class RndtPanel {
   /** Previous/Next for the current page: compact arrows in the header, words below the list. */
   private pagerButtons(end: number, compact: boolean): HTMLButtonElement[] {
     const go = (start: number) =>
-      void this.search(start, this.lastForm ?? undefined).then(() =>
+      void this.search(start, this.lastForm ?? undefined, null, "page").then(() =>
         // The new page starts from its first record, wherever the click came from.
         this.listEl.firstElementChild?.scrollIntoView?.({ block: "start" }),
       );
