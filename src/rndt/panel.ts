@@ -10,6 +10,7 @@ import {
   WFS_MAX_FEATURES,
   type Option,
 } from "./constants";
+import { toWgs84 } from "./crs";
 import { FootprintsLayer } from "./footprints-layer";
 import {
   ARCGIS_KIND,
@@ -2629,7 +2630,8 @@ export class RndtPanel {
                 : "The service returned no features.";
               return;
             }
-            const layerId = this.app.addGeoJsonLayer!(nameOf(name) || record.title, fixAxisOrder(data));
+            const wgs84 = toWgs84(data);
+            const layerId = this.app.addGeoJsonLayer!(nameOf(name) || record.title, fixAxisOrder(wgs84.fc));
             const styled = await this.applyServerStyle(layerId, getStylesUrl(caps.getFeatureUrl, name));
             result.dataset.kind = "info";
             const added = data.features.length;
@@ -2947,8 +2949,9 @@ export class RndtPanel {
     try {
       const data = await fetchJson(this.app, service.url, { download: true });
       if (!isFeatureCollection(data)) throw new Error("the file is not a GeoJSON FeatureCollection");
-      this.app.addGeoJsonLayer!(record.title, fixAxisOrder(data));
-      this.note(area, `Added ${data.features.length} features.`);
+      const wgs84 = toWgs84(data);
+      this.app.addGeoJsonLayer!(record.title, fixAxisOrder(wgs84.fc));
+      this.note(area, `Added ${data.features.length} features${wgs84.from ? `, converted from EPSG:${wgs84.from}` : ""}.`);
     } catch (error) {
       this.note(area, `Could not add the file: ${errorMessage(error)}`, "error", { record, service });
     }
