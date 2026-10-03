@@ -154,8 +154,15 @@ export class FootprintsLayer {
     }
     const more = hits.length > 1 ? ` (+${hits.length - 1}, click to choose)` : "";
     this.tooltip.textContent = `${hits[0].title}${more}`;
-    this.tooltip.style.left = `${point.x + 12}px`;
-    this.tooltip.style.top = `${point.y + 12}px`;
+    // Keep it inside the map: near its right or bottom edge (the RNDT panel
+    // sits beyond the right one) the tooltip went under the panel. Flip it to
+    // the other side of the pointer, as the choice menu does.
+    const container = this.map.getContainer();
+    const { offsetWidth: w, offsetHeight: h } = this.tooltip;
+    const x = point.x + 12 + w > container.clientWidth ? point.x - 12 - w : point.x + 12;
+    const y = point.y + 12 + h > container.clientHeight ? point.y - 12 - h : point.y + 12;
+    this.tooltip.style.left = `${Math.max(4, x)}px`;
+    this.tooltip.style.top = `${Math.max(4, y)}px`;
   }
 
   private hideTooltip(): void {

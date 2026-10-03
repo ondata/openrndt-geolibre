@@ -180,6 +180,29 @@ describe("FootprintsLayer", () => {
       expect(map.container.querySelector(".ordt-footprint-menu")).toBeNull();
     });
 
+    it("keeps the tooltip inside the map, flipped to the left of a pointer near the right edge", () => {
+      const map = fakeMap();
+      Object.defineProperty(map.container, "clientWidth", { value: 800, configurable: true });
+      Object.defineProperty(map.container, "clientHeight", { value: 600, configurable: true });
+      const widths = [
+        Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetWidth"),
+        Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetHeight"),
+      ];
+      Object.defineProperty(HTMLElement.prototype, "offsetWidth", { get: () => 100, configurable: true });
+      Object.defineProperty(HTMLElement.prototype, "offsetHeight", { get: () => 20, configurable: true });
+      try {
+        new FootprintsLayer(map as unknown as MapLibreMap, () => undefined).setData(data);
+        const tip = () => map.container.querySelector<HTMLElement>(".ordt-footprint-tooltip")!.style;
+        map.fire("mousemove", { ...hit("palermo"), point: { x: 10, y: 10 } });
+        expect([tip().left, tip().top]).toEqual(["22px", "22px"]);
+        map.fire("mousemove", { ...hit("palermo"), point: { x: 750, y: 590 } });
+        expect([tip().left, tip().top]).toEqual(["638px", "558px"]);
+      } finally {
+        Object.defineProperty(HTMLElement.prototype, "offsetWidth", widths[0]!);
+        Object.defineProperty(HTMLElement.prototype, "offsetHeight", widths[1]!);
+      }
+    });
+
     it("shows the smallest title on hover and marks it", () => {
       const map = fakeMap();
       const onHover = vi.fn();
