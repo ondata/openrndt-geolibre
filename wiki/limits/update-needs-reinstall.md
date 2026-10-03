@@ -11,7 +11,10 @@ sources:
   - id: i2833
     resource: https://github.com/opengeos/GeoLibre/issues/2833
     title: opengeos/GeoLibre#2833
-    last_modified: 2026-10-03T00:00:00Z
+    last_modified: 2026-10-04T00:00:00Z
+  - id: pr2835
+    resource: https://github.com/opengeos/GeoLibre/pull/2835
+    title: opengeos/GeoLibre#2835
   - id: log
     resource: ../../LOG.md
     title: LOG, 2026-10-03
@@ -37,10 +40,15 @@ GeoLibre keeps the SHA-256 of a plugin loaded from an address the first time it 
 
 It is so for every plugin of the registry. The request to offer the update instead: opengeos/GeoLibre#2833, see [Requests to GeoLibre](../upstream/geolibre-requests.md).[^i2833]
 
+# After GeoLibre 3.2.0
+
+opengeos/GeoLibre#2835, merged on 2026-10-03 and not in a release on 2026-10-04, keeps the version next to the hash. When the files changed and the registry lists a newer version, Manage Plugins shows "update available" and an Update button, which loads and pins the new bundle in one step. Any other change of the files stays held back as now.[^pr2835] Until that release, uninstall and install.
+
 # For a release
 
 Every release that reaches the registry costs each user a reinstall: one more reason to bring versions there in batches, see [Registry updates in batches](../decisions/registry-updates-in-batches.md).
 
 [^integrity]: GeoLibre v3.2.0, plugin-integrity.ts and external-plugins.ts
 [^i2833]: opengeos/GeoLibre#2833
+[^pr2835]: opengeos/GeoLibre#2835
 [^log]: LOG, 2026-10-03

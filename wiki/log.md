@@ -1,5 +1,8 @@
 # Update Log
 
+## 2026-10-04
+* **Update**: [Requests to GeoLibre](upstream/geolibre-requests.md): all seven closed by merged pull requests, none released yet; #2840 added. [An update needs a reinstall](limits/update-needs-reinstall.md), [Strip credentials](limits/strip-credentials.md), [Project file names](limits/project-file-names.md), [Services that fail](limits/services-that-fail.md), [proj4 in the bundle](decisions/proj4-in-the-bundle.md), [GeoLibre hooks used](reference/geolibre-hooks.md) and the README say what changes after GeoLibre 3.2.0.
+
 ## 2026-10-03
 * **Update**: [Registry status](upstream/registry-status.md): 0.1.9 is in the registry.
 * **Update**: [Search the catalogue](guides/search.md) and [Settings and error log](reference/settings-and-error-log.md): recent searches (#25).

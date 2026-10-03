@@ -38,7 +38,7 @@ A project above 10 MB is not saved automatically by GeoLibre ("Project autosave 
 
 # Upstream
 
-Reported in [opengeos/GeoLibre#2822](https://github.com/opengeos/GeoLibre/issues/2822).
+Reported in [opengeos/GeoLibre#2822](https://github.com/opengeos/GeoLibre/issues/2822), closed by [opengeos/GeoLibre#2828](https://github.com/opengeos/GeoLibre/pull/2828) (merged on 2026-10-03, not in a release on 2026-10-04): Save As adds `.geolibre.json` to a name that lacks it, and the refusal names the extensions it reads.
 
 [^log]: LOG, 2026-10-03
 [^geolibre-lib]: GeoLibre Desktop, is_allowed_project_path

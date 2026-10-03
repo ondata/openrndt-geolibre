@@ -28,7 +28,7 @@ sources:
 | The server does not answer, or answers late | "cannot reach <name>" or a timeout | try again later; servers can be unsteady from one minute to the next |
 | A WMS layer is not offered in `EPSG:3857` | with GeoLibre before 3.2.0 the layer is disabled, and the panel says so | GeoLibre Desktop 3.2.0 or later |
 | A WMS group layer answers every request with one fixed picture | the layer is disabled | tick its layers instead |
-| A WFS has no GeoJSON output | "This WFS offers no GeoJSON output, so the plugin cannot add it. GeoLibre's Add Data > WFS Layer can read GML services: Copy URL above and try it there." | **Copy URL**, then GeoLibre's **Add Data > WFS Layer**, which falls back to GML according to its guide; it does not work for every service, see below; asked upstream as `addWfsLayer` |
+| A WFS has no GeoJSON output | "This WFS offers no GeoJSON output, so the plugin cannot add it. GeoLibre's Add Data > WFS Layer can read GML services: Copy URL above and try it there." | **Copy URL**, then GeoLibre's **Add Data > WFS Layer**, which falls back to GML according to its guide; it does not work for every service, see below; `addWfsLayer` added upstream after 3.2.0 (opengeos/GeoLibre#2826), its use planned in [#28](https://github.com/ondata/openrndt-geolibre/issues/28) |
 | An ArcGIS service needs a login | the server's error, for example 499 "Token Required" | none |
 | An ArcGIS server draws no test image | "The server did not draw a test image in EPSG:3857." | try again later |
 | A record of type service declares no endpoint, only web pages | only "Other links" are listed | none: there is nothing to add |

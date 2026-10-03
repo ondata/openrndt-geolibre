@@ -1,5 +1,9 @@
 # LOG
 
+## 2026-10-04
+
+- **GeoLibre took all seven requests** (opened 2026-10-03): #2819, #2820, #2821, #2822, #2823, #2833, #2840 closed by merged pull requests (#2831, #2824, #2836, #2828, #2826, #2835, #2843); none in a release (latest 3.2.0, 2026-10-01). What the plugin can do with them: #27 (`publishableSettings` in the registry entry, PR to do later), #28 (`addWfsLayer` for a WFS without GeoJSON), #29 (`getProj4`, parked while the minimum version is 3.2.0). Wiki and README updated. #21 closed as a duplicate of #22.
+
 ## 2026-10-03
 
 - **0.1.9 is in the registry**: opengeos/geolibre-plugins#65 merged at 18:36 UTC; `plugin-registry.json` and the plugin's `plugin.json` on plugins.geolibre.app give 0.1.9. Its preview check had failed for the Pages build of `opengeos/pages-preview`, as for another pull request two minutes earlier; said in a comment. Who has 0.1.7 installed has to uninstall and install again (opengeos/GeoLibre#2833).

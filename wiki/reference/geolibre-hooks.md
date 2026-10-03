@@ -55,7 +55,7 @@ GeoLibre 3.2.0, declared as `minGeoLibreVersion` in the registry entry. Every ho
 
 Every method except `registerRightPanel` is called only if present.[^host]
 
-# What GeoLibre does not give a plugin
+# What GeoLibre 3.2.0 does not give a plugin
 
 - A way to be activated by `?plugin=`: built-in plugins only.
 - Its own proj4.
@@ -63,7 +63,7 @@ Every method except `registerRightPanel` is called only if present.[^host]
 - A call to add GeoLibre's own WFS layer: the API has `addGeoJsonLayer`, `addWmsLayer`, `addTileLayer`, `addWmtsLayer`, `addCogLayer` and `addZarrLayer`, nothing for a WFS.
 - A call to mark the project as modified: none was found in the plugin types (see [A search is not a project change](../limits/unsaved-search.md)).
 
-The first three and the WFS call are asked upstream: see [Requests to GeoLibre](../upstream/geolibre-requests.md).
+The first three and the WFS call were asked upstream and added on `main` after 3.2.0 (2026-10-03): `?plugin=` for registry plugins, `getProj4()`, `publishableSettings` in the registry entry, `addWfsLayer()`. Not in a release on 2026-10-04, and the plugin uses none yet: see [Requests to GeoLibre](../upstream/geolibre-requests.md).
 
 [^geolibre-types]: GeoLibre 3.2.0, plugin types
 [^host]: Host methods beyond the template's API

@@ -18,7 +18,7 @@ You need [GeoLibre](https://github.com/opengeos/GeoLibre/releases) 3.2.0 or late
 2. Find **RNDT catalogue** and choose **Install**.
 3. Turn the plugin on from **Plugins > RNDT catalogue**.
 
-After a new version reaches the registry, GeoLibre does not load the installed one and marks it "Failed" in Manage Plugins ("changed since you last trusted it"): uninstall it there and install it again. It is GeoLibre's check on plugins loaded from an address, not a broken plugin ([opengeos/GeoLibre#2833](https://github.com/opengeos/GeoLibre/issues/2833)).
+After a new version reaches the registry, GeoLibre does not load the installed one and marks it "Failed" in Manage Plugins ("changed since you last trusted it"): uninstall it there and install it again. It is GeoLibre's check on plugins loaded from an address, not a broken plugin ([opengeos/GeoLibre#2833](https://github.com/opengeos/GeoLibre/issues/2833); the next GeoLibre release offers an Update button instead).
 
 From a zip, for a version that is not in the registry yet:
 
@@ -78,7 +78,7 @@ These links work where the plugin is installed: GeoLibre never installs a plugin
 https://web.geolibre.app/?url=https://gist.githubusercontent.com/aborruso/68601ad2b7f4af7a9156ba932f1b10a6/raw/rndt.geolibre.json&rndt=idrografia
 ```
 
-The first time GeoLibre asks whether to load the plugin ("Trust and load"), then no more. The project loads the plugin from the registry, so the search starts once a version with these parameters is there. A way to do without the project is asked in [opengeos/GeoLibre#2819](https://github.com/opengeos/GeoLibre/issues/2819).
+The first time GeoLibre asks whether to load the plugin ("Trust and load"), then no more. The project loads the plugin from the registry, so the search starts once a version with these parameters is there. A way to do without the project, `?plugin=openrndt-geolibre`, comes with the next GeoLibre release ([opengeos/GeoLibre#2819](https://github.com/opengeos/GeoLibre/issues/2819)).
 
 ## The search travels with the project
 
@@ -88,7 +88,7 @@ It is also a way around the CORS limit of the web version: search and pick a rec
 
 Things to know:
 
-- When it saves, GeoLibre asks "Strip credentials?" and counts the fields of the search among them: it cannot know what an external plugin keeps in a project. Choose **Keep in file**: the search holds no key and no password. With "Strip credentials", and in a project shared with Share, the search is left out ([opengeos/GeoLibre#2821](https://github.com/opengeos/GeoLibre/issues/2821)).
+- When it saves, GeoLibre asks "Strip credentials?" and counts the fields of the search among them: it cannot know what an external plugin keeps in a project. Choose **Keep in file**: the search holds no key and no password. With "Strip credentials", and in a project shared with Share, the search is left out ([opengeos/GeoLibre#2821](https://github.com/opengeos/GeoLibre/issues/2821); the next GeoLibre release lets the registry declare it safe, see [#27](https://github.com/ondata/openrndt-geolibre/issues/27)).
 - A search is not a change for GeoLibre: the project is not marked as modified, and closing without saving loses the search without a question. Save after the search you want to keep.
 - A project that carries no search empties the panel when it is opened, so a search never passes from one project to another.
 - On a computer without the plugin: a project saved where the plugin came from Manage Plugins carries its address, and GeoLibre asks whether to load it ("Trust and load"), then shows the search. A project saved where the plugin was copied by hand into the plugins folder carries no address: it opens without the plugin, and the search stays unused in the file.
@@ -97,7 +97,7 @@ Things to know:
 
 - WMS layers not offered in `EPSG:3857` (for example the Agenzia delle Entrate cadastral WMS, native in `EPSG:6706`) need GeoLibre Desktop 3.2.0 or later: the plugin asks them in a system the layer lists and GeoLibre redraws the tiles. With an older GeoLibre they stay disabled, and the panel says so. A group layer that answers every request with one fixed picture (the cadastral `Cartografia_Catastale`) is disabled: tick its layers instead.
 - In GeoLibre's web version the browser reads the services itself, so a WMS, WFS or ArcGIS server that sends no CORS headers cannot be shown there. The plugin cannot work around it: the panel says so, and offers no error report since the server is not at fault. The same services work in GeoLibre Desktop, which reads them through its native client.
-- WFS services without a GeoJSON output format cannot be added by the plugin. GeoLibre's own WFS layer can read GML services: try **Copy URL** in the service box, then **Add Data > WFS Layer**; the cadastral WFS of Agenzia delle Entrate fails there too ([opengeos/GeoLibre#2823](https://github.com/opengeos/GeoLibre/issues/2823) asks for a way to do it from a plugin).
+- WFS services without a GeoJSON output format cannot be added by the plugin. GeoLibre's own WFS layer can read GML services: try **Copy URL** in the service box, then **Add Data > WFS Layer**; the cadastral WFS of Agenzia delle Entrate fails there too ([opengeos/GeoLibre#2823](https://github.com/opengeos/GeoLibre/issues/2823): the next GeoLibre release gives plugins a way, see [#28](https://github.com/ondata/openrndt-geolibre/issues/28)).
 - ArcGIS REST layers are added as images through the service's `export` request, which GeoLibre's own ArcGIS layers use too: no cached tiles, no legend. Features need ArcGIS 10.4 or later (GeoJSON output); services that need a login cannot be added. The images are fetched by the webview, so the server must send CORS headers: the panel checks one test image first and says so when they are missing.
 - GeoLibre Desktop opens no `mailto:` link from a plugin, so the error report is copied to the clipboard instead of opening your mail client.
 - Footprints are a temporary map overlay, not a project layer, and need the MapLibre renderer.

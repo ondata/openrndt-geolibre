@@ -14,6 +14,9 @@ sources:
   - id: issue
     resource: https://github.com/opengeos/GeoLibre/issues/2821
     title: opengeos/GeoLibre#2821
+  - id: pr2836
+    resource: https://github.com/opengeos/GeoLibre/pull/2836
+    title: opengeos/GeoLibre#2836
 ---
 
 # The limit
@@ -37,5 +40,8 @@ Choose **Keep in file**. The state holds no key and no password: only the search
 
 Asked in [opengeos/GeoLibre#2821](https://github.com/opengeos/GeoLibre/issues/2821): a way for a plugin outside the core to have its state kept. See [Requests to GeoLibre](../upstream/geolibre-requests.md).
 
+Closed by [opengeos/GeoLibre#2836](https://github.com/opengeos/GeoLibre/pull/2836), merged on 2026-10-03 and not in a release on 2026-10-04: a registry entry can declare `publishableSettings`, `true` or a list of state keys. GeoLibre reads it from the registry only, keeps that state in stripped, shared and exported projects and no longer counts it in the prompt; a credential-named field in it is still dropped.[^pr2836] None of the plugin's state keys is such a name. Our registry entry does not declare it yet: [#27](https://github.com/ondata/openrndt-geolibre/issues/27). The development copy is not in the registry, so its state stays stripped.
+
 [^log]: LOG, 2026-10-03
 [^geolibre-credentials]: GeoLibre, redaction of project credentials
+[^pr2836]: opengeos/GeoLibre#2836
