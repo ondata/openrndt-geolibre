@@ -2,6 +2,7 @@
 
 ## 2026-10-03
 
+- **Release 0.1.9**: 0.1.8 plus the fix to recent searches below (the text left in the box no longer narrows the list). opengeos/geolibre-plugins#65 brought to 0.1.9 before its merge, so the registry goes from 0.1.7 to 0.1.9. Checked by the user in GeoLibre Desktop with the development copy: the list with text in the box, "Saved area", the Add to map row. A record of a server that does not answer (`sdi.provincia.lodi.it`) gives 8 entries in Diagnostics for one opening: 2 services, HTTPS then HTTP, native client then webview; about 50 s before the panel's message, 4 s of each attempt in the native client and 21 s in the fallback.
 - **Recent searches: the text left in the box no longer narrows the list** (#25, after 0.1.8, not released; user, Desktop: "solo quando è vuoto vedo altre ricerche"). The box keeps the text of the search on screen, and the list opened narrowed to that one entry. Now only what is typed after the list opens narrows it.
 - **0.1.8 to the registry**: opengeos/geolibre-plugins#65, from `ondata:update-openrndt-geolibre-0.1.8`; minify, validation and pre-commit pass locally; bundle 299 KB to 319 KB.
 - **Release 0.1.8**: recent searches (#25), contact the organisation (#20), Copy for an agent (#23), the panel refinements of the design review (#19), and the fixes since 0.1.7 (#22, #24, #26, the WFS message, the late error when the plugin is turned off). Recent searches and the Add to map row were seen in the web version only before the release; the rest also in GeoLibre Desktop.

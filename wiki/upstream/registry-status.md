@@ -25,9 +25,9 @@ sources:
 | | Version |
 |---|---|
 | In the registry (what Manage Plugins installs) | 0.1.7 |
-| Latest release of the repository | 0.1.8 |
+| Latest release of the repository | 0.1.9 |
 
-The registry is one release behind: 0.1.7 was read in its list on 2026-10-03, after [opengeos/geolibre-plugins#64](https://github.com/opengeos/geolibre-plugins/pull/64) was merged, and 0.1.8 was released the same day. It is on its way in [opengeos/geolibre-plugins#65](https://github.com/opengeos/geolibre-plugins/pull/65), opened on 2026-10-03.
+The registry is two releases behind: 0.1.7 was read in its list on 2026-10-03, after [opengeos/geolibre-plugins#64](https://github.com/opengeos/geolibre-plugins/pull/64) was merged, and 0.1.8 and 0.1.9 were released the same day. 0.1.9 is on its way in [opengeos/geolibre-plugins#65](https://github.com/opengeos/geolibre-plugins/pull/65), opened on 2026-10-03 for 0.1.8 and brought to 0.1.9 before its merge.
 
 This page ages: read the registry's list after its `stale_after` date.
 
