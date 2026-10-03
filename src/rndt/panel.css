@@ -268,6 +268,90 @@
   overflow-wrap: anywhere;
 }
 
+/* Organisation and its Contact link; the box the link opens, right under the row. */
+.ordt-org-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ordt-org-row > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ordt-contact-link {
+  flex: none;
+}
+
+.ordt-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--ordt-accent);
+  border: 1px solid var(--ordt-border);
+  border-radius: var(--ordt-radius);
+}
+
+.ordt-contact p {
+  margin: 0;
+}
+
+.ordt-contact-rows {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 10px;
+  margin: 0;
+}
+
+.ordt-contact-rows dt {
+  color: var(--ordt-muted);
+}
+
+.ordt-contact-rows dd {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.ordt-contact-rows code {
+  font-size: 11px;
+  color: var(--ordt-muted);
+}
+
+.ordt-contact-address {
+  user-select: all;
+}
+
+.ordt-contact-actions {
+  justify-content: space-between;
+}
+
+.ordt-contact-text {
+  max-height: 220px;
+  margin: 0;
+  padding: 6px 8px;
+  overflow: auto;
+  font-size: 11px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--ordt-bg);
+  border: 1px solid var(--ordt-border);
+  border-radius: var(--ordt-radius);
+}
+
+/* A button that copies an email, and its recipients beside it. */
+.ordt-report-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 6px;
+  font-size: 12px;
+}
+
 .ordt-abstract-wrap {
   display: flex;
   flex-direction: column;

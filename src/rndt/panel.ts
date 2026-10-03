@@ -301,6 +301,65 @@ function repoLink(): HTMLAnchorElement {
 /** RNDT contact, from the footer of geodati.gov.it (AgID). */
 const RNDT_EMAIL = "info@rndt.gov.it";
 
+/** An email the panel prepares and the user pastes into a mail program. */
+export interface Email {
+  to: string[];
+  cc: string[];
+  subject: string;
+  body: string;
+}
+
+/**
+ * An email to who publishes a record, for any request: it names the record and
+ * leaves a place for the request. It goes to the record's point of contact,
+ * with no copy to RNDT, which a question on a licence or an update does not
+ * concern. With no address in the record it goes to RNDT and asks whom to
+ * write to. In Italian, the language of the catalogue.
+ */
+export function contactEmail(record: RndtRecord): Email {
+  const what = record.type === "service" ? "servizio" : "dataset";
+  const about = [
+    `Scheda: ${record.title}`,
+    `Identificativo: ${record.id}`,
+    `Pagina della scheda: ${record.htmlUrl}`,
+    ...(record.organisation ? [`Ente: ${record.organisation}`] : []),
+  ];
+  if (record.contactEmails.length > 0) {
+    return {
+      to: record.contactEmails,
+      cc: [],
+      subject: `Richiesta sul ${what} ${record.title}`,
+      body: [
+        "Buongiorno,",
+        "",
+        `vi scrivo come referenti di un ${what} indicato nel Repertorio Nazionale dei Dati Territoriali (RNDT), che ho trovato con GeoLibre (plugin openrndt-geolibre).`,
+        "",
+        ...about,
+        "",
+        "[Scrivi qui la tua richiesta: un chiarimento sul dato, la licenza, un aggiornamento, un formato]",
+        "",
+        "Grazie e buon lavoro",
+      ].join("\n"),
+    };
+  }
+  return {
+    to: [RNDT_EMAIL],
+    cc: [],
+    subject: `Contatto per il ${what} ${record.title}`,
+    body: [
+      "Buongiorno,",
+      "",
+      `vi ringrazio per il catalogo RNDT. Vorrei scrivere all'ente responsabile di questa scheda, che non indica un indirizzo email del punto di contatto.${
+        record.organisation ? "" : " La scheda non indica nemmeno l'ente responsabile."
+      } Potete indicarmi a chi rivolgermi?`,
+      "",
+      ...about,
+      "",
+      "Grazie e buon lavoro",
+    ].join("\n"),
+  };
+}
+
 /**
  * A report on a service that failed to load, with what is needed to check it:
  * record, service, error, time (UTC). It is addressed to the record's point of
@@ -312,7 +371,7 @@ export function errorReport(
   service: RndtService,
   error: string,
   now = new Date(),
-): { to: string[]; cc: string[]; subject: string; body: string } {
+): Email {
   const toContact = record.contactEmails.length > 0;
   const app = isDesktop() ? "GeoLibre Desktop" : "GeoLibre";
   const intro = toContact
@@ -342,8 +401,8 @@ export function errorReport(
   };
 }
 
-/** The report as text to paste into a new email: recipients and subject first. */
-export function errorReportText(report: ReturnType<typeof errorReport>): string {
+/** An email as text to paste into a new one: recipients and subject first. */
+export function emailText(report: Email): string {
   return [
     `A: ${report.to.join(", ")}`,
     ...(report.cc.length ? [`Cc: ${report.cc.join(", ")}`] : []),
@@ -509,19 +568,14 @@ function menuWrap(menu: HTMLElement, label: string): HTMLElement {
 }
 
 /**
- * "Copy error report": the desktop app opens no mailto: link, so the report
- * goes to the clipboard, with the recipients also shown beside the button.
+ * A button that copies an email to the clipboard, with its recipients written
+ * beside it: the desktop app opens no mailto: link. One shape for the error
+ * report of a service and for the email to the organisation of a record.
  */
-function reportControl(record: RndtRecord, service: RndtService, error: string): HTMLElement {
-  const report = errorReport(record, service, error);
-  const label = "Copy error report";
-  const button = h(
-    "button",
-    { className: "ordt-link ordt-report", type: "button", title: "Copy recipients, subject and text of an email about this error" },
-    label,
-  );
+function copyEmailControl(label: string, email: Email, to: string, className: string, title: string): HTMLElement {
+  const button = h("button", { className: `ordt-button ${className}`, type: "button", title }, label);
   button.addEventListener("click", () => {
-    void navigator.clipboard?.writeText(errorReportText(report)).then(
+    void navigator.clipboard?.writeText(emailText(email)).then(
       () => {
         button.textContent = "Copied: paste it into a new email";
         setTimeout(() => (button.textContent = label), 3000);
@@ -529,8 +583,19 @@ function reportControl(record: RndtRecord, service: RndtService, error: string):
       () => undefined,
     );
   });
-  const to = report.cc.length ? `to ${report.to.join(", ")}, RNDT in copy` : `to ${report.to.join(", ")}`;
-  return h("span", { className: "ordt-report-wrap" }, button, " ", h("span", { className: "ordt-muted" }, `(${to})`));
+  return h("span", { className: "ordt-report-wrap" }, button, " ", h("span", { className: "ordt-muted" }, `(to ${to})`));
+}
+
+/** "Copy error report", under the error of a service that failed to load. */
+function reportControl(record: RndtRecord, service: RndtService, error: string): HTMLElement {
+  const report = errorReport(record, service, error);
+  return copyEmailControl(
+    "Copy error report",
+    report,
+    report.cc.length ? `${report.to.join(", ")}, RNDT in copy` : report.to.join(", "),
+    "ordt-report",
+    "Copy recipients, subject and text of an email about this error",
+  );
 }
 
 /** A titled part of "Search help": the panel inside is always shown there. */
@@ -2261,8 +2326,8 @@ export class RndtPanel {
         record.type && h("span", { className: "ordt-muted" }, record.type),
         ...kinds.map((k) => h("span", { className: "ordt-badge ordt-badge-service" }, k)),
       ),
-      record.organisation && h("div", { className: "ordt-small" }, record.organisation),
       record.modified && h("div", { className: "ordt-small ordt-muted" }, `Metadata updated ${record.modified}`),
+      ...this.renderContact(record),
       record.abstract && this.renderAbstract(record.abstract),
       record.services.length
         ? h("ul", { className: "ordt-services" }, ...servicesWithDerivedWms(record.services).map((g) => this.renderService(record, g)))
@@ -2297,6 +2362,71 @@ export class RndtPanel {
         menuWrap(h("div", { className: "ordt-menu", role: "menu", hidden: true }, ...more), "More record actions"),
       ),
     ];
+  }
+
+  /**
+   * The organisation's row with its Contact link, and the box the link opens
+   * right under it: what the record says (about, organisation, contact) and an
+   * email ready to copy, for any request to who publishes the data. The link is
+   * there with no address too: the email then asks RNDT whom to write to.
+   */
+  private renderContact(record: RndtRecord): HTMLElement[] {
+    const email = contactEmail(record);
+    const toContact = record.contactEmails.length > 0;
+    const preview = h("pre", { className: "ordt-contact-text", hidden: true }, emailText(email));
+    const show = h("button", { className: "ordt-link ordt-contact-show", type: "button" }, "Show text");
+    show.addEventListener("click", () => {
+      preview.hidden = !preview.hidden;
+      show.textContent = preview.hidden ? "Show text" : "Hide text";
+    });
+    const box = h(
+      "div",
+      { className: "ordt-contact ordt-small", hidden: true },
+      h(
+        "dl",
+        { className: "ordt-contact-rows" },
+        h("dt", {}, "About"),
+        h("dd", {}, h("span", {}, record.title), h("code", {}, record.id)),
+        h("dt", {}, "Organisation"),
+        h("dd", { className: record.organisation ? "" : "ordt-muted" }, record.organisation || "Not named in the record"),
+        h("dt", {}, "Contact"),
+        toContact
+          ? h(
+              "dd",
+              {},
+              ...record.contactEmails.map((address) => h("span", { className: "ordt-contact-address" }, address)),
+              h("span", { className: "ordt-muted" }, "point of contact named in the record"),
+            )
+          : h("dd", { className: "ordt-muted" }, "This record gives no email address."),
+      ),
+      h(
+        "p",
+        { className: "ordt-muted" },
+        toContact
+          ? "A question on the data, its licence, an update, another format: the email names this record, you write the request."
+          : "RNDT runs the catalogue and can tell you whom to write to. The email asks them for the organisation's contact for this record.",
+      ),
+      h(
+        "div",
+        { className: "ordt-row ordt-contact-actions" },
+        copyEmailControl(
+          toContact ? "Copy email" : "Copy email to RNDT",
+          email,
+          toContact ? email.to.join(", ") : "RNDT",
+          "ordt-copy-email",
+          "Copy recipients, subject and text of an email about this record",
+        ),
+        show,
+      ),
+      preview,
+    );
+    const link = h("button", { className: "ordt-link ordt-contact-link", type: "button", "aria-expanded": "false" }, "Contact");
+    link.addEventListener("click", () => {
+      box.hidden = !box.hidden;
+      link.textContent = box.hidden ? "Contact" : "Close";
+      link.setAttribute("aria-expanded", String(!box.hidden));
+    });
+    return [h("div", { className: "ordt-org-row ordt-small" }, h("span", {}, record.organisation), link), box];
   }
 
   /** The abstract cut at a few lines, with More / Less: a long one pushed the first service below the fold. */
@@ -2386,7 +2516,9 @@ export class RndtPanel {
     if (message.includes(BROWSER_BLOCK_NOTE)) report = undefined;
     if (report) this.logError(report.record, report.service, message);
     area.replaceChildren(
-      h("p", { className: "ordt-note", "data-kind": kind }, message, report && " ", report && reportControl(report.record, report.service, message)),
+      h("p", { className: "ordt-note", "data-kind": kind }, message),
+      // On a row of its own: the same shape as the email to the organisation.
+      ...(report ? [reportControl(report.record, report.service, message)] : []),
     );
   }
 

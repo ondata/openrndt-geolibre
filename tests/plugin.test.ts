@@ -1208,7 +1208,7 @@ describe("Report the error", () => {
   });
 
   it("addresses RNDT alone when the record names no contact", async () => {
-    const { errorReport, errorReportText } = await import("../src/rndt/panel");
+    const { errorReport, emailText: errorReportText } = await import("../src/rndt/panel");
     const record = {
       id: "x:1",
       title: "Carta",
@@ -2134,5 +2134,136 @@ describe("panel refinements (#19)", () => {
     toggle.click();
     expect(abstract.classList.contains("ordt-clamped")).toBe(false);
     expect(toggle.textContent).toBe("Less");
+  });
+});
+
+describe("Contact the organisation (#20)", () => {
+  const record = {
+    id: "x:1",
+    title: "Carta",
+    abstract: "",
+    type: "dataset",
+    organisation: "Regione Esempio",
+    contactEmails: ["sit@regione.example.it"],
+    modified: "",
+    bbox: null,
+    services: [],
+    otherLinks: [],
+    htmlUrl: "https://geodati.gov.it/RNDT/rest/metadata/item/x%3A1/html",
+    xmlUrl: "",
+  };
+
+  it("writes to the record's contact, with no copy to RNDT, and leaves room for the request", async () => {
+    const { contactEmail, emailText } = await import("../src/rndt/panel");
+    const email = contactEmail(record);
+    expect([email.to, email.cc]).toEqual([["sit@regione.example.it"], []]);
+    expect(emailText(email)).toBe(
+      [
+        "A: sit@regione.example.it",
+        "Oggetto: Richiesta sul dataset Carta",
+        "",
+        "Buongiorno,",
+        "",
+        "vi scrivo come referenti di un dataset indicato nel Repertorio Nazionale dei Dati Territoriali (RNDT), che ho trovato con GeoLibre (plugin openrndt-geolibre).",
+        "",
+        "Scheda: Carta",
+        "Identificativo: x:1",
+        "Pagina della scheda: https://geodati.gov.it/RNDT/rest/metadata/item/x%3A1/html",
+        "Ente: Regione Esempio",
+        "",
+        "[Scrivi qui la tua richiesta: un chiarimento sul dato, la licenza, un aggiornamento, un formato]",
+        "",
+        "Grazie e buon lavoro",
+      ].join("\n"),
+    );
+    const service = contactEmail({ ...record, type: "service" });
+    expect(service.subject).toBe("Richiesta sul servizio Carta");
+    expect(service.body).toContain("referenti di un servizio indicato");
+  });
+
+  it("asks RNDT whom to write to when the record gives no address", async () => {
+    const { contactEmail } = await import("../src/rndt/panel");
+    const email = contactEmail({ ...record, contactEmails: [] });
+    expect([email.to, email.cc]).toEqual([["info@rndt.gov.it"], []]);
+    expect(email.subject).toBe("Contatto per il dataset Carta");
+    expect(email.body).toContain("che non indica un indirizzo email del punto di contatto. Potete indicarmi a chi rivolgermi?");
+    expect(email.body).toContain("Ente: Regione Esempio");
+    expect(email.body).not.toContain("Scrivi qui");
+    const unnamed = contactEmail({ ...record, contactEmails: [], organisation: "" });
+    expect(unnamed.body).not.toContain("Ente:");
+    expect(unnamed.body).toContain("La scheda non indica nemmeno l'ente responsabile.");
+  });
+
+  async function detail(patch: (source: Record<string, unknown>) => void = () => undefined) {
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    const page = JSON.parse(fixture("search-alberi.json"));
+    for (const result of page.results) patch(result._source);
+    const ctx = await mountPanel(() => JSON.stringify(page));
+    ctx.container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const cards = ctx.container.querySelectorAll<HTMLElement>(".ordt-result");
+    return { ...ctx, writeText, cards, view: openDetail(cards[0]) };
+  }
+
+  it("opens a box under the organisation's row, with what the record says and a ready email", async () => {
+    const { view, writeText, cards } = await detail((source) => {
+      source.EnteResponsabile_s = "Regione Esempio";
+      source.PuntoDiContattoEmail_s = "sit@regione.example.it";
+    });
+    const row = view.querySelector<HTMLElement>(".ordt-org-row")!;
+    const link = row.querySelector<HTMLButtonElement>(".ordt-contact-link")!;
+    const box = view.querySelector<HTMLElement>(".ordt-contact")!;
+    expect(row.firstElementChild!.textContent).toBe("Regione Esempio");
+    // The date comes before the organisation, so the box opens right under its row.
+    expect(row.previousElementSibling!.textContent).toMatch(/^Metadata updated /);
+    expect(row.nextElementSibling).toBe(box);
+    expect([link.textContent, box.hidden]).toEqual(["Contact", true]);
+
+    link.click();
+    expect([link.textContent, box.hidden]).toEqual(["Close", false]);
+    const rows = Array.from(box.querySelectorAll("dt"), (dt) => [dt.textContent, dt.nextElementSibling!.textContent]);
+    expect(rows[0][0]).toBe("About");
+    expect(rows[0][1]).toContain(view.querySelector(".ordt-detail-title")!.textContent);
+    expect(rows[1]).toEqual(["Organisation", "Regione Esempio"]);
+    expect(rows[2]).toEqual(["Contact", "sit@regione.example.itpoint of contact named in the record"]);
+
+    const copy = box.querySelector<HTMLButtonElement>(".ordt-copy-email")!;
+    expect(copy.textContent).toBe("Copy email");
+    expect(copy.parentElement!.textContent).toBe("Copy email (to sit@regione.example.it)");
+    copy.click();
+    await flush();
+    expect(copy.textContent).toBe("Copied: paste it into a new email");
+    const text = (writeText.mock.calls[0] as unknown as [string])[0];
+    expect(text).toMatch(/^A: sit@regione\.example\.it\nOggetto: Richiesta sul /);
+    expect(text).not.toContain("Cc:");
+
+    const show = box.querySelector<HTMLButtonElement>(".ordt-contact-show")!;
+    const preview = box.querySelector<HTMLElement>(".ordt-contact-text")!;
+    expect([show.textContent, preview.hidden]).toEqual(["Show text", true]);
+    show.click();
+    expect([show.textContent, preview.hidden, preview.textContent]).toEqual(["Hide text", false, text]);
+
+    link.click();
+    expect([link.textContent, box.hidden]).toEqual(["Contact", true]);
+    // Not remembered from a record to the next.
+    link.click();
+    expect(openDetail(cards[1]).querySelector<HTMLElement>(".ordt-contact")!.hidden).toBe(true);
+  });
+
+  it("offers the email to RNDT for a record with no address, and names a missing organisation", async () => {
+    const { view } = await detail((source) => {
+      delete source.EnteResponsabile_s;
+      delete source.PuntoDiContattoEmail_s;
+    });
+    const link = view.querySelector<HTMLButtonElement>(".ordt-contact-link")!;
+    link.click();
+    const box = view.querySelector<HTMLElement>(".ordt-contact")!;
+    const rows = Array.from(box.querySelectorAll("dt"), (dt) => [dt.textContent, dt.nextElementSibling!.textContent]);
+    expect(rows.slice(1)).toEqual([
+      ["Organisation", "Not named in the record"],
+      ["Contact", "This record gives no email address."],
+    ]);
+    expect(box.querySelector(".ordt-copy-email")!.parentElement!.textContent).toBe("Copy email to RNDT (to RNDT)");
   });
 });

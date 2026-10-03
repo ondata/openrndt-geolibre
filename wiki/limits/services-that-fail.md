@@ -50,7 +50,7 @@ So it needs a request made for it, limited to a small area. Neither the plugin n
 
 # Copy error report
 
-In the box of a failing service, when the server is at fault: a ready-to-paste email for the record's contact, with RNDT in copy. It is for the data publisher. Problems of the plugin go to the [issues](https://github.com/ondata/openrndt-geolibre/issues/new/choose) of the repository.
+In the box of a failing service, under the error message, when the server is at fault: a button that copies a ready-to-paste email for the record's contact, with RNDT in copy; the recipients are written beside it. It is for the data publisher. For any other request to the publisher: [Write to the organisation](../guides/contact-the-organisation.md). Problems of the plugin go to the [issues](https://github.com/ondata/openrndt-geolibre/issues/new/choose) of the repository.
 
 To keep a list of the failing addresses: [Settings and error log](../reference/settings-and-error-log.md).
 
