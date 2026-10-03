@@ -903,6 +903,12 @@
   box-shadow: 0 2px 8px rgb(0 0 0 / 0.12);
 }
 
+/* No room under the button: the menu opens above it. */
+.ordt-menu-up {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
 .ordt-menu-item {
   padding: 4px 6px;
   font: inherit;
@@ -913,6 +919,13 @@
   border: 0;
   border-radius: calc(var(--ordt-radius) - 2px);
   cursor: pointer;
+}
+
+/* An item with a line that says what it does, under its label. */
+.ordt-menu-hint {
+  display: block;
+  font-size: 11px;
+  white-space: normal;
 }
 
 .ordt-menu-item:hover:not(:disabled),

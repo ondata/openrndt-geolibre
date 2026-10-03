@@ -53,6 +53,7 @@ import {
 } from "./ogc";
 import type { PanelState } from "./project-state";
 import type { LinkSearch } from "./url-params";
+import { agentText } from "./agent-text";
 import { bboxError, buildCurlCommand, buildSearchUrl, clampBbox, emptyForm, idForm, recordIdIn, type Bbox, type ResourceKind, type LinkKind, type SearchForm, type SpatialRel, type TextMode } from "./query";
 import { footprints, parseSearchResponse, type RndtRecord, type RndtService } from "./records";
 import {
@@ -547,9 +548,14 @@ function helpBox(id: string, ...children: (Node | string)[]): HTMLElement {
   return h("div", { className: "ordt-help", id, hidden: true }, ...children);
 }
 
-/** A ⋯ button with its menu; picking an item closes the menu. */
+/**
+ * A ⋯ button with its menu; picking an item closes the menu. The menu opens
+ * under the button, or above it when it would end under the footer or the edge
+ * of the window and there is room above (the ⋯ of the detail view is often the
+ * last row of the panel).
+ */
 function menuWrap(menu: HTMLElement, label: string): HTMLElement {
-  const button = h(
+  const button: HTMLButtonElement = h(
     "button",
     {
       className: "ordt-button ordt-menu-button",
@@ -557,12 +563,22 @@ function menuWrap(menu: HTMLElement, label: string): HTMLElement {
       "aria-label": label,
       title: label,
       "aria-haspopup": "menu",
-      onclick: () => (menu.hidden = !menu.hidden),
+      onclick: () => {
+        menu.hidden = !menu.hidden;
+        menu.classList.remove("ordt-menu-up");
+        if (menu.hidden) return;
+        const footer = button.closest(".ordt-panel")?.querySelector(".ordt-footer")?.getBoundingClientRect();
+        const floor = Math.min(window.innerHeight, footer && footer.top > 0 ? footer.top : Infinity);
+        const box = menu.getBoundingClientRect();
+        if (box.bottom > floor && button.getBoundingClientRect().top - box.height > 0) menu.classList.add("ordt-menu-up");
+      },
     },
     "⋯",
   );
   menu.addEventListener("click", (event) => {
-    if ((event.target as HTMLElement).closest("button")) menu.hidden = true;
+    // An item that confirms in its own label ("Copied…") keeps the menu open.
+    const item = (event.target as HTMLElement).closest("button");
+    if (item && !item.hasAttribute("data-keep-open")) menu.hidden = true;
   });
   return h("span", { className: "ordt-menu-wrap" }, button, menu);
 }
@@ -766,6 +782,8 @@ export class RndtPanel {
   /** Watches the sticky bars' heights; stopped when the panel is destroyed. */
   private stickyObserver: ResizeObserver | null = null;
   private copyQueryEl!: HTMLButtonElement;
+  private copyAgentLabelEl!: HTMLElement;
+  private copyAgentHintEl!: HTMLElement;
   private footprintsToggleEl!: HTMLButtonElement;
   /** A search asked by a link before the first mount. */
   private pendingLink: LinkSearch | null = null;
@@ -1415,9 +1433,17 @@ export class RndtPanel {
       "aria-label": "Sort results",
       onchange: () => this.changeSort(),
     });
+    this.copyAgentLabelEl = h("span", {}, "Copy for an agent");
+    this.copyAgentHintEl = h("span", { className: "ordt-menu-hint ordt-muted" });
     const menu = h(
       "div",
       { className: "ordt-menu", role: "menu", hidden: true },
+      h(
+        "button",
+        { className: "ordt-menu-item ordt-copy-agent", type: "button", "data-keep-open": "", onclick: () => this.copyForAgent() },
+        this.copyAgentLabelEl,
+        this.copyAgentHintEl,
+      ),
       h("button", { className: "ordt-menu-item ordt-danger", type: "button", onclick: () => this.clearResults() }, "Clear results"),
     );
     this.resultActionsEl = h(
@@ -2032,6 +2058,20 @@ export class RndtPanel {
     );
   }
 
+  /** Copy the search on screen, its page of records and the commands to go on, as Markdown for an AI agent. */
+  private copyForAgent(): void {
+    if (!this.lastForm) return;
+    const text = agentText({ form: this.lastForm, records: this.records, total: this.total, start: this.start, num: PAGE_SIZE });
+    const label = this.copyAgentLabelEl;
+    void navigator.clipboard?.writeText(text).then(
+      () => {
+        label.textContent = "Copied: paste it into your agent";
+        setTimeout(() => (label.textContent = "Copy for an agent"), 3000);
+      },
+      () => this.setStatus("Could not copy to the clipboard.", "error"),
+    );
+  }
+
   private zoomToResults(): void {
     const boxes = this.records.map((r) => r.bbox).filter((b): b is Bbox => !!b);
     if (!boxes.length || !this.app.fitBounds) return;
@@ -2051,6 +2091,8 @@ export class RndtPanel {
         : `${this.start}-${end} of ${this.total.toLocaleString("en")}`,
     );
     this.listEl.replaceChildren(...this.records.map((r) => this.renderRecord(r)));
+    const shown = this.records.length;
+    this.copyAgentHintEl.textContent = `This search, its ${shown === 1 ? "result" : `${shown} results`} and the commands to go on`;
     // With no record curl, sort and the menu have nothing to act on.
     this.resultActionsEl.hidden = this.total === 0;
     const mapped = this.records.some((r) => r.bbox);

@@ -2267,3 +2267,62 @@ describe("Contact the organisation (#20)", () => {
     expect(box.querySelector(".ordt-copy-email")!.parentElement!.textContent).toBe("Copy email to RNDT (to RNDT)");
   });
 });
+
+describe("Copy for an agent (#23)", () => {
+  it("copies the search, its page and the commands to go on, from the menu of the results header", async () => {
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    const { container } = await mountPanel(() => fixture("search-alberi.json"));
+    const entry = () => container.querySelector<HTMLButtonElement>(".ordt-results-head .ordt-copy-agent")!;
+    const menu = entry().closest<HTMLElement>(".ordt-menu")!;
+    // Above Clear results, and out of sight until there are results.
+    expect(Array.from(menu.querySelectorAll("button"), (b) => b.firstChild!.textContent)).toEqual(["Copy for an agent", "Clear results"]);
+    expect(container.querySelector<HTMLElement>(".ordt-head-tools")!.hidden).toBe(true);
+
+    container.querySelector<HTMLInputElement>('.ordt-search-bar input[name="text"]')!.value = "alberi";
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    expect(entry().textContent).toBe("Copy for an agentThis search, its 5 results and the commands to go on");
+    menu.hidden = false;
+    entry().click();
+    await flush();
+    expect(entry().firstChild!.textContent).toBe("Copied: paste it into your agent");
+    // The menu stays open, so the confirmation is read.
+    expect(menu.hidden).toBe(false);
+
+    const text = (writeText.mock.calls[0] as unknown as [string])[0];
+    expect(text.split("\n")[0]).toBe('# RNDT search: "alberi"');
+    expect(text).toContain("- Area: bbox 12,41,13,42 (west,south,east,north, EPSG:4326), records that touch it");
+    expect(text).toContain("- Results: 41; this is page 1 (records 1-5)");
+    expect(text).toContain("curl -sG 'https://geodati.gov.it/RNDT/rest/metadata/search'");
+    const titles = Array.from(container.querySelectorAll(".ordt-result-title"), (b) => b.textContent!);
+    expect(titles).toHaveLength(5);
+    for (const title of titles) expect(text).toContain(`| ${title.replace(/\|/g, "\\|")} |`);
+  });
+});
+
+describe("A menu with no room below (#24)", () => {
+  it("opens upwards when it would end under the footer, downwards otherwise", async () => {
+    const { container } = await mountPanel(() => fixture("search-alberi.json"));
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const view = openDetail(container.querySelector<HTMLElement>(".ordt-result")!);
+    const button = view.querySelector<HTMLButtonElement>(".ordt-detail-actions .ordt-menu-button")!;
+    const menu = button.nextElementSibling as HTMLElement;
+    const rect = (top: number, bottom: number) => () => ({ top, bottom, left: 0, right: 0, width: 0, height: bottom - top, x: 0, y: top, toJSON: () => ({}) });
+    container.querySelector<HTMLElement>(".ordt-footer")!.getBoundingClientRect = rect(600, 640);
+
+    // The button sits right above the footer: 80 px of menu do not fit below, and fit above.
+    button.getBoundingClientRect = rect(570, 590);
+    menu.getBoundingClientRect = rect(594, 674);
+    button.click();
+    expect([menu.hidden, menu.classList.contains("ordt-menu-up")]).toEqual([false, true]);
+    button.click();
+
+    // Higher up there is room below.
+    button.getBoundingClientRect = rect(200, 220);
+    menu.getBoundingClientRect = rect(224, 304);
+    button.click();
+    expect([menu.hidden, menu.classList.contains("ordt-menu-up")]).toEqual([false, false]);
+  });
+});

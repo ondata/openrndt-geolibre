@@ -1,7 +1,7 @@
 ---
 type: Guide
 title: Share a search
-description: Two ways to pass a search on - a link that opens GeoLibre on a search, and a project that carries the search.
+description: Three ways to pass a search on - a link that opens GeoLibre on a search, a project that carries the search, and a text for an AI agent.
 tags: [link, project, share, url-parameters]
 status: stable
 sources:
@@ -11,6 +11,9 @@ sources:
   - id: log
     resource: ../../LOG.md
     title: LOG, 2026-10-03
+  - id: agent
+    resource: ../../src/rndt/agent-text.ts
+    title: agentText, and LOG, 2026-10-03
   - id: gist
     resource: https://gist.github.com/aborruso/68601ad2b7f4af7a9156ba932f1b10a6
     title: A project that lists the plugin
@@ -62,5 +65,18 @@ Things to know:
 
 The second row was seen with a project saved in GeoLibre Desktop and opened in a clean browser.[^log]
 
+# To an AI agent
+
+In the ⋯ menu of the results header, **Copy for an agent** copies the search as Markdown, to paste into an AI agent, a note or a message. It holds:
+
+- what RNDT is, in one paragraph;
+- the search, with its filters in words and numbers: the map view is written as its box, since an agent does not see the map; date and time in UTC, the total and the page;
+- the same `curl` command as the `curl` button, and what to change in it for the next page or for one record, and where the ISO XML of a record is;
+- the records of the page as a table: id, title, organisation, available as. No abstracts;
+- [openrndt](https://github.com/ondata/openrndt), the command line tool for the same catalogue.
+
+The label reads "Copied: paste it into your agent" for 3 seconds. The entry is there when the search has results. The text of a page of 20 records is about 4 KB.[^agent]
+
 [^gist]: A project that lists the plugin
 [^log]: LOG, 2026-10-03
+[^agent]: agentText, and LOG, 2026-10-03
