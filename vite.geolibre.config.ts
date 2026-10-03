@@ -41,16 +41,28 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 // The development copy (`--mode dev`) is built in its own folder, with a
 // manifest written from the official one: `geolibre-plugin/` is never touched.
 // Its id and name must be the ones `src/rndt/constants.ts` takes in that mode.
+// GeoLibre injects a plugin's stylesheet globally, so the CSS prefix changes
+// too (`ordt-` to `ordtdev-`, classes and variables, in script and stylesheet):
+// with the same prefix the rules of the installed registry copy applied to the
+// development panel as well (a border removed here came back from there).
 const DEV_BUNDLE_DIR = resolve(__dirname, "geolibre-plugin-dev");
 
 function writeDevManifest(): Plugin {
   return {
     name: "geolibre-plugin:dev-manifest",
+    generateBundle(_options, bundle) {
+      for (const file of Object.values(bundle)) {
+        if (file.type === "chunk") file.code = file.code.replaceAll("ordt-", "ordtdev-");
+      }
+    },
     async closeBundle() {
       const manifest = JSON.parse(await readFile(resolve(__dirname, "geolibre-plugin/plugin.json"), "utf8"));
       const dev = { ...manifest, id: `${manifest.id}-dev`, name: `${manifest.name} (dev)` };
       await mkdir(DEV_BUNDLE_DIR, { recursive: true });
       await writeFile(resolve(DEV_BUNDLE_DIR, "plugin.json"), `${JSON.stringify(dev, null, 2)}\n`);
+      // The stylesheet is written after generateBundle: its prefix is changed on disk.
+      const stylePath = resolve(DEV_BUNDLE_DIR, "dist/style.css");
+      await writeFile(stylePath, (await readFile(stylePath, "utf8")).replaceAll("ordt-", "ordtdev-"));
     },
   };
 }

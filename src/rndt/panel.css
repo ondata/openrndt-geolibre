@@ -572,6 +572,11 @@
   border-bottom: 1px solid var(--ordt-border);
 }
 
+/* No record: the remedies come right under the header. */
+.ordt-results:empty {
+  display: none;
+}
+
 .ordt-result {
   scroll-margin-top: calc(var(--ordt-bar-h, 46px) + var(--ordt-head-h, 90px) + 8px);
 }

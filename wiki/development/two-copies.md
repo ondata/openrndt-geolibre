@@ -26,9 +26,12 @@ sources:
 | Name in the Plugins menu | RNDT catalogue | RNDT catalogue (dev) |
 | Panel title and toolbar menu | RNDT | RNDT (dev) |
 | Bundle folder | `geolibre-plugin/` | `geolibre-plugin-dev/`, not in git |
+| CSS prefix | `ordt-` | `ordtdev-` |
 | Updated by | Manage Plugins, after a release reaches the registry | a new build and install, at every change |
 
 The code is the same. Only the id and the two names change, and with the id every name the plugin registers under: panel, toolbar menu, footprints layers, settings and error log in the browser's storage. So the two copies have separate settings.[^constants]
+
+The CSS prefix changes too, classes and variables, in the script and in the stylesheet of the development build. GeoLibre injects a plugin's stylesheet in the whole page: with the same prefix the rules of the installed plugin from the registry applied to the development panel as well, and a style changed in the working tree could be undone by the released one. Seen on 2026-10-03: the border given to the ⋯ of a result card did not show in GeoLibre Desktop, where both copies were installed, and showed in the web version with the development copy alone.[^vite]
 
 Two bundles with the same id cannot be installed together, one replaces the other: that is why the development copy has its own.
 

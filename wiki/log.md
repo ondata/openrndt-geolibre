@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-10-03
+* **Update**: [The two copies of the plugin](development/two-copies.md): the development copy has its own CSS prefix, and why.
 * **Update**: [Search the catalogue](guides/search.md) for the panel refinements of #19: Filters link, no results, the fixed way back and the cut abstract in the detail view.
 * **Creation**: [An update needs a reinstall](limits/update-needs-reinstall.md), with [Install the plugin](guides/install.md) and [Requests to GeoLibre](upstream/geolibre-requests.md) (opengeos/GeoLibre#2833).
 * **Creation**: [The two copies of the plugin](development/two-copies.md): the plugin from the registry and the development copy, with its own id, in one GeoLibre.
