@@ -2,6 +2,7 @@
 
 ## 2026-10-03
 
+- **0.1.7**: the search saved in the project, a project without a search empties the panel, a link followed once, and the four fixes from the Desktop tests below (folded list, Add button in sight, "on the map" after a reopen, hidden footprints). It goes into the registry PR opengeos/geolibre-plugins#64 in place of 0.1.6, still not merged.
 - **A project without a search empties the panel** (user's choice, `clearsStateOnProjectLoad`): before, the search of the project before stayed on screen and a save wrote it into the new one. A form filled in but never searched is left alone. Tried on web.geolibre.app: a vector basemap style and the globe/flat switch do not clear the search.
 - **A link is followed once**: GeoLibre gives the URL parameters again at every project it opens, so after `?rndt=ortofoto` each project opened from the menu got "ortofoto" back over its own search. The plugin now remembers the link it followed.
 - **Tests by the user in Desktop**: Save (not Save As) stores a new search although the project is not marked as modified; "Strip credentials?" comes there too; closing without saving loses the search with no question. A project with a search and no manifest URL (plugin installed from a folder), opened where the plugin is missing: no prompt, no plugin.

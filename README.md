@@ -75,9 +75,7 @@ The first time GeoLibre asks whether to load the plugin ("Trust and load"), then
 
 ## The search travels with the project
 
-Not released yet: it comes with the version after 0.1.6.
-
-When a GeoLibre project is saved, the panel's last search goes into it: text and filters, the area as the box that was searched, the page, and the record open in the detail view. Whoever opens the project finds the plugin on, the search done and that record open: a way to keep a search worth keeping, and to pass it on. The results themselves are not saved: the search runs again, so a catalogue that changed in the meantime can answer with other records.
+From version 0.1.7. When a GeoLibre project is saved, the panel's last search goes into it: text and filters, the area as the box that was searched, the page, and the record open in the detail view. Whoever opens the project finds the plugin on, the search done and that record open: a way to keep a search worth keeping, and to pass it on. The results themselves are not saved: the search runs again, so a catalogue that changed in the meantime can answer with other records.
 
 It is also a way around the CORS limit of the web version: search and pick a record in the browser, save the project, open the file in GeoLibre Desktop, where every service can be read.
 
