@@ -60,9 +60,10 @@ Every method except `registerRightPanel` is called only if present.[^host]
 - A way to be activated by `?plugin=`: built-in plugins only.
 - Its own proj4.
 - A way to keep its project state through "Strip credentials".
+- A call to add GeoLibre's own WFS layer: the API has `addGeoJsonLayer`, `addWmsLayer`, `addTileLayer`, `addWmtsLayer`, `addCogLayer` and `addZarrLayer`, nothing for a WFS.
 - A call to mark the project as modified: none was found in the plugin types (see [A search is not a project change](../limits/unsaved-search.md)).
 
-The first three are asked upstream: see [Requests to GeoLibre](../upstream/geolibre-requests.md).
+The first three and the WFS call are asked upstream: see [Requests to GeoLibre](../upstream/geolibre-requests.md).
 
 [^geolibre-types]: GeoLibre 3.2.0, plugin types
 [^host]: Host methods beyond the template's API

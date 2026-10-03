@@ -38,7 +38,7 @@ Pick one feature type and press **Add features**: the features are downloaded as
 - Above 10,000 features the panel asks before downloading them all.[^constants]
 - With GeoLibre 3.2.0 or later the features are drawn with the style the server gives for that layer (SLD), when it has one.
 - Coordinates in a projected system are converted: see [Coordinate systems converted](../reference/coordinate-systems.md).
-- A WFS with no GeoJSON output cannot be added.
+- A WFS with no GeoJSON output cannot be added by the plugin: the panel points to GeoLibre's own **Add Data > WFS Layer**, which can read GML services, though not all of them. See [Services that fail](../limits/services-that-fail.md).
 
 # ArcGIS REST
 

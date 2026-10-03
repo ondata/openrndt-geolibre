@@ -28,10 +28,20 @@ sources:
 | The server does not answer, or answers late | "cannot reach <name>" or a timeout | try again later; servers can be unsteady from one minute to the next |
 | A WMS layer is not offered in `EPSG:3857` | with GeoLibre before 3.2.0 the layer is disabled, and the panel says so | GeoLibre Desktop 3.2.0 or later |
 | A WMS group layer answers every request with one fixed picture | the layer is disabled | tick its layers instead |
-| A WFS has no GeoJSON output | "This WFS offers no GeoJSON output, so it cannot be added directly." | none in the plugin |
+| A WFS has no GeoJSON output | "This WFS offers no GeoJSON output, so the plugin cannot add it. GeoLibre's Add Data > WFS Layer can read GML services: Copy URL above and try it there." | **Copy URL**, then GeoLibre's **Add Data > WFS Layer**, which falls back to GML according to its guide; it does not work for every service, see below; asked upstream as `addWfsLayer` |
 | An ArcGIS service needs a login | the server's error, for example 499 "Token Required" | none |
 | An ArcGIS server draws no test image | "The server did not draw a test image in EPSG:3857." | try again later |
 | A record of type service declares no endpoint, only web pages | only "Other links" are listed | none: there is nothing to add |
+
+# The cadastral WFS
+
+The WFS of Agenzia delle Entrate (`wfs.cartografia.agenziaentrate.gov.it`) offers GML only, and GeoLibre's own WFS dialog fails on it too ("The service returned an XML error instead of features"), tried in GeoLibre Desktop 3.2.0 on 2026-10-03. Asked directly on the same day, the service:[^log]
+
+- refuses `OUTPUTFORMAT=application/json` and `application/gml+xml; version=3.2`, and accepts `text/xml; subtype=gml/3.2.1` or no format;
+- refuses any `SRSNAME`, and answers in `EPSG:6706`;
+- answers one feature when no `BBOX` is given, and the parcels of the area with a small box in latitude, longitude order (39 parcels in a box of about 200 metres).
+
+So it needs a request made for it, limited to a small area. Neither the plugin nor GeoLibre's dialog makes one today. Through GeoLibre's dialog there is also no way to limit the request to the municipality of the record.
 
 # Two cases the panel does not catch
 
@@ -45,3 +55,4 @@ In the box of a failing service, when the server is at fault: a ready-to-paste e
 To keep a list of the failing addresses: [Settings and error log](../reference/settings-and-error-log.md).
 
 [^ideas]: Future ideas
+[^log]: LOG, 2026-10-02 and 2026-10-03
