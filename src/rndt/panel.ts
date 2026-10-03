@@ -2743,7 +2743,13 @@ export class RndtPanel {
       }
       const format = pickJsonFormat(caps.outputFormats);
       if (!format) {
-        this.note(area, "This WFS offers no GeoJSON output, so it cannot be added directly.", "error");
+        // GeoLibre's own WFS layer falls back to GML; the plugin API gives no way to ask it for one.
+        // "Try": the cadastral WFS fails there too (it refuses application/json and any SRSNAME, 2026-10-03).
+        this.note(
+          area,
+          "This WFS offers no GeoJSON output, so the plugin cannot add it. GeoLibre's Add Data > WFS Layer can read GML services: Copy URL above and try it there.",
+          "error",
+        );
         return;
       }
       countEl.textContent = layerCount(caps.featureTypes.length);

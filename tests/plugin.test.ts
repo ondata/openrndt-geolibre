@@ -802,11 +802,11 @@ describe("readable layer names (#7)", () => {
 <ows:Parameter name="outputFormat"><ows:AllowedValues><ows:Value>application/json</ows:Value></ows:AllowedValues></ows:Parameter></ows:Operation></ows:OperationsMetadata>
 <wfs:FeatureTypeList>${codes.map((c) => `<wfs:FeatureType><wfs:Name>RIFIUTI:${c}</wfs:Name><wfs:Title>${c}</wfs:Title></wfs:FeatureType>`).join("")}</wfs:FeatureTypeList></wfs:WFS_Capabilities>`;
 
-  async function openWfs() {
+  async function openWfs(caps = wfsCaps) {
     const ctx = await mountPanel((url) => {
       if (url.includes("/rest/metadata/search") && url.includes("f=csw")) return fixture("csw-fvg-rifiuti.xml");
       if (url.includes("/rest/metadata/search")) return fixture("search-alberi.json");
-      return wfsCaps;
+      return caps;
     });
     ctx.container.querySelector<HTMLFormElement>("form")!.requestSubmit();
     await flush();
@@ -817,6 +817,14 @@ describe("readable layer names (#7)", () => {
     await flush();
     return { ...ctx, item };
   }
+
+  it("points to GeoLibre's own WFS layer when the service offers no GeoJSON", async () => {
+    const { item } = await openWfs(wfsCaps.replace("application/json", "text/xml; subtype=gml/3.2"));
+    await flush();
+    expect(item.textContent).toContain("This WFS offers no GeoJSON output, so the plugin cannot add it.");
+    expect(item.textContent).toContain("Add Data > WFS Layer can read GML services: Copy URL above and try it there.");
+    expect(item.querySelector('[aria-label="WFS feature types"]')).toBeNull();
+  });
 
   it("shows the codes first, then RNDT titles with the code below", async () => {
     const { item } = await openWfs();
