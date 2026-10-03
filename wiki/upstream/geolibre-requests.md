@@ -59,6 +59,12 @@ In #2843 the maintainers also found that on Linux and macOS the fallback gave a 
 
 "Closed by" is read in the pull requests on 2026-10-04; what they give is their description and GeoLibre's plugin API guide on `main`, not tried here.
 
+# Opened on 2026-10-04
+
+| Issue | Kind | Asks | Here |
+|---|---|---|---|
+| [#2855](https://github.com/opengeos/GeoLibre/issues/2855) | feature | the Metadata dialog of a WMS or tile layer to show its source (address, layers, version), and a `metadata` option in `addWmsLayer` and the other `add*Layer` calls | a layer added from the panel would keep the record it comes from; today the dialog shows only name and type |
+
 # Why they exist
 
 Each came from a limit met while building a feature of the plugin, and each is written so that it can be reproduced without the plugin.

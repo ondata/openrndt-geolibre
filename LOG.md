@@ -2,6 +2,7 @@
 
 ## 2026-10-04
 
+- **opengeos/GeoLibre#2855**: a WMS layer's Metadata dialog shows only name and type (plus `service` from Add Data), though GeoLibre keeps address, layers and version in `layer.source`; asked to show them and to let plugins pass `metadata` to `addWmsLayer`. Found with the WMS `UDS2011` of Regione Puglia, which for one GetMap repeated 17 times gave three images: 14 right, 2 empty, 1 of another place and scale; the squares that do not match on the map are the server's.
 - **GeoLibre took all seven requests** (opened 2026-10-03): #2819, #2820, #2821, #2822, #2823, #2833, #2840 closed by merged pull requests (#2831, #2824, #2836, #2828, #2826, #2835, #2843); none in a release (latest 3.2.0, 2026-10-01). What the plugin can do with them: #27 (`publishableSettings` in the registry entry, PR to do later), #28 (`addWfsLayer` for a WFS without GeoJSON), #29 (`getProj4`, parked while the minimum version is 3.2.0). Wiki and README updated. #21 closed as a duplicate of #22.
 
 ## 2026-10-03
