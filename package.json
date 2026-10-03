@@ -9,6 +9,8 @@
     "build:geolibre": "vite build --config vite.geolibre.config.ts",
     "package:geolibre": "npm run build:geolibre && node scripts/package-geolibre-plugin.mjs",
     "install:geolibre": "npm run build:geolibre && node scripts/install-geolibre-plugin.mjs",
+    "build:geolibre:dev": "vite build --config vite.geolibre.config.ts --mode dev",
+    "install:geolibre:dev": "npm run build:geolibre:dev && node scripts/install-geolibre-plugin.mjs --bundle geolibre-plugin-dev",
     "serve:geolibre": "node scripts/serve-geolibre-plugin.mjs",
     "test": "vitest --run",
     "test:ui": "vitest --ui",

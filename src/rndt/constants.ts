@@ -1,10 +1,19 @@
-/** Plugin id; must match `geolibre-plugin/plugin.json`. */
-export const PLUGIN_ID = "openrndt-geolibre";
-export const PLUGIN_NAME = "RNDT catalogue";
+/**
+ * The development copy, built with `--mode dev`: its own id and name, so it
+ * installs next to the copy from the registry. Every other name the plugin
+ * registers under is derived from the id.
+ */
+const DEV_COPY = import.meta.env.MODE === "dev";
+
+/** Plugin id; must match the bundle's `plugin.json`. */
+export const PLUGIN_ID = DEV_COPY ? "openrndt-geolibre-dev" : "openrndt-geolibre";
+export const PLUGIN_NAME = DEV_COPY ? "RNDT catalogue (dev)" : "RNDT catalogue";
+/** Title of the panel and label of the toolbar menu. */
+export const PLUGIN_LABEL = DEV_COPY ? "RNDT (dev)" : "RNDT";
 export const PLUGIN_VERSION = "0.1.7";
 
 /** Right-panel id, unique across plugins. */
-export const PANEL_ID = "openrndt-geolibre-search";
+export const PANEL_ID = `${PLUGIN_ID}-search`;
 
 /** RNDT REST base URL (same default as the openrndt CLI). */
 export const RNDT_BASE_URL = "https://geodati.gov.it/RNDT";

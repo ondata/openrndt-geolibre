@@ -14,8 +14,14 @@ import { fileURLToPath } from "node:url";
 //     `<root>/apps/geolibre-desktop/public/plugins/<id>`, discovered at build
 //     time and baked into both the web and desktop builds.
 
+// `--bundle <dir>` installs another bundle folder of this repository, such as
+// the development copy in `geolibre-plugin-dev`.
 const rootDir = dirname(dirname(fileURLToPath(import.meta.url)));
-const bundleDir = join(rootDir, "geolibre-plugin");
+const cliArgs = process.argv.slice(2);
+const bundleIndex = cliArgs.indexOf("--bundle");
+const bundleName = bundleIndex === -1 ? "geolibre-plugin" : cliArgs.splice(bundleIndex, 2)[1];
+if (!bundleName) throw new Error("--bundle requires a folder name.");
+const bundleDir = join(rootDir, bundleName);
 const manifestPath = join(bundleDir, "plugin.json");
 
 const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
@@ -40,7 +46,7 @@ console.log(
  * a positional path wins, falling back to the desktop app-data plugins dir.
  */
 function resolveTarget() {
-  const args = process.argv.slice(2);
+  const args = cliArgs;
   const webIndex = args.indexOf("--web");
   if (webIndex !== -1) {
     const geolibreRoot = args[webIndex + 1];
@@ -88,7 +94,7 @@ async function assertBuilt() {
       await stat(join(bundleDir, rel));
     } catch {
       throw new Error(
-        `Missing ${rel} in ${bundleDir}. Run "npm run build:geolibre" first.`,
+        `Missing ${rel} in ${bundleDir}. Build the bundle first.`,
       );
     }
   }

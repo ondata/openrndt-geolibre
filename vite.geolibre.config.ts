@@ -1,4 +1,6 @@
 import { defineConfig } from "vite";
+import type { Plugin } from "vite";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -36,7 +38,24 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 //   };
 // }
 
-export default defineConfig({
+// The development copy (`--mode dev`) is built in its own folder, with a
+// manifest written from the official one: `geolibre-plugin/` is never touched.
+// Its id and name must be the ones `src/rndt/constants.ts` takes in that mode.
+const DEV_BUNDLE_DIR = resolve(__dirname, "geolibre-plugin-dev");
+
+function writeDevManifest(): Plugin {
+  return {
+    name: "geolibre-plugin:dev-manifest",
+    async closeBundle() {
+      const manifest = JSON.parse(await readFile(resolve(__dirname, "geolibre-plugin/plugin.json"), "utf8"));
+      const dev = { ...manifest, id: `${manifest.id}-dev`, name: `${manifest.name} (dev)` };
+      await mkdir(DEV_BUNDLE_DIR, { recursive: true });
+      await writeFile(resolve(DEV_BUNDLE_DIR, "plugin.json"), `${JSON.stringify(dev, null, 2)}\n`);
+    },
+  };
+}
+
+export default defineConfig(({ mode }) => ({
   // publicDir: false, // enable with the bundlePluginAssets() recipe above
   resolve: {
     alias: {
@@ -49,7 +68,7 @@ export default defineConfig({
       formats: ["es"],
       fileName: () => "index.js",
     },
-    outDir: "geolibre-plugin/dist",
+    outDir: mode === "dev" ? "geolibre-plugin-dev/dist" : "geolibre-plugin/dist",
     emptyOutDir: true,
     rollupOptions: {
       external: [],
@@ -61,5 +80,6 @@ export default defineConfig({
     sourcemap: false,
     minify: false,
   },
-  // plugins: [bundlePluginAssets()], // enable with the recipe above
-});
+  // add bundlePluginAssets() here to enable the recipe above
+  plugins: mode === "dev" ? [writeDevManifest()] : [],
+}));

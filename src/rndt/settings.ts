@@ -4,8 +4,10 @@
  * Every access is guarded, so the panel works the same without storage.
  */
 
-const SETTINGS_KEY = "openrndt-geolibre:settings";
-const ERROR_LOG_KEY = "openrndt-geolibre:error-log";
+import { PLUGIN_ID } from "./constants";
+
+export const SETTINGS_KEY = `${PLUGIN_ID}:settings`;
+export const ERROR_LOG_KEY = `${PLUGIN_ID}:error-log`;
 
 /** Oldest entries leave the log past this size. */
 export const ERROR_LOG_LIMIT = 1000;

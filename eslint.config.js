@@ -9,6 +9,7 @@ export default tseslint.config(
       "tmp/**",
       "dist/**",
       "geolibre-plugin/**",
+      "geolibre-plugin-dev/**",
       "coverage/**",
       "node_modules/**",
     ],

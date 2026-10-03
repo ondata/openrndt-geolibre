@@ -32,6 +32,10 @@ mkdir -p "$P" && cp -r geolibre-plugin/plugin.json geolibre-plugin/dist "$P"/
 
 `npm run install:geolibre` copies to the plugins folder of the system the command runs on: in WSL that is the Linux one, which a GeoLibre installed on Windows does not read.
 
+# With the plugin from the registry installed
+
+The steps above put the local build in the place of the plugin installed from Manage Plugins: the two have the same id. To keep both, install the development copy: [The two copies of the plugin](two-copies.md).
+
 # Where to look when something fails
 
 **Diagnostics**, bottom right in GeoLibre: errors of the map, of the network and of plugins, which can be copied as JSON.

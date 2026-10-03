@@ -6,12 +6,13 @@ import type {
   MapGeoJSONFeature,
   MapLayerMouseEvent,
 } from "maplibre-gl";
+import { PLUGIN_ID } from "./constants";
 
-const SOURCE_ID = "openrndt-geolibre-footprints";
-const FILL_ID = "openrndt-geolibre-footprints-fill";
-const LINE_ID = "openrndt-geolibre-footprints-line";
-const HOVER_ID = "openrndt-geolibre-footprints-hover";
-const SELECTED_ID = "openrndt-geolibre-footprints-selected";
+export const SOURCE_ID = `${PLUGIN_ID}-footprints`;
+const FILL_ID = `${SOURCE_ID}-fill`;
+const LINE_ID = `${SOURCE_ID}-line`;
+const HOVER_ID = `${SOURCE_ID}-hover`;
+const SELECTED_ID = `${SOURCE_ID}-selected`;
 const COLOR = "#d9480f";
 const HOVER_COLOR = "#1971c2";
 const LAYER_IDS = [FILL_ID, LINE_ID, HOVER_ID, SELECTED_ID];

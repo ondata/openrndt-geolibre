@@ -1,5 +1,5 @@
 import type { GeoLibrePlugin, GeoLibreRightPanelRegistration } from "./lib/geolibre/host-api";
-import { ITALY_BBOX, PANEL_ID, PLUGIN_ID, PLUGIN_NAME, PLUGIN_VERSION } from "./rndt/constants";
+import { ITALY_BBOX, PANEL_ID, PLUGIN_ID, PLUGIN_LABEL, PLUGIN_NAME, PLUGIN_VERSION } from "./rndt/constants";
 import type { RndtHost } from "./rndt/host";
 import { RndtPanel } from "./rndt/panel";
 import { parsePanelState, type PanelState } from "./rndt/project-state";
@@ -52,7 +52,7 @@ export const plugin: Plugin = {
     const panel = new RndtPanel(host);
     const registration: GeoLibreRightPanelRegistration & { deactivatePluginOnClose?: boolean } = {
       id: PANEL_ID,
-      title: "RNDT",
+      title: PLUGIN_LABEL,
       defaultWidth: 380,
       // The panel is the plugin's whole UI: closing it with X turns the plugin
       // off, so the Plugins menu check mark follows (GeoLibre host option).
@@ -64,7 +64,7 @@ export const plugin: Plugin = {
     // taken its place, and clears results.
     const unregisterMenu = host.registerToolbarMenu?.({
       id: `${PLUGIN_ID}-menu`,
-      label: "RNDT",
+      label: PLUGIN_LABEL,
       items: [
         { id: "open", label: "Open search panel", onSelect: () => host.openRightPanel?.(PANEL_ID) },
         { id: "footprints", label: "Hide or show footprints", onSelect: () => panel.toggleFootprints() },

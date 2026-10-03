@@ -20,6 +20,7 @@ sources:
 | `npm install` | install the dependencies |
 | `npm run build` | build `geolibre-plugin/dist/index.js` and `style.css` |
 | `npm run package:geolibre` | build, then write `geolibre-plugin/openrndt-geolibre-<version>.zip` |
+| `npm run build:geolibre:dev` | build the development copy in `geolibre-plugin-dev/`, see [The two copies of the plugin](two-copies.md) |
 | `npm test` | unit tests, no network |
 | `RUN_LIVE_TESTS=1 npx vitest --run tests/live.test.ts` | compare query totals with the live catalogue |
 | `npm run lint` | ESLint, no warnings allowed |
@@ -43,7 +44,7 @@ sources:
 | `footprints-layer.ts` | footprints overlay on the MapLibre map |
 | `settings.ts` | settings and error log |
 | `host.ts` | fetch helpers and host methods beyond `src/lib/geolibre/host-api.ts` |
-| `constants.ts` | plugin id, name, version, option lists |
+| `constants.ts` | plugin id, name, version, option lists; the id and name of the development copy |
 
 # Tests
 

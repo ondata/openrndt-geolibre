@@ -14,6 +14,7 @@ dist-ssr
 *.local
 geolibre-plugin/dist/
 geolibre-plugin/*.zip
+geolibre-plugin-dev/
 
 # Editor directories and files
 .vscode/*
