@@ -51,9 +51,7 @@ When a service fails, the panel offers **Copy error report**: a ready-to-paste e
 
 ## Open a search from a link
 
-Not released yet: it comes with the version after 0.1.5.
-
-Two parameters in the address of GeoLibre web turn the plugin on, open the panel and start a search:
+From version 0.1.6. Two parameters in the address of GeoLibre web turn the plugin on, open the panel and start a search:
 
 | Parameter | Value | Example |
 |---|---|---|

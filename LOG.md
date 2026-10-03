@@ -2,7 +2,8 @@
 
 ## 2026-10-03
 
-- **Search from a link, not released yet**: `?rndt=<text>` and `?rndtBbox=<west,south,east,north>` in the address of GeoLibre web turn the plugin on, open the panel and search (`urlParameterNames` + `handleUrlParameters`; parser in `src/rndt/url-params.ts`). Without a box the search is Anywhere, so a link gives the same records to everyone; with a box the map moves there instead of Italy; a record id as text opens the record; a box that is not valid is ignored with a console warning. Tried on web.geolibre.app with the local build served from localhost: `idrografia` 1,131 records, `catastale` in the Palermo box 125, an id opens its detail.
+- **0.1.6**: the four fixes of 2026-10-02 and the search from a link.
+- **Search from a link**: `?rndt=<text>` and `?rndtBbox=<west,south,east,north>` in the address of GeoLibre web turn the plugin on, open the panel and search (`urlParameterNames` + `handleUrlParameters`; parser in `src/rndt/url-params.ts`). Without a box the search is Anywhere, so a link gives the same records to everyone; with a box the map moves there instead of Italy; a record id as text opens the record; a box that is not valid is ignored with a console warning. Tried on web.geolibre.app with the local build served from localhost: `idrografia` 1,131 records, `catastale` in the Palermo box 125, an id opens its detail.
 - **GeoLibre's `?plugin=` is for built-in plugins only** (opengeos/GeoLibre#2693). Asked for registry plugins, behind the trust prompt, in opengeos/GeoLibre#2819. Until then a user without the plugin needs `?url=<project>` with the manifest in `plugins.manifestUrls`: trust prompt the first time, none later. Project on a Gist (`aborruso/68601ad2b7f4af7a9156ba932f1b10a6`), read by GeoLibre web (CORS `*`); it loads the registry's 0.1.4, which has no parameters yet, so there the plugin is registered and the search does not start.
 
 ## 2026-10-02
