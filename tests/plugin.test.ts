@@ -93,6 +93,29 @@ describe("RNDT panel", () => {
     expect(container.querySelector(".ordt-panel")).toBeNull();
   });
 
+  it("stops watching its bars when it is turned off (no error from a late resize)", async () => {
+    const observers: { run: () => void; disconnect: ReturnType<typeof vi.fn> }[] = [];
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        disconnect = vi.fn();
+        constructor(run: () => void) {
+          observers.push({ run, disconnect: this.disconnect });
+        }
+        observe() {}
+      },
+    );
+    try {
+      const { host } = await mountPanel(() => "{}");
+      expect(observers).toHaveLength(1);
+      plugin.deactivate(host);
+      expect(observers[0].disconnect).toHaveBeenCalled();
+      expect(() => observers[0].run()).not.toThrow();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("searches, lists records and adds a WMS layer", async () => {
     const { host, requested, container } = await mountPanel((url) =>
       url.includes("/rest/metadata/search") ? fixture("search-services.json") : fixture("wms-piemonte-111.xml"),

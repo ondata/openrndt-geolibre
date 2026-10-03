@@ -695,6 +695,8 @@ export class RndtPanel {
   /** WMS layers added from this panel ("GetMap URL|layer" → GeoLibre layer id), to spot them in the project. */
   private addedWms = new Map<string, string>();
   private projectWmsCache: Map<string, string> | null = null;
+  /** Watches the sticky bars' heights; stopped when the panel is destroyed. */
+  private stickyObserver: ResizeObserver | null = null;
   private copyQueryEl!: HTMLButtonElement;
   private footprintsToggleEl!: HTMLButtonElement;
   /** A search asked by a link before the first mount. */
@@ -864,6 +866,10 @@ export class RndtPanel {
   /** Remove the panel DOM and the footprints (plugin deactivation). */
   destroy(): void {
     this.requestSeq++;
+    // Removing the panel resizes its bars: an observer left on would run
+    // after `root` is gone (an uncaught error in GeoLibre's Diagnostics, 2026-10-03).
+    this.stickyObserver?.disconnect();
+    this.stickyObserver = null;
     this.footprintsLayer?.remove();
     this.footprintsLayer = null;
     this.root?.remove();
@@ -1530,9 +1536,10 @@ export class RndtPanel {
   }
 
   private updateStickyHeights(): void {
-    this.root!.style.setProperty("--ordt-bar-h", `${this.searchBarEl.offsetHeight}px`);
-    this.root!.style.setProperty("--ordt-head-h", `${this.resultsHeadEl.offsetHeight}px`);
-    this.root!.style.setProperty("--ordt-foot-h", `${this.footerEl.offsetHeight}px`);
+    if (!this.root) return;
+    this.root.style.setProperty("--ordt-bar-h", `${this.searchBarEl.offsetHeight}px`);
+    this.root.style.setProperty("--ordt-head-h", `${this.resultsHeadEl.offsetHeight}px`);
+    this.root.style.setProperty("--ordt-foot-h", `${this.footerEl.offsetHeight}px`);
   }
 
   /**
@@ -1545,6 +1552,7 @@ export class RndtPanel {
     observer.observe(this.searchBarEl);
     observer.observe(this.resultsHeadEl);
     observer.observe(this.footerEl);
+    this.stickyObserver = observer;
   }
 
   /** Filters set in "Advanced filters", sort order included. */
