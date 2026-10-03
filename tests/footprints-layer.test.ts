@@ -5,6 +5,7 @@ import { FootprintsLayer } from "../src/rndt/footprints-layer";
 /** Tiny stand-in for a MapLibre map: layer order, sources, events. */
 function fakeMap() {
   const order: string[] = ["background"];
+  const layout = new Map<string, string>();
   const sources = new Map<string, { setData: ReturnType<typeof vi.fn> }>();
   const handlers: Record<string, ((arg?: unknown) => void)[]> = {};
   const container = document.createElement("div");
@@ -28,7 +29,9 @@ function fakeMap() {
     }),
     getLayersOrder: () => [...order],
     setFilter: vi.fn(),
-    setLayoutProperty: vi.fn(),
+    setLayoutProperty: vi.fn((id: string, _name: string, value: string) => void layout.set(id, value)),
+    getLayoutProperty: (id: string) => layout.get(id),
+    layout,
     getCanvas: () => ({ style: {} }),
     getContainer: () => container,
     container,
@@ -54,6 +57,21 @@ describe("FootprintsLayer", () => {
     expect(map.order.at(-1)).toBe("openrndt-geolibre-footprints-selected");
     expect(map.order.at(-5)).toBe("google-satellite");
     vi.restoreAllMocks();
+  });
+
+  it("keeps hidden footprints hidden when the host turns the layers back on", () => {
+    const map = fakeMap();
+    const layer = new FootprintsLayer(map as unknown as MapLibreMap, () => undefined);
+    layer.setData({ type: "FeatureCollection", features: [] });
+    layer.setVisible(false);
+    // GeoLibre does it when a project layer is hidden and shown again.
+    for (const id of map.layout.keys()) map.layout.set(id, "visible");
+    map.fire("styledata");
+    expect([...map.layout.values()]).toEqual(["none", "none", "none", "none"]);
+    // Nothing to set when nothing differs: no loop of `styledata` events.
+    const calls = map.setLayoutProperty.mock.calls.length;
+    map.fire("styledata");
+    expect(map.setLayoutProperty.mock.calls).toHaveLength(calls);
   });
 
   it("re-adds source and layers after a style reset", () => {

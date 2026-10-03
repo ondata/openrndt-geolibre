@@ -229,7 +229,23 @@ export class FootprintsLayer {
         filter: this.selectedFilter(),
       });
     }
+    this.keepVisibility();
     this.keepOnTop();
+  }
+
+  /**
+   * The host can turn the layers back on: GeoLibre does when a layer of the
+   * project is hidden and shown again, and footprints hidden with "Hide
+   * footprints" came back with the link still reading "Show footprints"
+   * (2026-10-03). The check runs on every `styledata` and sets only what differs.
+   */
+  private keepVisibility(): void {
+    const wanted = this.visibility();
+    for (const id of LAYER_IDS) {
+      if (this.map.getLayer(id) && (this.map.getLayoutProperty(id, "visibility") ?? "visible") !== wanted) {
+        this.map.setLayoutProperty(id, "visibility", wanted);
+      }
+    }
   }
 
   /**
