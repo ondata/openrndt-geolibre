@@ -28,6 +28,9 @@ const tickFirstWms = (item: HTMLElement) => {
   box.dispatchEvent(new Event("change", { bubbles: true }));
 };
 
+/** Unfold a layer list that opened folded (above 8 layers). */
+const showAll = (item: HTMLElement) => item.querySelector<HTMLButtonElement>(".ordt-show-layers")?.click();
+
 const chipLabels = (container: HTMLElement) =>
   Array.from(container.querySelectorAll(".ordt-chip"), (c) => c.firstChild!.textContent);
 
@@ -828,7 +831,9 @@ describe("readable layer names (#7)", () => {
     expect(byCodeCalls()).toHaveLength(0); // nothing until the user reaches the list
 
     const list = item.querySelector<HTMLElement>('[aria-label="WFS feature types"]')!;
-    list.dispatchEvent(new Event("pointerenter"));
+    list.dispatchEvent(new Event("pointerenter")); // folded: no lookup yet
+    expect(byCodeCalls()).toHaveLength(0);
+    showAll(item);
     list.dispatchEvent(new Event("focusin")); // the same visit: no second round
     for (let i = 0; i < 12; i++) await flush();
     expect(byCodeCalls()).toHaveLength(32);
@@ -861,9 +866,29 @@ describe("readable layer names (#7)", () => {
     expect(item.textContent).toMatch(/looked up in RNDT for the selected layer only/);
   });
 
+  it("opens folded above 8 layers: the ticked row and a button, then the whole list with its filter", async () => {
+    const { item } = await openWfs();
+    await flush();
+    const visible = () =>
+      Array.from(item.querySelectorAll<HTMLElement>('[aria-label="WFS feature types"] .ordt-layer')).filter((row) => !row.hidden);
+    const filter = item.querySelector<HTMLInputElement>('input[aria-label="Filter layers"]')!;
+    // Nothing ticked here (35 types, none wanted): no rows, no box, the button alone.
+    expect(visible()).toEqual([]);
+    expect(item.querySelector<HTMLElement>('[aria-label="WFS feature types"]')!.hidden).toBe(true);
+    expect(filter.hidden).toBe(true);
+    const show = item.querySelector<HTMLButtonElement>(".ordt-show-layers")!;
+    expect(show.textContent).toBe("Show all 35 layers");
+    show.click();
+    expect(visible()).toHaveLength(35);
+    expect(item.querySelector<HTMLElement>('[aria-label="WFS feature types"]')!.hidden).toBe(false);
+    expect(filter.hidden).toBe(false);
+    expect(item.querySelector(".ordt-show-layers")).toBeNull();
+  });
+
   it("filters a long list on name and readable name", async () => {
     const { item } = await openWfs();
     await flush();
+    showAll(item);
     const filter = item.querySelector<HTMLInputElement>('input[aria-label="Filter layers"]')!;
     filter.value = "cementifici";
     filter.dispatchEvent(new Event("input"));

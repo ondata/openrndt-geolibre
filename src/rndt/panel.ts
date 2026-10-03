@@ -352,6 +352,13 @@ export function errorReportText(report: ReturnType<typeof errorReport>): string 
 
 /** Layers above which the layer menu gets a filter field (Veneto WFS: 1,068). */
 const FILTER_THRESHOLD = 30;
+
+/**
+ * Above this many layers the list opens folded: only the ticked rows and a
+ * "Show all" button, so the next service of the record stays in sight (a WFS
+ * with 1,068 feature types pushed the WMS below the fold, 2026-10-02).
+ */
+const FOLD_THRESHOLD = 8;
 /** Group layers of one WMS that get a test tile: each is a request, and the list waits for them. */
 const MAX_GROUP_TESTS = 10;
 
@@ -2252,16 +2259,43 @@ export class RndtPanel {
       ...Array.from(rows.values(), (r) => r.row),
     );
     const controls: HTMLElement[] = [];
+    let folded = layers.length > FOLD_THRESHOLD;
+    let filter: HTMLInputElement | null = null;
+    if (folded) {
+      for (const r of rows.values()) r.row.hidden = !r.input.checked;
+      // Nothing ticked: no empty box, the button alone.
+      list.hidden = !Array.from(rows.values()).some((r) => r.input.checked);
+      const show = h(
+        "button",
+        { className: "ordt-link ordt-show-layers", type: "button" },
+        `Show all ${layers.length.toLocaleString("en")} layers`,
+      );
+      show.addEventListener("click", () => {
+        folded = false;
+        show.remove();
+        list.hidden = false;
+        for (const r of rows.values()) r.row.hidden = false;
+        if (filter) {
+          filter.hidden = false;
+          filter.dispatchEvent(new Event("input"));
+        }
+        list.dispatchEvent(new Event("pointerenter"));
+      });
+      controls.push(show);
+    }
 
     if (layers.length > FILTER_THRESHOLD) {
-      const filter = h("input", {
+      const field = h("input", {
         className: "ordt-input",
         type: "search",
         placeholder: `Filter ${layers.length.toLocaleString("en")} layers…`,
         "aria-label": "Filter layers",
+        hidden: folded,
       });
-      filter.addEventListener("input", () => {
-        const needle = filter.value.trim().toLowerCase();
+      filter = field;
+      field.addEventListener("input", () => {
+        if (folded) return;
+        const needle = field.value.trim().toLowerCase();
         let firstMatch: HTMLInputElement | null = null;
         for (const [name, r] of rows) {
           const match = !needle || r.title.textContent!.toLowerCase().includes(needle) || name.toLowerCase().includes(needle);
@@ -2274,7 +2308,7 @@ export class RndtPanel {
           list.dispatchEvent(new Event("change"));
         }
       });
-      controls.push(filter);
+      controls.push(field);
     }
 
     // A damaged title is shown, but RNDT is still asked for a whole one.
@@ -2314,6 +2348,7 @@ export class RndtPanel {
           // user reaches the list, search RNDT for each layer still without a
           // name, four at a time.
           const onReach = () => {
+            if (folded) return;
             list.removeEventListener("pointerenter", onReach);
             list.removeEventListener("focusin", onReach);
             status.hidden = false;
