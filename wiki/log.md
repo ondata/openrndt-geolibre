@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-10-03
+* **Update**: [Registry status](upstream/registry-status.md): 0.1.9 is in the registry.
 * **Update**: [Search the catalogue](guides/search.md) and [Settings and error log](reference/settings-and-error-log.md): recent searches (#25).
 * **Update**: [Share a search](guides/share-a-search.md): Copy for an agent (#23).
 * **Creation**: [Write to the organisation](guides/contact-the-organisation.md) (#20); [Services that fail](limits/services-that-fail.md) for the new shape of the error report.
