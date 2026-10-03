@@ -2291,12 +2291,14 @@ export class RndtPanel {
     let filter: HTMLInputElement | null = null;
     if (folded) {
       for (const r of rows.values()) r.row.hidden = !r.input.checked;
-      // Nothing ticked: no empty box, the button alone.
+      // Nothing ticked: no empty box, the button alone. It then says what it
+      // is for: with a disabled "Select a layer" below, the folded list read
+      // as still loading.
       list.hidden = !Array.from(rows.values()).some((r) => r.input.checked);
       const show = h(
         "button",
         { className: "ordt-link ordt-show-layers", type: "button" },
-        `Show all ${layers.length.toLocaleString("en")} layers`,
+        `Show all ${layers.length.toLocaleString("en")} layers${list.hidden ? " to choose from" : ""}`,
       );
       show.addEventListener("click", () => {
         folded = false;
@@ -2308,6 +2310,11 @@ export class RndtPanel {
           filter.dispatchEvent(new Event("input"));
         }
         list.dispatchEvent(new Event("pointerenter"));
+        // The open list pushed its "Add" button below the panel's edge: bring
+        // the whole service box, button included, back in sight.
+        const box = list.parentElement;
+        box?.classList.add("ordt-layers-open");
+        box?.scrollIntoView?.({ block: "nearest" });
       });
       controls.push(show);
     }
@@ -2397,18 +2404,24 @@ export class RndtPanel {
         // Too many RNDT records to download: look up the ticked layers only,
         // now and on every change; each layer is asked once.
         const asked = new Set<string>();
+        let running = 0;
         const lookupTicked = async () => {
           const todo = Array.from(rows).filter(([name, r]) => r.input.checked && wantsTitle(name) && !asked.has(name));
-          if (!todo.length) return;
-          status.dataset.kind = "busy";
-          status.textContent = "Looking up the readable name of the selected layer in RNDT…";
-          for (const [name] of todo) {
-            asked.add(name);
-            const title =
-              (await lookupOneLayerTitle(this.app, RNDT_BASE_URL, serviceUrl, name)) ??
-              (await lookupLayerTitleByCode(this.app, RNDT_BASE_URL, serviceUrl, name));
-            if (title) setTitle(name, title);
+          if (todo.length) {
+            running++;
+            status.dataset.kind = "busy";
+            status.textContent = "Looking up the readable name of the selected layer in RNDT…";
+            for (const [name] of todo) {
+              asked.add(name);
+              const title =
+                (await lookupOneLayerTitle(this.app, RNDT_BASE_URL, serviceUrl, name)) ??
+                (await lookupLayerTitleByCode(this.app, RNDT_BASE_URL, serviceUrl, name));
+              if (title) setTitle(name, title);
+            }
+            running--;
           }
+          // Also with nothing ticked: the first "Looking up…" must not stay as if still at work.
+          if (running) return;
           status.dataset.kind = "info";
           status.textContent = "Readable names are looked up in RNDT for the selected layer only.";
         };

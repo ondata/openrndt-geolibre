@@ -1003,6 +1003,12 @@ a.ordt-menu-item {
   border-radius: var(--ordt-radius);
 }
 
+/* A list just unfolded scrolls into view with its button, clear of the sticky bar and footer. */
+.ordt-layers-open {
+  scroll-margin-top: calc(var(--ordt-bar-h, 46px) + 8px);
+  scroll-margin-bottom: calc(var(--ordt-foot-h, 36px) + 8px);
+}
+
 .ordt-layer {
   display: flex;
   align-items: flex-start;

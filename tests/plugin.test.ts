@@ -856,6 +856,10 @@ describe("readable layer names (#7)", () => {
     const item = openDetail(card);
     await flush();
     await flush();
+    // Nothing ticked yet: the note says so, it is not left "looking up".
+    const note = Array.from(item.querySelectorAll<HTMLElement>(".ordt-note")).find((n) => /RNDT/.test(n.textContent!))!;
+    expect(note.textContent).toBe("Readable names are looked up in RNDT for the selected layer only.");
+    expect(note.dataset.kind).toBe("info");
     const ucem = item.querySelector<HTMLInputElement>('[aria-label="WFS feature types"] input[value="RIFIUTI:UCEM"]')!;
     ucem.checked = true;
     ucem.dispatchEvent(new Event("change", { bubbles: true }));
@@ -877,8 +881,12 @@ describe("readable layer names (#7)", () => {
     expect(item.querySelector<HTMLElement>('[aria-label="WFS feature types"]')!.hidden).toBe(true);
     expect(filter.hidden).toBe(true);
     const show = item.querySelector<HTMLButtonElement>(".ordt-show-layers")!;
-    expect(show.textContent).toBe("Show all 35 layers");
+    expect(show.textContent).toBe("Show all 35 layers to choose from");
+    const box = item.querySelector<HTMLElement>('[aria-label="WFS feature types"]')!.parentElement!;
+    const scrolled = (box.scrollIntoView = vi.fn());
     show.click();
+    // The open list takes room: its box, button included, is brought back in sight.
+    expect(scrolled).toHaveBeenCalledWith({ block: "nearest" });
     expect(visible()).toHaveLength(35);
     expect(item.querySelector<HTMLElement>('[aria-label="WFS feature types"]')!.hidden).toBe(false);
     expect(filter.hidden).toBe(false);
