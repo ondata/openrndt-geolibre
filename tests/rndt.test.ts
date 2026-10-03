@@ -341,6 +341,33 @@ describe("browserNeedsHttp", () => {
   });
 });
 
+describe("request address from the capabilities", () => {
+  const base = { addMapControl: () => true, removeMapControl: () => undefined };
+  const serviceBase = (url: string) => url.replace(/\?.*$/, "");
+
+  it("keeps a declared address on the same host, or on a public one", async () => {
+    const { reachableEndpoint } = await import("../src/rndt/host");
+    const host = { ...base, fetchArrayBuffer: async () => new TextEncoder().encode('{"Status":0}').buffer as ArrayBuffer };
+    expect(await reachableEndpoint(host, "https://a.it/wms", "https://a.it/wms?service=WMS", serviceBase)).toEqual({ url: "https://a.it/wms", note: null });
+    expect((await reachableEndpoint(host, "https://cdn.a.it/wms", "https://a.it/wms?service=WMS", serviceBase)).url).toBe("https://cdn.a.it/wms");
+  });
+
+  it("falls back to the capabilities' address when the declared host is private or unknown to the DNS", async () => {
+    const { reachableEndpoint } = await import("../src/rndt/host");
+    const host = { ...base, fetchArrayBuffer: async () => new TextEncoder().encode('{"Status":3}').buffer as ArrayBuffer };
+    const intranet = await reachableEndpoint(
+      host,
+      "http://sr-vm490-sitgfn.comune.intranet:8084/geowebcache/service/wms",
+      "https://tms.comune.fi.it/tiles/service/wms?request=GetCapabilities&service=WMS",
+      serviceBase,
+    );
+    expect(intranet.url).toBe("https://tms.comune.fi.it/tiles/service/wms");
+    expect(intranet.note).toBe("Requests go to tms.comune.fi.it: the capabilities declare sr-vm490-sitgfn.comune.intranet, a name only the publisher's network knows.");
+    expect((await reachableEndpoint(host, "http://192.168.1.5/wms", "https://a.it/wms?x=1", serviceBase)).url).toBe("https://a.it/wms");
+    expect((await reachableEndpoint(host, "http://gone.example.org/wms", "https://a.it/wms?x=1", serviceBase)).url).toBe("https://a.it/wms");
+  });
+});
+
 describe("HTTP to HTTPS", () => {
   it("tries https first for an http link, then falls back to http", async () => {
     const { fetchTextFrom } = await import("../src/rndt/host");

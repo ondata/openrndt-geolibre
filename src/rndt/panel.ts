@@ -24,7 +24,7 @@ import {
   throwArcgisError,
   type ArcgisUrl,
 } from "./arcgis";
-import { answersWithImage, BROWSER_BLOCK_NOTE, browserGetsImage, browserNeedsHttp, drawnBbox, fetchJson, fetchText, fetchTextFrom, GEO_EDITOR_PLUGIN_ID, isDesktop, testTile, type RndtHost } from "./host";
+import { answersWithImage, BROWSER_BLOCK_NOTE, browserGetsImage, browserNeedsHttp, drawnBbox, fetchJson, fetchText, fetchTextFrom, GEO_EDITOR_PLUGIN_ID, isDesktop, reachableEndpoint, testTile, type RndtHost } from "./host";
 import {
   bestMatchingLayer,
   buildGetFeatureUrl,
@@ -2414,7 +2414,8 @@ export class RndtPanel {
     try {
       const fetched = await fetchTextFrom(this.app, capabilitiesUrl(service.url, "WMS"));
       const caps = parseWmsCapabilities(fetched.text, fetched.url);
-      const declared = caps.getMapUrl;
+      const endpoint = await reachableEndpoint(this.app, caps.getMapUrl, fetched.url, serviceBaseUrl);
+      const declared = endpoint.url;
       caps.getMapUrl = upgradeToHttps(declared, fetched.url);
       // https was our own guess (the record says http): keep the declared http
       // URL when only that one is reachable from the browser, or GeoLibre's
@@ -2546,6 +2547,7 @@ export class RndtPanel {
         list,
         ...controls.filter((c) => c.tagName !== "INPUT"),
         ...(note ? [note] : []),
+        ...(endpoint.note ? [h("p", { className: "ordt-note" }, endpoint.note)] : []),
         h("div", { className: "ordt-row ordt-small" }, add, h("span", { className: "ordt-muted" }, "added with their titles as layer names")),
         result,
       );
@@ -2563,7 +2565,8 @@ export class RndtPanel {
     try {
       const fetched = await fetchTextFrom(this.app, capabilitiesUrl(service.url, "WFS"));
       const caps = parseWfsCapabilities(fetched.text, fetched.url);
-      caps.getFeatureUrl = upgradeToHttps(caps.getFeatureUrl, fetched.url);
+      const endpoint = await reachableEndpoint(this.app, caps.getFeatureUrl, fetched.url, serviceBaseUrl);
+      caps.getFeatureUrl = upgradeToHttps(endpoint.url, fetched.url);
       if (!caps.featureTypes.length) {
         this.note(area, "The WFS lists no feature types.", "error", { record, service });
         return;
@@ -2658,6 +2661,7 @@ export class RndtPanel {
         list,
         ...controls.filter((c) => c.tagName !== "INPUT"),
         h("label", { className: "ordt-check ordt-small" }, inView, "Only features in the current map view"),
+        ...(endpoint.note ? [h("p", { className: "ordt-note" }, endpoint.note)] : []),
         h("div", { className: "ordt-row ordt-small" }, add),
         result,
       );

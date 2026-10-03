@@ -172,6 +172,37 @@ async function answersOpaque(url: string): Promise<boolean> {
   }
 }
 
+/**
+ * The address to send requests to: the one the capabilities declare, unless
+ * it is on a host no one outside can reach (tms.comune.fi.it declares its
+ * GetMap at sr-vm490-sitgfn.comune.intranet:8084, 2026-10-02: a GeoServer
+ * without a proxy base URL). Then the capabilities' own address, which did
+ * answer. `note` says so, for the panel.
+ */
+export async function reachableEndpoint(
+  host: RndtHost,
+  declared: string,
+  capabilitiesUrl: string,
+  serviceBase: (url: string) => string,
+): Promise<{ url: string; note: string | null }> {
+  const name = new URL(declared).hostname;
+  const own = new URL(capabilitiesUrl).hostname;
+  if (name === own || !(isPrivateName(name) || (await nameIsMissing(host, name)))) return { url: declared, note: null };
+  return {
+    url: serviceBase(capabilitiesUrl),
+    note: `Requests go to ${own}: the capabilities declare ${name}, a name only the publisher's network knows.`,
+  };
+}
+
+/** A host name of a private network: no dot, a private suffix, or a private IPv4 range. */
+export function isPrivateName(name: string): boolean {
+  if (/^(localhost|[^.]+|.*\.(local|localdomain|intranet|internal|lan|corp|home))$/i.test(name)) return true;
+  const m = /^(\d+)\.(\d+)\.\d+\.\d+$/.exec(name);
+  if (!m) return false;
+  const [a, b] = [Number(m[1]), Number(m[2])];
+  return a === 10 || a === 127 || (a === 192 && b === 168) || (a === 172 && b >= 16 && b <= 31);
+}
+
 /** Public DNS-over-HTTPS resolver, answers in JSON ("Status": 3 is NXDOMAIN). */
 const DNS_RESOLVER = "https://dns.google/resolve";
 
