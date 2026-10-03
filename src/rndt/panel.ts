@@ -51,6 +51,7 @@ import {
   type WfsCapabilities,
   type WmsLayer,
 } from "./ogc";
+import type { LinkSearch } from "./url-params";
 import { bboxError, buildCurlCommand, buildSearchUrl, clampBbox, emptyForm, idForm, recordIdIn, type Bbox, type ResourceKind, type LinkKind, type SearchForm, type SpatialRel, type TextMode } from "./query";
 import { footprints, parseSearchResponse, type RndtRecord, type RndtService } from "./records";
 import {
@@ -694,6 +695,8 @@ export class RndtPanel {
   private addedWms = new Map<string, string>();
   private copyQueryEl!: HTMLButtonElement;
   private footprintsToggleEl!: HTMLButtonElement;
+  /** A search asked by a link before the first mount. */
+  private pendingLink: LinkSearch | null = null;
 
   constructor(private readonly app: RndtHost) {}
 
@@ -746,7 +749,31 @@ export class RndtPanel {
       this.setStatus("Search the Italian national catalogue of spatial data (RNDT).");
     }
     container.append(this.root);
+    if (this.pendingLink) {
+      const link = this.pendingLink;
+      this.pendingLink = null;
+      this.searchFromLink(link);
+    }
     return () => this.root?.remove();
+  }
+
+  /**
+   * Run the search a link asks for (`?rndt=`, `?rndtBbox=`): now, or at the
+   * first mount when GeoLibre has not rendered the panel yet. Without a box
+   * it searches anywhere, so the same link finds the same records for
+   * everyone; the other filters stay as they are.
+   */
+  searchFromLink(link: LinkSearch): void {
+    if (!this.root) {
+      this.pendingLink = link;
+      return;
+    }
+    this.field<HTMLInputElement>("text").value = link.text;
+    const where = this.field<HTMLSelectElement>("where");
+    where.value = link.bbox ? "box" : "anywhere";
+    where.dispatchEvent(new Event("change"));
+    if (link.bbox) this.field<HTMLInputElement>("box").value = link.bbox.join(", ");
+    this.formEl.requestSubmit();
   }
 
   /** Remove the panel DOM and the footprints (plugin deactivation). */

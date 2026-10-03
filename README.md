@@ -49,6 +49,32 @@ When a service fails, the panel offers **Copy error report**: a ready-to-paste e
 - **Errors**: when a server is gone (its name is not in the DNS) the panel says so; **Copy error report** prepares an email for the record's contact.
 - **Settings** (⚙ in the footer, off by default, stored on your computer only): log the service URLs that fail and export the log as JSON Lines.
 
+## Open a search from a link
+
+Not released yet: it comes with the version after 0.1.5.
+
+Two parameters in the address of GeoLibre web turn the plugin on, open the panel and start a search:
+
+| Parameter | Value | Example |
+|---|---|---|
+| `rndt` | the text to search; a record id (as "Copy id" gives it) opens that record | `?rndt=idrografia` |
+| `rndtBbox` | search area as west, south, east, north; the map moves there | `?rndtBbox=12.95,37.60,14.30,38.30` |
+
+```text
+https://web.geolibre.app/?rndt=idrografia
+https://web.geolibre.app/?rndt=catastale&rndtBbox=12.95,37.60,14.30,38.30
+```
+
+Without `rndtBbox` the search is on the whole catalogue, so a link finds the same records for everyone. Names are case-sensitive. A box that is not valid is ignored, with a warning in the browser console; `?rndt` with no value does nothing.
+
+These links work where the plugin is installed: GeoLibre never installs a plugin from a link. For someone who does not have it, add a project that lists the plugin, such as [this one](https://gist.github.com/aborruso/68601ad2b7f4af7a9156ba932f1b10a6):
+
+```text
+https://web.geolibre.app/?url=https://gist.githubusercontent.com/aborruso/68601ad2b7f4af7a9156ba932f1b10a6/raw/rndt.geolibre.json&rndt=idrografia
+```
+
+The first time GeoLibre asks whether to load the plugin ("Trust and load"), then no more. The project loads the plugin from the registry, so the search starts once a version with these parameters is there. A way to do without the project is asked in [opengeos/GeoLibre#2819](https://github.com/opengeos/GeoLibre/issues/2819).
+
 ## Known limits
 
 - WMS layers not offered in `EPSG:3857` (for example the Agenzia delle Entrate cadastral WMS, native in `EPSG:6706`) need GeoLibre Desktop 3.2.0 or later: the plugin asks them in a system the layer lists and GeoLibre redraws the tiles. With an older GeoLibre they stay disabled, and the panel says so. A group layer that answers every request with one fixed picture (the cadastral `Cartografia_Catastale`) is disabled: tick its layers instead.

@@ -2,6 +2,8 @@ import type { GeoLibrePlugin, GeoLibreRightPanelRegistration } from "./lib/geoli
 import { ITALY_BBOX, PANEL_ID, PLUGIN_ID, PLUGIN_NAME, PLUGIN_VERSION } from "./rndt/constants";
 import type { RndtHost } from "./rndt/host";
 import { RndtPanel } from "./rndt/panel";
+import type { Bbox } from "./rndt/query";
+import { linkSearchFrom, URL_PARAMETER_NAMES } from "./rndt/url-params";
 import "./rndt/panel.css";
 
 /**
@@ -17,6 +19,9 @@ import "./rndt/panel.css";
 type Plugin = GeoLibrePlugin & { engines?: ("maplibre" | "mapbox" | "cesium" | "arcgis")[] };
 
 let disposePanel: (() => void) | null = null;
+/** The active panel, and the map move that waits for it to open. */
+let activePanel: RndtPanel | null = null;
+let fitWhenSettled: ((bbox: Bbox) => void) | null = null;
 
 export const plugin: Plugin = {
   id: PLUGIN_ID,
@@ -24,6 +29,8 @@ export const plugin: Plugin = {
   version: PLUGIN_VERSION,
   // The footprints layer draws on the MapLibre map directly.
   engines: ["maplibre"],
+  // `?rndt=<text>` and `?rndtBbox=<west,south,east,north>` in a GeoLibre link.
+  urlParameterNames: URL_PARAMETER_NAMES,
   activate(app) {
     const host = app as RndtHost;
     if (!host.registerRightPanel) return false;
@@ -64,15 +71,16 @@ export const plugin: Plugin = {
       (view[0] + view[2]) / 2 <= east &&
       (view[1] + view[3]) / 2 >= south &&
       (view[1] + view[3]) / 2 <= north;
+    // The panel narrows the map as it opens: a fit computed on the old width
+    // leaves the area off centre (GeoLibre Desktop 3.2.0). Wait for the map to
+    // stop resizing; with a panel already open no resize comes, hence the timer.
     let cancelMove = () => {};
-    if (view && !onItaly) {
-      // The panel narrows the map as it opens: a fit computed on the old width
-      // leaves Italy off centre (GeoLibre Desktop 3.2.0). Wait for the map to
-      // stop resizing; with a panel already open no resize comes, hence the timer.
+    const fit = (bbox: Bbox) => {
+      cancelMove();
       const map = host.getMap?.();
       const move = () => {
         cancelMove();
-        host.fitBounds?.(ITALY_BBOX);
+        host.fitBounds?.(bbox);
       };
       let timer = setTimeout(move, 600);
       const onResize = () => {
@@ -84,14 +92,26 @@ export const plugin: Plugin = {
         clearTimeout(timer);
         map?.off("resize", onResize);
       };
-    }
+    };
+    if (view && !onItaly) fit(ITALY_BBOX);
+    activePanel = panel;
+    fitWhenSettled = fit;
     disposePanel = () => {
       cancelMove();
       unregisterMenu?.();
       host.closeRightPanel?.(PANEL_ID);
       unregister();
       panel.destroy();
+      activePanel = null;
+      fitWhenSettled = null;
     };
+  },
+  handleUrlParameters(_app, params) {
+    const link = linkSearchFrom(params);
+    if (!link || !activePanel) return;
+    // The link's box replaces the move to Italy made at activation.
+    if (link.bbox) fitWhenSettled?.(link.bbox);
+    activePanel.searchFromLink(link);
   },
   deactivate() {
     disposePanel?.();

@@ -1705,3 +1705,79 @@ describe("ArcGIS REST services", () => {
     expect(item.querySelector(".ordt-report")).not.toBeNull();
   });
 });
+
+describe("search from a link (?rndt=, ?rndtBbox=)", () => {
+  afterEach(() => vi.useRealTimers());
+
+  const handle = (host: RndtHost, query: string) => plugin.handleUrlParameters!(host, new URLSearchParams(query));
+
+  it("declares the parameters it owns", () => {
+    expect(plugin.urlParameterNames).toEqual(["rndt", "rndtBbox"]);
+  });
+
+  it("searches the text anywhere, also when the panel is rendered after the link is handled", async () => {
+    const ctx = createHost(() => fixture("search-services.json"));
+    plugin.activate(ctx.host);
+    await handle(ctx.host, "rndt=idrografia");
+    expect(ctx.requested).toHaveLength(0);
+    const container = document.createElement("div");
+    document.body.append(container);
+    ctx.getPanel()!.render(container);
+    await flush();
+
+    const search = new URL(ctx.requested[0]);
+    expect(search.searchParams.get("q")).toBe("(idrografia)");
+    expect(search.searchParams.get("bbox")).toBeNull();
+    expect(container.querySelector<HTMLInputElement>('input[name="text"]')!.value).toBe("idrografia");
+    expect(container.querySelector<HTMLSelectElement>('select[name="where"]')!.value).toBe("anywhere");
+    expect(container.querySelectorAll(".ordt-result")).toHaveLength(5);
+    plugin.deactivate(ctx.host);
+  });
+
+  it("searches in the link's box and shows it in the form", async () => {
+    const { host, requested, container } = await mountPanel(() => fixture("search-services.json"));
+    await handle(host, "rndt=catastale&rndtBbox=12.3,37.5,13.9,38.3");
+    await flush();
+
+    const search = new URL(requested[0]);
+    expect(search.searchParams.get("q")).toBe("(catastale)");
+    expect(search.searchParams.get("bbox")).toBe("12.3,37.5,13.9,38.3");
+    expect(container.querySelector<HTMLSelectElement>('select[name="where"]')!.value).toBe("box");
+    const box = container.querySelector<HTMLInputElement>('input[name="box"]')!;
+    expect(box.value).toBe("12.3, 37.5, 13.9, 38.3");
+    expect(box.hidden).toBe(false);
+    plugin.deactivate(host);
+  });
+
+  it("moves the map to the link's box instead of Italy", () => {
+    vi.useFakeTimers();
+    const ctx = createHost(() => "{}");
+    ctx.host.getViewBounds = () => [-203.3, -16.3, 3.3, 83.1];
+    plugin.activate(ctx.host);
+    void handle(ctx.host, "rndtBbox=12.3,37.5,13.9,38.3");
+    vi.advanceTimersByTime(1000);
+    const fit = vi.mocked(ctx.host.fitBounds!);
+    expect(fit).toHaveBeenCalledTimes(1);
+    expect(fit).toHaveBeenCalledWith([12.3, 37.5, 13.9, 38.3]);
+    plugin.deactivate(ctx.host);
+  });
+
+  it("opens the record when the text is a record id", async () => {
+    const { host, container } = await mountPanel(() => fixture("search-services.json"));
+    await handle(host, "rndt=c_l219:a883ab12-e713-41fe-b2a2-34c7756dc4e2");
+    await flush();
+    expect(container.querySelector<HTMLElement>(".ordt-detail-view")!.hidden).toBe(false);
+    plugin.deactivate(host);
+  });
+
+  it("does nothing with no value, or with the plugin off", async () => {
+    const { host, requested } = await mountPanel(() => "{}");
+    await handle(host, "rndt");
+    await flush();
+    expect(requested).toHaveLength(0);
+    plugin.deactivate(host);
+    await handle(host, "rndt=idrografia");
+    await flush();
+    expect(requested).toHaveLength(0);
+  });
+});
