@@ -1431,12 +1431,13 @@ describe("WMS layers with the same name, or already on the map", () => {
 <Layer><Name>aree_urb_adottato</Name><Title>Zonizzazione dei centri abitati</Title><CRS>EPSG:3857</CRS></Layer>
 </Layer></Capability></WMS_Capabilities>`;
 
-  async function openTwin() {
+  async function openTwin(prepare?: (host: RndtHost) => void) {
     const ctx = await mountPanel((url) => {
       if (url.includes("/rest/metadata/search") && url.includes("f=csw")) throw new Error("no RNDT lookup here");
       if (url.includes("/rest/metadata/search")) return fixture("search-services.json");
       return caps;
     });
+    prepare?.(ctx.host);
     ctx.container.querySelector<HTMLFormElement>("form")!.requestSubmit();
     await flush();
     const card = Array.from(ctx.container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
@@ -1466,6 +1467,26 @@ describe("WMS layers with the same name, or already on the map", () => {
       "Zonizzazione dei centri abitati (aree_urb_adottato)",
     ]);
     expect(box("aree_urb_vigente").closest(".ordt-layer")!.textContent).toContain("on the map");
+  });
+
+  it("knows a layer that is in the project already, as in a reopened project", async () => {
+    const { host, item, box, tick, addButton } = await openTwin((h) => {
+      h.getLayers = () => ["saved-1", "other"];
+      h.getProjectSnapshot = () => ({
+        layers: [
+          { id: "saved-1", type: "wms", source: { url: "https://example.org/wms", layers: "aree_urb_vigente" } },
+          { id: "gone", type: "wms", source: { url: "https://example.org/wms", layers: "aree_urb_adottato" } },
+          { id: "other", type: "geojson" },
+        ],
+      });
+    });
+    expect(box("aree_urb_vigente").closest(".ordt-layer")!.textContent).toContain("on the map");
+    // In the snapshot but no longer among the project's layers: not on the map.
+    expect(box("aree_urb_adottato").closest(".ordt-layer")!.textContent).not.toContain("on the map");
+    tick("aree_urb_vigente", true);
+    addButton().click();
+    expect(host.addWmsLayer).not.toHaveBeenCalled();
+    expect(item.textContent).toContain("Already on the map, not added again");
   });
 
   it("does not add again a layer still on the map, and says so", async () => {
@@ -1639,7 +1660,7 @@ describe("ArcGIS REST services", () => {
   });
   const feature = (i: number) => ({ type: "Feature", id: i, geometry: { type: "Point", coordinates: [9.4, 44.9] }, properties: { i } });
 
-  async function open(answer: (url: string) => string | ArrayBuffer, browserDraws = true) {
+  async function open(answer: (url: string) => string | ArrayBuffer, browserDraws = true, prepare?: (host: RndtHost) => void) {
     vi.stubGlobal("fetch", async () => (browserDraws ? new Response(png) : Promise.reject(new TypeError("Failed to fetch"))));
     const ctx = createHost(() => "");
     ctx.host.fetchArrayBuffer = vi.fn(async (url: string) => {
@@ -1649,6 +1670,7 @@ describe("ArcGIS REST services", () => {
       return typeof out === "string" ? encode(out) : out;
     });
     ctx.host.addTileLayer = vi.fn(() => "tile-1");
+    prepare?.(ctx.host);
     plugin.activate(ctx.host);
     const container = document.createElement("div");
     document.body.append(container);
@@ -1677,6 +1699,21 @@ describe("ArcGIS REST services", () => {
     expect(host.addTileLayer).toHaveBeenCalledWith("Depuratori - ed.2023", expect.stringContaining(`${ARPAE}/export?bbox={bbox-epsg-3857}&`), expect.anything());
     expect(vi.mocked(host.addTileLayer!).mock.calls[0][1]).toContain("layers=show%3A1");
     expect(item.querySelector('[aria-label="ArcGIS layers"] .ordt-layer-tag')!.textContent).toBe("on the map");
+  });
+
+  it("knows a layer that is in the project already, as in a reopened project", async () => {
+    const first = await open(service);
+    button(first.item, "Add to map (1)").click();
+    const template = vi.mocked(first.host.addTileLayer!).mock.calls[0][1];
+    plugin.deactivate(first.host);
+    // GeoLibre saves it as a tile layer with that template.
+    const { host, item } = await open(service, true, (h) => {
+      h.getLayers = () => ["saved-tiles"];
+      h.getProjectSnapshot = () => ({ layers: [{ id: "saved-tiles", type: "xyz", source: { type: "raster", tiles: [template] } }] });
+    });
+    expect(item.querySelector('[aria-label="ArcGIS layers"] .ordt-layer-tag')!.textContent).toBe("on the map");
+    button(item, "Add to map (1)").click();
+    expect(host.addTileLayer).not.toHaveBeenCalled();
   });
 
   it("keeps Add to map off, and says why, when the browser cannot get the images", async () => {

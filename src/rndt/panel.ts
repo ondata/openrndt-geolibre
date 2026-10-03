@@ -693,6 +693,7 @@ export class RndtPanel {
   private detailRows: { kind: string; code: string; title: () => string; row: HTMLElement }[] = [];
   /** WMS layers added from this panel ("GetMap URL|layer" → GeoLibre layer id), to spot them in the project. */
   private addedWms = new Map<string, string>();
+  private projectWmsCache: Map<string, string> | null = null;
   private copyQueryEl!: HTMLButtonElement;
   private footprintsToggleEl!: HTMLButtonElement;
   /** A search asked by a link before the first mount. */
@@ -2209,10 +2210,43 @@ export class RndtPanel {
     for (const rows of groups.values()) for (const row of rows) row.classList.toggle("ordt-layer-same-name", rows.length > 1);
   }
 
-  /** True when a WMS layer added from this panel is still in the project. */
-  private wmsOnMap(getMapUrl: string, name: string): boolean {
-    const id = this.addedWms.get(`${getMapUrl}|${name}`);
+  /**
+   * True when a WMS layer is in the project: added from this panel, or found
+   * there, as in a project saved with the layer and reopened. An ArcGIS layer
+   * is in the project as a tile layer: `tileUrl` is the template it was added with.
+   */
+  private wmsOnMap(getMapUrl: string, name: string, tileUrl?: string): boolean {
+    const key = `${getMapUrl}|${name}`;
+    const id = this.addedWms.get(key) ?? this.projectWms().get(key) ?? (tileUrl ? this.projectWms().get(tileUrl) : undefined);
     return !!id && (this.app.getLayers?.() ?? []).includes(id);
+  }
+
+  /**
+   * The project's WMS layers ("GetMap URL|layer" → layer id) and tile layers
+   * (tile template → layer id), read once per turn of the event loop.
+   */
+  private projectWms(): Map<string, string> {
+    if (!this.projectWmsCache) {
+      const found = new Map<string, string>();
+      let layers: unknown[] = [];
+      try {
+        layers = this.app.getProjectSnapshot?.().layers ?? [];
+      } catch {
+        // No snapshot: only the layers added in this session are known.
+      }
+      for (const layer of layers as { id?: unknown; type?: unknown; source?: { url?: unknown; layers?: unknown; tiles?: unknown } }[]) {
+        if (typeof layer?.id !== "string") continue;
+        const { url, layers: names, tiles } = layer.source ?? {};
+        if (layer.type === "wms" && typeof url === "string" && typeof names === "string") {
+          for (const name of names.split(",")) found.set(`${url}|${name}`, layer.id);
+        } else if (layer.type === "xyz" && Array.isArray(tiles) && typeof tiles[0] === "string") {
+          found.set(tiles[0], layer.id);
+        }
+      }
+      this.projectWmsCache = found;
+      setTimeout(() => (this.projectWmsCache = null), 0);
+    }
+    return this.projectWmsCache;
   }
 
   /**
@@ -2800,6 +2834,8 @@ export class RndtPanel {
         (name) => scaleNote(byName.get(name)!),
       );
       const add = h("button", { className: "ordt-button ordt-primary", type: "button" });
+      /** The tile template a layer is added with, also what a saved project keeps of it. */
+      const tileUrl = (name: string) => arcgisExportUrl(arcgis, image ? null : name, "{bbox-epsg-3857}", 256);
       const addFeatures = h("button", { className: "ordt-button", type: "button" }, "Add features");
       const inView = h("input", { type: "checkbox", checked: true });
       const result = h("p", { className: "ordt-note", hidden: true });
@@ -2814,12 +2850,12 @@ export class RndtPanel {
       list.addEventListener("change", sync);
 
       add.addEventListener("click", () => {
-        const already = selected().filter((name) => this.wmsOnMap(arcgis.serviceUrl, name));
+        const already = selected().filter((name) => this.wmsOnMap(arcgis.serviceUrl, name, tileUrl(name)));
         const names = selected().filter((name) => !already.includes(name));
         const failed: string[] = [];
         for (const name of names) {
           try {
-            const id = this.app.addTileLayer!(nameOf(name), arcgisExportUrl(arcgis, image ? null : name, "{bbox-epsg-3857}", 256), {
+            const id = this.app.addTileLayer!(nameOf(name), tileUrl(name), {
               attribution: info.copyright || undefined,
             });
             this.addedWms.set(`${arcgis.serviceUrl}|${name}`, id);
@@ -2867,7 +2903,7 @@ export class RndtPanel {
         })();
       });
 
-      for (const name of layers.map((l) => l.name)) if (this.wmsOnMap(arcgis.serviceUrl, name)) setOnMap(name, true);
+      for (const name of layers.map((l) => l.name)) if (this.wmsOnMap(arcgis.serviceUrl, name, tileUrl(name))) setOnMap(name, true);
       const drawRow = canDraw
         ? [
             ...(drawProblem ? [h("p", { className: "ordt-note", "data-kind": "error" }, drawProblem)] : []),

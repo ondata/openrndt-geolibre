@@ -58,6 +58,8 @@ export interface RndtHostExtras {
   importLayerStyle?: (layerId: string, text: string) => { ok: boolean; warnings: string[]; reason?: string };
   /** Ids of the layers in the project, top to bottom (GeoLibre 3.1.0). */
   getLayers?: () => string[];
+  /** The project as it would be saved: its layers carry their source (a WMS: `url` and `layers`). */
+  getProjectSnapshot?: () => { layers?: unknown[] };
   /** Save a text file through the system "Save as" dialog (GeoLibre 3.1.0). */
   exportTextFile?: (
     filename: string,
