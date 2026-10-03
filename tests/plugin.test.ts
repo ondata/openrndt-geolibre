@@ -2445,6 +2445,26 @@ describe("Recent searches (#25)", () => {
     expect(key(container, "Escape").defaultPrevented).toBe(false);
   });
 
+  it("lists every search on a click in a box that still holds the last text; only typing narrows", async () => {
+    localStorage.setItem(KEY, JSON.stringify([entry("alberi"), entry("ortofoto")]));
+    const { container } = await mountPanel(() => fixture("search-alberi.json"));
+    await searchFor(container, "idrografia");
+    // The box keeps "idrografia", the search on screen: the list is not narrowed to it.
+    box(container).dispatchEvent(new Event("focus"));
+    expect(items(container).map((el) => el.querySelector(".ordt-history-text")!.textContent)).toEqual(["idrografia", "alberi", "ortofoto"]);
+    expect(list(container).querySelector(".ordt-history-head")!.firstChild!.textContent).toBe("Recent searches");
+    box(container).value = "idrografi";
+    box(container).dispatchEvent(new Event("input"));
+    expect(items(container)).toHaveLength(1);
+    // Closed and opened again, it lists them all once more.
+    key(container, "Escape");
+    box(container).dispatchEvent(new Event("click"));
+    expect(items(container)).toHaveLength(3);
+    key(container, "Escape");
+    key(container, "ArrowDown");
+    expect(items(container)).toHaveLength(3);
+  });
+
   it("removes one entry with its ×, and all of them after asking", async () => {
     localStorage.setItem(KEY, JSON.stringify([entry("a"), entry("b"), entry("c")]));
     const { container } = await mountPanel(() => fixture("search-alberi.json"));

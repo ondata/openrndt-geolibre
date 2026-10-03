@@ -773,6 +773,8 @@ export class RndtPanel {
   /** The highlighted entry of the open list, or -1 for the search box. */
   private historyHi = -1;
   private historyConfirm = false;
+  /** Whether the text in the box was typed since the list opened: only then it narrows the list. */
+  private historyTyped = false;
   /** Whether the first entry of the history is the search on screen. */
   private tracksTop = false;
   /** Set before a submit that changes the search on screen (a chip removed) instead of starting one. */
@@ -1432,6 +1434,7 @@ export class RndtPanel {
       onclick: () => this.showHistory(true),
       oninput: () => {
         this.historyHi = -1;
+        this.historyTyped = true;
         this.showHistory(true);
       },
       onkeydown: (event: KeyboardEvent) => this.historyKey(event),
@@ -1459,8 +1462,13 @@ export class RndtPanel {
     );
   }
 
-  /** The entries the list shows: all of them, or the ones holding the letters typed. */
+  /**
+   * The entries the list shows: all of them, or the ones holding the letters
+   * typed. The text the box holds when the list opens is the search on screen,
+   * not something typed to find an entry: it does not narrow the list.
+   */
   private shownHistory(): HistoryEntry[] {
+    if (!this.historyTyped) return this.history;
     const typed = this.field<HTMLInputElement>("text").value;
     return this.history.filter((entry) => matchesEntry(entry, typed));
   }
@@ -1470,6 +1478,7 @@ export class RndtPanel {
     if (!show) {
       this.historyHi = -1;
       this.historyConfirm = false;
+      this.historyTyped = false;
     }
     this.historyEl.hidden = !show;
     this.renderHistory();
