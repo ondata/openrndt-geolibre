@@ -1826,3 +1826,171 @@ describe("search from a link (?rndt=, ?rndtBbox=)", () => {
     expect(requested).toHaveLength(0);
   });
 });
+
+describe("search saved in the project (getProjectState, applyProjectState)", () => {
+  const submit = async (container: HTMLElement, text: string) => {
+    container.querySelector<HTMLInputElement>('input[name="text"]')!.value = text;
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+  };
+  const render = (ctx: ReturnType<typeof createHost>) => {
+    const container = document.createElement("div");
+    document.body.append(container);
+    ctx.getPanel()!.render(container);
+    return container;
+  };
+
+  it("asks GeoLibre not to fold its panel when a project loads", () => {
+    expect((plugin as { restoresPanelCollapseState?: boolean }).restoresPanelCollapseState).toBe(true);
+  });
+
+  it("has nothing to save before a search, or with the plugin off", async () => {
+    const { host } = await mountPanel(() => "{}");
+    expect(plugin.getProjectState!()).toBeUndefined();
+    plugin.deactivate(host);
+    expect(plugin.getProjectState!()).toBeUndefined();
+  });
+
+  it("saves the search, the box it used, the page and the open record", async () => {
+    const { host, container } = await mountPanel(() => fixture("search-services.json"));
+    await submit(container, "catasto");
+    expect(plugin.getProjectState!()).toMatchObject({
+      v: 1,
+      form: { text: "catasto", bbox: [12, 41, 13, 42], sort: "" },
+      start: 1,
+      recordId: null,
+    });
+    openDetail(container.querySelector<HTMLElement>(".ordt-result")!);
+    expect(plugin.getProjectState!()).toMatchObject({ recordId: "c_l219:a883ab12-e713-41fe-b2a2-34c7756dc4e2" });
+    // It goes into a JSON file.
+    expect(JSON.parse(JSON.stringify(plugin.getProjectState!()))).toEqual(plugin.getProjectState!());
+    plugin.deactivate(host);
+  });
+
+  it("saves a record opened by its id as that id", async () => {
+    const { host, container } = await mountPanel(() => fixture("search-services.json"));
+    await submit(container, "c_l219:a883ab12-e713-41fe-b2a2-34c7756dc4e2");
+    expect(plugin.getProjectState!()).toMatchObject({
+      form: { text: "c_l219:a883ab12-e713-41fe-b2a2-34c7756dc4e2", textMode: "all", bbox: null },
+      recordId: "c_l219:a883ab12-e713-41fe-b2a2-34c7756dc4e2",
+    });
+    plugin.deactivate(host);
+  });
+
+  it("brings back a state given before the plugin is turned on: form, search in the saved box, open record", async () => {
+    const saved = {
+      v: 1,
+      form: {
+        text: "catasto",
+        textMode: "any",
+        kind: "services",
+        availableAs: ["WMS"],
+        organisation: "Comune",
+        invertOrganisation: true,
+        openDataOnly: true,
+        bbox: [12.95, 37.6, 14.3, 38.3],
+        spatialRel: "Within",
+      },
+      start: 21,
+      recordId: "r_lombar:1019d1db-648f-46d4-b428-951722b8f5c3",
+    };
+    const ctx = createHost(() => fixture("search-services.json"));
+    plugin.applyProjectState!(ctx.host, saved);
+    expect(plugin.getProjectState!()).toMatchObject({ start: 21 });
+    plugin.activate(ctx.host);
+    const container = render(ctx);
+    await flush();
+
+    const search = new URL(ctx.requested[0]);
+    expect(search.searchParams.get("bbox")).toBe("12.95,37.6,14.3,38.3");
+    expect(search.searchParams.get("spatialRel")).toBe("Within");
+    expect(search.searchParams.get("start")).toBe("21");
+    expect(search.searchParams.get("q")).toContain("catasto");
+    const value = (name: string) => container.querySelector<HTMLInputElement>(`[name="${name}"]`)!.value;
+    const checked = (name: string) => container.querySelector<HTMLInputElement>(`input[name="${name}"]:checked`)?.value;
+    expect(value("text")).toBe("catasto");
+    expect(value("where")).toBe("box");
+    expect(value("box")).toBe("12.95, 37.6, 14.3, 38.3");
+    expect(value("organisation")).toBe("Comune");
+    expect(checked("textMode")).toBe("any");
+    expect(checked("kind")).toBe("services");
+    expect(checked("orgMode")).toBe("hide");
+    expect(checked("availableAs")).toBe("WMS");
+    expect(checked("spatialRel")).toBe("Within");
+    expect(container.querySelector<HTMLInputElement>('input[name="openData"]')!.checked).toBe(true);
+    expect(container.querySelector<HTMLElement>(".ordt-service-types")!.hidden).toBe(false);
+    expect(container.querySelector<HTMLElement>(".ordt-detail-view")!.hidden).toBe(false);
+    expect(plugin.getProjectState!()).toMatchObject({ start: 21, recordId: saved.recordId, form: { text: "catasto", spatialRel: "Within" } });
+    plugin.deactivate(ctx.host);
+  });
+
+  it("does not search again for a state equal to what the panel shows", async () => {
+    const { host, requested, container } = await mountPanel(() => fixture("search-services.json"));
+    await submit(container, "catasto");
+    const before = requested.length;
+    plugin.applyProjectState!(host, JSON.parse(JSON.stringify(plugin.getProjectState!())));
+    await flush();
+    expect(requested).toHaveLength(before);
+    plugin.deactivate(host);
+  });
+
+  it("shows the list when the saved record is not in the page any more", async () => {
+    const { host, container } = await mountPanel(() => fixture("search-services.json"));
+    plugin.applyProjectState!(host, { v: 1, form: { text: "catasto" }, start: 1, recordId: "gone:1" });
+    await flush();
+    expect(container.querySelectorAll(".ordt-result")).toHaveLength(5);
+    expect(container.querySelector<HTMLElement>(".ordt-detail-view")!.hidden).toBe(true);
+    plugin.deactivate(host);
+  });
+
+  it("ignores a state it cannot read", async () => {
+    const { host, requested, container } = await mountPanel(() => fixture("search-services.json"));
+    await submit(container, "catasto");
+    expect(plugin.applyProjectState!(host, { v: 2 })).toBe(false);
+    await flush();
+    expect(requested).toHaveLength(1);
+    expect(container.querySelectorAll(".ordt-result")).toHaveLength(5);
+    plugin.deactivate(host);
+  });
+
+  it("asks GeoLibre to be told of a project that carries no search, and empties the panel then", async () => {
+    expect((plugin as { clearsStateOnProjectLoad?: boolean }).clearsStateOnProjectLoad).toBe(true);
+    const { host, container } = await mountPanel(() => fixture("search-services.json"));
+    await submit(container, "catasto");
+    openDetail(container.querySelector<HTMLElement>(".ordt-result")!);
+    plugin.applyProjectState!(host, undefined);
+    expect(container.querySelectorAll(".ordt-result")).toHaveLength(0);
+    expect(container.querySelector<HTMLInputElement>('input[name="text"]')!.value).toBe("");
+    expect(container.querySelector<HTMLElement>(".ordt-detail-view")!.hidden).toBe(true);
+    expect(container.querySelector(".ordt-status")!.textContent).toMatch(/^Search the Italian national catalogue/);
+    expect(plugin.getProjectState!()).toBeUndefined();
+    plugin.deactivate(host);
+  });
+
+  it("drops a state kept for later when a project without a search follows", () => {
+    const ctx = createHost(() => "{}");
+    plugin.applyProjectState!(ctx.host, { v: 1, form: { text: "catasto" } });
+    plugin.applyProjectState!(ctx.host, undefined);
+    expect(plugin.getProjectState!()).toBeUndefined();
+  });
+
+  it("leaves alone a form filled in but never searched", async () => {
+    const { host, container } = await mountPanel(() => "{}");
+    container.querySelector<HTMLInputElement>('input[name="text"]')!.value = "ortofoto";
+    plugin.applyProjectState!(host, undefined);
+    expect(container.querySelector<HTMLInputElement>('input[name="text"]')!.value).toBe("ortofoto");
+    plugin.deactivate(host);
+  });
+
+  it("lets a link win over the state of the project", async () => {
+    const ctx = createHost(() => fixture("search-services.json"));
+    plugin.applyProjectState!(ctx.host, { v: 1, form: { text: "catasto" }, start: 1, recordId: null });
+    plugin.activate(ctx.host);
+    await plugin.handleUrlParameters!(ctx.host, new URLSearchParams("rndt=idrografia"));
+    render(ctx);
+    await flush();
+    expect(ctx.requested).toHaveLength(1);
+    expect(new URL(ctx.requested[0]).searchParams.get("q")).toBe("(idrografia)");
+    plugin.deactivate(ctx.host);
+  });
+});

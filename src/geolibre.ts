@@ -2,6 +2,7 @@ import type { GeoLibrePlugin, GeoLibreRightPanelRegistration } from "./lib/geoli
 import { ITALY_BBOX, PANEL_ID, PLUGIN_ID, PLUGIN_NAME, PLUGIN_VERSION } from "./rndt/constants";
 import type { RndtHost } from "./rndt/host";
 import { RndtPanel } from "./rndt/panel";
+import { parsePanelState, type PanelState } from "./rndt/project-state";
 import type { Bbox } from "./rndt/query";
 import { linkSearchFrom, URL_PARAMETER_NAMES } from "./rndt/url-params";
 import "./rndt/panel.css";
@@ -16,12 +17,18 @@ import "./rndt/panel.css";
  */
 
 /** `engines` is part of GeoLibre's plugin contract but not of the template's copy. */
-type Plugin = GeoLibrePlugin & { engines?: ("maplibre" | "mapbox" | "cesium" | "arcgis")[] };
+type Plugin = GeoLibrePlugin & {
+  engines?: ("maplibre" | "mapbox" | "cesium" | "arcgis")[];
+  restoresPanelCollapseState?: boolean;
+  clearsStateOnProjectLoad?: boolean;
+};
 
 let disposePanel: (() => void) | null = null;
 /** The active panel, and the map move that waits for it to open. */
 let activePanel: RndtPanel | null = null;
 let fitWhenSettled: ((bbox: Bbox) => void) | null = null;
+/** The search of a project, given before the plugin is turned on. */
+let savedState: PanelState | null = null;
 
 export const plugin: Plugin = {
   id: PLUGIN_ID,
@@ -31,6 +38,12 @@ export const plugin: Plugin = {
   engines: ["maplibre"],
   // `?rndt=<text>` and `?rndtBbox=<west,south,east,north>` in a GeoLibre link.
   urlParameterNames: URL_PARAMETER_NAMES,
+  // GeoLibre folds the panels opened while a project loads; this one holds the
+  // search the project saved, so it stays open.
+  restoresPanelCollapseState: true,
+  // The search is data of the project: one that carries none empties the
+  // panel, or the search of the project before would be saved into it.
+  clearsStateOnProjectLoad: true,
   activate(app) {
     const host = app as RndtHost;
     if (!host.registerRightPanel) return false;
@@ -96,6 +109,8 @@ export const plugin: Plugin = {
     if (view && !onItaly) fit(ITALY_BBOX);
     activePanel = panel;
     fitWhenSettled = fit;
+    if (savedState) panel.restore(savedState);
+    savedState = null;
     disposePanel = () => {
       cancelMove();
       unregisterMenu?.();
@@ -112,6 +127,23 @@ export const plugin: Plugin = {
     // The link's box replaces the move to Italy made at activation.
     if (link.bbox) fitWhenSettled?.(link.bbox);
     activePanel.searchFromLink(link);
+  },
+  // The last search travels with the project (`plugins.settings`): saved in
+  // the web version, it comes back in Desktop, where every service can be read.
+  getProjectState() {
+    return (activePanel ? activePanel.projectState() : savedState) ?? undefined;
+  },
+  applyProjectState(_app, state) {
+    if (state === undefined) {
+      savedState = null;
+      activePanel?.reset();
+      return;
+    }
+    const parsed = parsePanelState(state);
+    if (!parsed) return false;
+    // GeoLibre restores the state before it turns the plugin on.
+    if (activePanel) activePanel.restore(parsed);
+    else savedState = parsed;
   },
   deactivate() {
     disposePanel?.();

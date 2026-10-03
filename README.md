@@ -73,6 +73,21 @@ https://web.geolibre.app/?url=https://gist.githubusercontent.com/aborruso/68601a
 
 The first time GeoLibre asks whether to load the plugin ("Trust and load"), then no more. The project loads the plugin from the registry, so the search starts once a version with these parameters is there. A way to do without the project is asked in [opengeos/GeoLibre#2819](https://github.com/opengeos/GeoLibre/issues/2819).
 
+## The search travels with the project
+
+Not released yet: it comes with the version after 0.1.6.
+
+When a GeoLibre project is saved, the panel's last search goes into it: text and filters, the area as the box that was searched, the page, and the record open in the detail view. Whoever opens the project finds the plugin on, the search done and that record open: a way to keep a search worth keeping, and to pass it on. The results themselves are not saved: the search runs again, so a catalogue that changed in the meantime can answer with other records.
+
+It is also a way around the CORS limit of the web version: search and pick a record in the browser, save the project, open the file in GeoLibre Desktop, where every service can be read.
+
+Things to know:
+
+- When it saves, GeoLibre asks "Strip credentials?" and counts the fields of the search among them: it cannot know what an external plugin keeps in a project. Choose **Keep in file**: the search holds no key and no password. With "Strip credentials", and in a project shared with Share, the search is left out ([opengeos/GeoLibre#2821](https://github.com/opengeos/GeoLibre/issues/2821)).
+- A search is not a change for GeoLibre: the project is not marked as modified, and closing without saving loses the search without a question. Save after the search you want to keep.
+- A project that carries no search empties the panel when it is opened, so a search never passes from one project to another.
+- On a computer without the plugin: a project saved where the plugin came from Manage Plugins carries its address, and GeoLibre asks whether to load it ("Trust and load"), then shows the search. A project saved where the plugin was installed from a zip or a folder carries no address: it opens without the plugin, and the search stays unused in the file.
+
 ## Known limits
 
 - WMS layers not offered in `EPSG:3857` (for example the Agenzia delle Entrate cadastral WMS, native in `EPSG:6706`) need GeoLibre Desktop 3.2.0 or later: the plugin asks them in a system the layer lists and GeoLibre redraws the tiles. With an older GeoLibre they stay disabled, and the panel says so. A group layer that answers every request with one fixed picture (the cadastral `Cartografia_Catastale`) is disabled: tick its layers instead.

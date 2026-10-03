@@ -51,6 +51,7 @@ import {
   type WfsCapabilities,
   type WmsLayer,
 } from "./ogc";
+import type { PanelState } from "./project-state";
 import type { LinkSearch } from "./url-params";
 import { bboxError, buildCurlCommand, buildSearchUrl, clampBbox, emptyForm, idForm, recordIdIn, type Bbox, type ResourceKind, type LinkKind, type SearchForm, type SpatialRel, type TextMode } from "./query";
 import { footprints, parseSearchResponse, type RndtRecord, type RndtService } from "./records";
@@ -698,6 +699,10 @@ export class RndtPanel {
   private footprintsToggleEl!: HTMLButtonElement;
   /** A search asked by a link before the first mount. */
   private pendingLink: LinkSearch | null = null;
+  /** A state given by a project before the first mount. */
+  private pendingState: PanelState | null = null;
+  /** The id the last search opened by itself (an id typed as text), or null. */
+  private lastId: string | null = null;
 
   constructor(private readonly app: RndtHost) {}
 
@@ -750,11 +755,11 @@ export class RndtPanel {
       this.setStatus("Search the Italian national catalogue of spatial data (RNDT).");
     }
     container.append(this.root);
-    if (this.pendingLink) {
-      const link = this.pendingLink;
-      this.pendingLink = null;
-      this.searchFromLink(link);
-    }
+    // A link is the newer request: it wins over the state of the project.
+    const [link, state] = [this.pendingLink, this.pendingState];
+    this.pendingLink = this.pendingState = null;
+    if (link) this.searchFromLink(link);
+    else if (state) this.restore(state);
     return () => this.root?.remove();
   }
 
@@ -775,6 +780,85 @@ export class RndtPanel {
     where.dispatchEvent(new Event("change"));
     if (link.bbox) this.field<HTMLInputElement>("box").value = link.bbox.join(", ");
     this.formEl.requestSubmit();
+  }
+
+  /** What a project saves of the panel: the last search, its page, the open record. Null before any search. */
+  projectState(): PanelState | null {
+    if (!this.root || !this.lastForm) return this.pendingState;
+    // The form keeps the sort order chosen ("Relevance" when the catalogue was
+    // asked the newest first); a record opened by its id is saved as that text.
+    const form = this.lastId
+      ? { ...emptyForm(), text: this.lastId }
+      : { ...this.lastForm, sort: this.field<HTMLSelectElement>("sort").value };
+    return { v: 1, form, start: this.start, recordId: this.detailId };
+  }
+
+  /**
+   * Bring back a search saved in a project: now, or at the first mount.
+   * GeoLibre gives the state again when the map is re-created (a basemap
+   * swap): one equal to what the panel shows does nothing.
+   */
+  restore(state: PanelState): void {
+    if (!this.root) {
+      this.pendingState = state;
+      return;
+    }
+    if (JSON.stringify(state) === JSON.stringify(this.projectState())) return;
+    this.writeForm(state.form);
+    void this.search(state.start, undefined, state.recordId);
+  }
+
+  /**
+   * Back to an empty panel: a project that carries no search was opened, and
+   * the search on screen belongs to the project before it. A form filled in
+   * but never searched is left alone.
+   */
+  reset(): void {
+    this.pendingState = null;
+    if (!this.root || !this.lastForm) return;
+    this.formEl.reset();
+    this.field<HTMLInputElement>("text").value = "";
+    this.afterReset();
+    this.clearResults();
+    this.chipsEl.replaceChildren();
+    this.lastId = null;
+    this.setStatus("Search the Italian national catalogue of spatial data (RNDT).");
+  }
+
+  /** Put a search into the form's fields, the inverse of `readForm`. The area becomes a box, or Anywhere. */
+  private writeForm(form: SearchForm): void {
+    const setRadio = (name: string, value: string) => {
+      const radio = this.formEl.querySelector<HTMLInputElement>(`input[name="${name}"][value="${value}"]`);
+      if (radio) radio.checked = true;
+    };
+    const setChecks = (name: string, values: string[]) => {
+      for (const box of this.formEl.querySelectorAll<HTMLInputElement>(`input[name="${name}"]`)) {
+        box.checked = values.includes(box.value);
+      }
+    };
+    this.field<HTMLInputElement>("text").value = form.text;
+    setRadio("textMode", form.textMode);
+    this.field<HTMLSelectElement>("field").value = form.field;
+    setRadio("kind", form.kind);
+    this.formEl.querySelector<HTMLElement>(".ordt-service-types")!.hidden = form.kind !== "services";
+    setChecks("availableAs", form.availableAs);
+    setChecks("serviceType", form.serviceTypes);
+    this.field<HTMLSelectElement>("theme").value = form.inspireThemes[0] ?? "";
+    this.field<HTMLInputElement>("keywords").value = form.keywords;
+    this.field<HTMLInputElement>("organisation").value = form.organisation;
+    this.setOrgMode(form.invertOrganisation ? "hide" : "only");
+    this.field<HTMLInputElement>("openData").checked = form.openDataOnly;
+    this.field<HTMLSelectElement>("dateField").value = form.dateField;
+    this.field<HTMLInputElement>("dateFrom").value = form.dateFrom;
+    this.field<HTMLInputElement>("dateTo").value = form.dateTo;
+    this.field<HTMLSelectElement>("sort").value = form.sort;
+    const where = this.field<HTMLSelectElement>("where");
+    where.value = form.bbox ? "box" : "anywhere";
+    where.dispatchEvent(new Event("change"));
+    this.field<HTMLInputElement>("box").value = form.bbox ? form.bbox.join(", ") : "";
+    setRadio("spatialRel", form.spatialRel);
+    this.syncClearButtons();
+    this.updateAdvancedCount();
   }
 
   /** Remove the panel DOM and the footprints (plugin deactivation). */
@@ -1722,7 +1806,7 @@ export class RndtPanel {
     this.statusEl.dataset.kind = kind;
   }
 
-  private async search(start: number, form?: SearchForm): Promise<void> {
+  private async search(start: number, form?: SearchForm, openId: string | null = null): Promise<void> {
     // A record id typed or pasted in the search box (as "Copy id" gives it)
     // opens that record, whatever the filters: "Where" starts from the map view.
     const id = form ? null : recordIdIn(this.field<HTMLInputElement>("text").value);
@@ -1764,6 +1848,7 @@ export class RndtPanel {
       }
       if (seq !== this.requestSeq) return; // a newer search is running
       this.lastForm = current;
+      this.lastId = byId ? id : null;
       if (byId) {
         // The filters on the form were not applied: no chips for them.
         this.chipsEl.replaceChildren();
@@ -1787,6 +1872,8 @@ export class RndtPanel {
       this.renderResults();
       this.updateFootprintControls();
       if (byId) this.openDetail(page.records[0].id);
+      // A record saved as open that the catalogue no longer gives in this page: the list stays.
+      else if (openId) this.openDetail(openId);
     } catch (error) {
       if (seq !== this.requestSeq) return;
       this.setStatus(`Search failed: ${errorMessage(error)}`, "error");
