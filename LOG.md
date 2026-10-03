@@ -2,6 +2,7 @@
 
 ## 2026-10-03
 
+- **0.1.8 to the registry**: opengeos/geolibre-plugins#65, from `ondata:update-openrndt-geolibre-0.1.8`; minify, validation and pre-commit pass locally; bundle 299 KB to 319 KB.
 - **Release 0.1.8**: recent searches (#25), contact the organisation (#20), Copy for an agent (#23), the panel refinements of the design review (#19), and the fixes since 0.1.7 (#22, #24, #26, the WFS message, the late error when the plugin is turned off). Recent searches and the Add to map row were seen in the web version only before the release; the rest also in GeoLibre Desktop.
 - **Add to map stays in sight** (#26; user, Desktop: with 74 layers and the contact box open the button was under the footer, out of reach): the row of the button is sticky above the footer while its service block is on screen. Seen in web.geolibre.app in a low window: block from 85 to 541 px, footer at 458, the row at 421-458.
 - **A WMS group that answers every GetMap with an error** (user: 146 "The source image could not be decoded" in Diagnostics after adding "Catasto" of `geoserver-terrig.regione.lazio.it`): the server answers `ServiceException: No layers have been requested` to any tile of that layer group, while `pericolositap3p4(mg)` of the same server gives PNGs. The source's fault; the plugin tests the group layers only for a picture of the wrong size, not for an error, and lets it be added.
