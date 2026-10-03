@@ -113,6 +113,17 @@ describe("search results", () => {
     expect(inferKind("https://geomap.reteunitaria.piemonte.it/WEBCAT/CAPABILITIES/wms_coto_ortofoto_2016.xml")).toBe("WMS");
     expect(inferKind("https://x.it/data/metadata.xml")).toBe("download");
     expect(inferKind("https://x.it/page.html")).toBe("link");
+    // The page of a layer on a GeoNode is a web page, whatever words its address holds (#22).
+    const page = "https://geoportale.regione.lazio.it/layers/httpsgeoserver-terrigregionelazioitgeoserverwebsitwms:pericolositap3p4(mg)";
+    expect(inferKind(page)).toBe("link");
+    expect(inferKind("https://geoportale.regione.lazio.it/layers/geodbgt:geonode:wms_diga_a")).toBe("link");
+    // A service word inside another word of the path still tells a service (Piemonte).
+    expect(inferKind("https://geomap.reteunitaria.piemonte.it/ws/taims/rp-01/taimswms/bdtre_veg?")).toBe("WMS");
+    const wms = "https://geoserver-terrig.regione.lazio.it/geoserver/websit/ows?SERVICE=WMS&";
+    const result = { _source: { resources_nst: [{ url_s: wms, url_type_s: "WMS" }], links_s: [page, wms] } };
+    const services = extractServices(result);
+    expect(services).toEqual([{ kind: "WMS", url: wms }]);
+    expect(extractOtherLinks(result, services)).toEqual([page]);
     expect(extractServices({ _source: { links_s: ["https://x.it/page.html"] } })).toEqual([]);
   });
 

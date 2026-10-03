@@ -102,6 +102,10 @@ export function inferKind(url: string): ServiceKind {
   }
   if (DOWNLOAD_EXTENSIONS.some((ext) => path.endsWith(ext))) return "download";
   if (parseArcgisUrl(url)) return ARCGIS_KIND;
+  // The page of a layer on a GeoNode (`/layers/<workspace>:<name>`) is a web
+  // page: its name can hold "wms" and is no service. 404 such links in the
+  // catalogue on 2026-10-03, 5 of them with "wms" (Regione Lazio).
+  if (path.startsWith("/layers/")) return "link";
   if (path.includes("wmts")) return "WMTS";
   if (path.includes("wms")) return "WMS";
   if (path.includes("wfs")) return "WFS";
