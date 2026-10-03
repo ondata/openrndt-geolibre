@@ -142,6 +142,26 @@ The registry is the repository [opengeos/geolibre-plugins](https://github.com/op
 3. There, run `npm ci && npm run minify && npm run minify:check`, `node scripts/validate_plugins.mjs` and `pre-commit run --all-files`: the Minify workflow cannot push to a fork.
 4. Open the pull request. Its preview, `https://opengeos.org/pages-preview/geolibre-plugins/pr-<N>/`, runs GeoLibre's web version with the plugin loaded.
 
+## openrndt, the same catalogue from the command line
+
+[openrndt](https://github.com/ondata/openrndt) is a command line tool, and a Python library, for the same catalogue. The plugin is its counterpart inside GeoLibre: the two ask the same REST API and are meant to build the same queries (`tests/fixtures/queries.json` is the shared test).
+
+The plugin is for looking: a map, the footprints, a layer added with a click. openrndt is for the work a panel does not do:
+
+- **Many records at once**: a search goes out as JSON, a table or CSV, with the fields chosen by a profile (`--profile qgis` gives a CSV with the service addresses in columns).
+- **Footprints as a file**: `openrndt footprints` writes the extents of the results as GeoJSON.
+- **One record in full**: `openrndt get <id>` gives contact, extent, lineage and resources, or the ISO 19139 XML.
+- **The services of a record, checked**: `openrndt resources <id>` lists its WMS, WFS and download addresses and can test them.
+- **Scripts and AI agents**: it is read-only and built to be driven step by step by an agent, with an Agent Skill (`rndt-explorer`) in its repository. The idea is that the agent composes queries to the official catalogue and gets real metadata and addresses back, instead of making them up.
+
+```bash
+uv tool install openrndt          # or, without installing: uvx openrndt --help
+openrndt search --q "catasto" --bbox 12.95,37.60,14.30,38.30 --num 10
+openrndt resources age:D_E973_MARSAGLIA
+```
+
+The two meet on the record id: **Copy id** in the panel gives the id that `openrndt get` and `openrndt resources` take, and an id typed in the panel's search box opens that record. The `curl` button of the panel copies the request of the last search, to repeat it outside GeoLibre.
+
 ## License
 
 MIT, Copyright (c) 2026 Andrea Borruso <andrea.borruso@ondata.it>. Started from the [GeoLibre plugin template](https://github.com/opengeos/geolibre-plugin-template) by Qiusheng Wu, also MIT: its notice stays in [LICENSE](LICENSE) for the parts that come from it.
