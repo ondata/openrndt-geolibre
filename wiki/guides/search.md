@@ -39,9 +39,18 @@ A record id typed alone in the text box (as **Copy id** of a record gives it) op
 
 # Results
 
-- Active filters are shown as chips that can be removed one by one.
+- Active filters are shown as chips that can be removed one by one, with **Edit filters** and **Clear all**. With no filter there is no chip row: a **Filters** link sits at the end of the row of **Zoom to results** and **Hide footprints**.
 - A pager, the sort order and a `curl` button that copies the request sit above the list.
 - Each card shows type, formats, organisation and metadata date; its ⋯ menu hides that organisation or keeps only it.
 - The extents of the records are drawn on the map: see [Footprints](../reference/footprints.md).
 
-A click on a title opens the record in the detail view, with its abstract, services and links. From there: [Add layers to the map](add-layers.md).
+A click on a title opens the record in the detail view, with its abstract, services and links. **← N results** and the place of the record in the page ("3 of 20") stay fixed under the search box while the record scrolls. A long abstract is cut at four lines, with **More**. From there: [Add layers to the map](add-layers.md).
+
+# No results
+
+With no record found, the pager, the sort order and `curl` are not shown. Under "No records found." the panel offers the changes that can find something, each a link that runs the search again:
+
+- **Search Anywhere instead of the map view**, when the area is the current map view;
+- **Match any word (a or b)**, when the text has more than one word and the match mode is All words.
+
+When neither applies, the message alone.

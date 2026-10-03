@@ -659,7 +659,10 @@ export class RndtPanel {
   private searchBarEl!: HTMLElement;
   /** One line with the filters of the last search, shown while the form is folded. */
   private summaryEl!: HTMLElement;
-  private summaryTextEl!: HTMLElement;
+  private filtersLinkEl!: HTMLButtonElement;
+  private zoomLinkEl: HTMLButtonElement | false | undefined;
+  private emptyEl!: HTMLElement;
+  private detailBarEl!: HTMLElement;
   private summaryToggleEl!: HTMLButtonElement;
   private chipsEl!: HTMLElement;
   private clearAllEl!: HTMLButtonElement;
@@ -725,6 +728,8 @@ export class RndtPanel {
       this.pagerTopEl = h("div", { className: "ordt-pager ordt-pager-top" }, this.statusEl);
       this.resultsHeadEl = this.buildResultsHead();
       this.settingsEl = this.buildSettings();
+      this.emptyEl = h("div", { className: "ordt-empty ordt-small", hidden: true });
+      this.detailBarEl = h("div", { className: "ordt-detail-bar ordt-small", hidden: true });
       this.detailEl = h("section", { className: "ordt-detail-view", hidden: true, "aria-label": "Record details" });
       this.footerEl = this.buildFooter();
       this.root.append(
@@ -735,7 +740,9 @@ export class RndtPanel {
         this.summaryEl,
         this.resultsHeadEl,
         this.listEl,
+        this.emptyEl,
         this.pagerEl,
+        this.detailBarEl,
         this.detailEl,
         this.footerEl,
       );
@@ -1307,10 +1314,9 @@ export class RndtPanel {
     );
   }
 
-  /** Active filters as removable chips, "Edit filters" and "Clear all". */
+  /** Active filters as removable chips, "Edit filters" and "Clear all". Shown only with a filter: see {@link syncSummary}. */
   private buildSummary(): HTMLElement {
     this.chipsEl = h("div", { className: "ordt-chips" });
-    this.summaryTextEl = h("span", { className: "ordt-summary-text ordt-muted" });
     this.summaryToggleEl = h(
       "button",
       { className: "ordt-link", type: "button", onclick: () => this.showFilters(this.formEl.hidden === true) },
@@ -1333,12 +1339,11 @@ export class RndtPanel {
       "div",
       { className: "ordt-summary ordt-small", hidden: true },
       this.chipsEl,
-      this.summaryTextEl,
       h("span", { className: "ordt-summary-links" }, this.summaryToggleEl, this.clearAllEl),
     );
   }
 
-  /** Pager with the status between its arrows, curl, sort, the ⋯ menu; below, Zoom to results and Hide footprints. */
+  /** Pager with the status between its arrows, curl, sort, the ⋯ menu; below, Zoom to results, Hide footprints and, with no filter, Filters. */
   private buildResultsHead(): HTMLElement {
     this.sortEl = select(SORT_OPTIONS, "", {
       className: "ordt-input ordt-sort",
@@ -1357,12 +1362,15 @@ export class RndtPanel {
       this.sortEl,
       menuWrap(menu, "More actions"),
     );
-    this.zoomRowEl = h(
-      "div",
-      { className: "ordt-row ordt-small", hidden: true },
-      this.app.fitBounds && h("button", { className: "ordt-link", type: "button", onclick: () => this.zoomToResults() }, "Zoom to results"),
-      this.footprintsToggleEl,
+    this.zoomLinkEl =
+      this.app.fitBounds && h("button", { className: "ordt-link", type: "button", onclick: () => this.zoomToResults() }, "Zoom to results");
+    // The handle of the folded form when no chip row is there to hold it.
+    this.filtersLinkEl = h(
+      "button",
+      { className: "ordt-link ordt-filters-link", type: "button", hidden: true, onclick: () => this.showFilters(this.formEl.hidden === true) },
+      "Filters",
     );
+    this.zoomRowEl = h("div", { className: "ordt-row ordt-small", hidden: true }, this.zoomLinkEl, this.footprintsToggleEl, this.filtersLinkEl);
     return h(
       "div",
       { className: "ordt-results-head" },
@@ -1531,6 +1539,7 @@ export class RndtPanel {
   private showFilters(show: boolean): void {
     this.formEl.hidden = !show;
     this.summaryToggleEl.textContent = show ? "Hide filters" : "Edit filters";
+    this.filtersLinkEl.textContent = show ? "Hide filters" : "Filters";
     // Filters set in the advanced part must be visible when editing.
     if (show && this.advancedCount() > 0) this.formEl.querySelector<HTMLDetailsElement>(".ordt-more")!.open = true;
   }
@@ -1682,9 +1691,14 @@ export class RndtPanel {
       ),
     );
     this.updateAdvancedCount();
-    this.summaryTextEl.textContent = chips.length ? "" : "No filters";
-    this.summaryTextEl.hidden = chips.length > 0;
     this.clearAllEl.hidden = chips.length === 0;
+  }
+
+  /** After a search: the chip row with a filter, the Filters link in the results header with none. */
+  private syncSummary(): void {
+    const filtered = this.chipsEl.childElementCount > 0;
+    this.summaryEl.hidden = !filtered;
+    this.filtersLinkEl.hidden = filtered;
   }
 
   /** Turn on GeoEditor when "Drawn shapes" is picked and nothing is drawn yet. */
@@ -1860,13 +1874,13 @@ export class RndtPanel {
       if (byId) {
         // The filters on the form were not applied: no chips for them.
         this.chipsEl.replaceChildren();
-        this.summaryEl.hidden = false;
+        this.syncSummary();
         this.showFilters(false);
         this.showHelp(false);
       } else if (!form) {
         // A search from the form: fold the filters so the results get the room.
         this.renderChips();
-        this.summaryEl.hidden = false;
+        this.syncSummary();
         this.showFilters(false);
         this.showHelp(false);
       }
@@ -1904,6 +1918,7 @@ export class RndtPanel {
     this.resultActionsEl.hidden = true;
     this.zoomRowEl.hidden = true;
     this.summaryEl.hidden = true;
+    this.emptyEl.hidden = true;
     this.showFilters(true);
     this.setStatus("Results cleared.");
   }
@@ -1971,8 +1986,14 @@ export class RndtPanel {
         : `${this.start}-${end} of ${this.total.toLocaleString("en")}`,
     );
     this.listEl.replaceChildren(...this.records.map((r) => this.renderRecord(r)));
-    this.resultActionsEl.hidden = false;
-    this.zoomRowEl.hidden = !this.records.some((r) => r.bbox);
+    // With no record curl, sort and the menu have nothing to act on.
+    this.resultActionsEl.hidden = this.total === 0;
+    const mapped = this.records.some((r) => r.bbox);
+    if (this.zoomLinkEl) this.zoomLinkEl.hidden = !mapped;
+    this.footprintsToggleEl.hidden = !mapped;
+    // Nothing to put in the row: no footprint to zoom to, and the chip row holds the filters.
+    this.zoomRowEl.hidden = !mapped && this.filtersLinkEl.hidden;
+    this.renderRemedies();
 
     if (this.total > PAGE_SIZE) {
       const [previous, next] = this.pagerButtons(end, true);
@@ -1982,6 +2003,55 @@ export class RndtPanel {
       this.pagerTopEl.replaceChildren(this.statusEl);
       this.pagerEl.replaceChildren();
     }
+  }
+
+  /**
+   * With no record found, the changes to the search just made that can find
+   * some: each link makes the change and searches again. Nothing when none
+   * applies, or when the search was for a record id.
+   */
+  private renderRemedies(): void {
+    const remedies: HTMLElement[] = [];
+    const form = this.lastForm;
+    if (this.total === 0 && form && this.lastId === null) {
+      const where = this.field<HTMLSelectElement>("where");
+      if (where.value === "view") {
+        remedies.push(
+          h(
+            "button",
+            {
+              className: "ordt-link",
+              type: "button",
+              onclick: () => {
+                where.value = "anywhere";
+                where.dispatchEvent(new Event("change"));
+                this.formEl.requestSubmit();
+              },
+            },
+            "Search Anywhere instead of the map view",
+          ),
+        );
+      }
+      const words = form.text.trim().split(/\s+/).filter(Boolean);
+      if (form.textMode === "all" && words.length > 1) {
+        remedies.push(
+          h(
+            "button",
+            {
+              className: "ordt-link",
+              type: "button",
+              onclick: () => {
+                this.formEl.querySelector<HTMLInputElement>('input[name="textMode"][value="any"]')!.checked = true;
+                this.formEl.requestSubmit();
+              },
+            },
+            `Match any word (${words.join(" or ")})`,
+          ),
+        );
+      }
+    }
+    this.emptyEl.replaceChildren(...(remedies.length ? [h("span", { className: "ordt-muted" }, "Try:"), ...remedies] : []));
+    this.emptyEl.hidden = remedies.length === 0;
   }
 
   /** Previous/Next for the current page: compact arrows in the header, words below the list. */
@@ -2023,7 +2093,18 @@ export class RndtPanel {
     for (const li of this.listEl.querySelectorAll(".ordt-last-viewed")) li.classList.remove("ordt-last-viewed");
     this.detailEl.replaceChildren(...this.renderDetail(record).filter((c): c is Node | string => !!c));
     this.detailEl.hidden = false;
+    // The way back stays in sight while the record scrolls.
+    this.detailBarEl.replaceChildren(
+      h(
+        "button",
+        { className: "ordt-link ordt-back", type: "button", onclick: () => this.closeDetail(true) },
+        `← ${this.total.toLocaleString("en")} ${this.total === 1 ? "result" : "results"}`,
+      ),
+      h("span", { className: "ordt-detail-position ordt-muted" }, `${this.records.indexOf(record) + 1} of ${this.records.length}`),
+    );
+    this.detailBarEl.hidden = false;
     this.root.classList.add("ordt-in-detail");
+    this.fitAbstract();
     this.searchBarEl.scrollIntoView?.({ block: "start" });
   }
 
@@ -2039,6 +2120,8 @@ export class RndtPanel {
     this.detailRows = [];
     this.detailEl.hidden = true;
     this.detailEl.replaceChildren();
+    this.detailBarEl.hidden = true;
+    this.detailBarEl.replaceChildren();
     this.root?.classList.remove("ordt-in-detail");
     const card = back ? (Array.from(this.listEl.children) as HTMLElement[]).find((li) => li.dataset.id === id) : undefined;
     if (!card) {
@@ -2171,11 +2254,6 @@ export class RndtPanel {
       );
     }
     return [
-      h(
-        "button",
-        { className: "ordt-link ordt-back", type: "button", onclick: () => this.closeDetail(true) },
-        `← ${this.total.toLocaleString("en")} ${this.total === 1 ? "result" : "results"}`,
-      ),
       h("h2", { className: "ordt-detail-title" }, record.title),
       h(
         "div",
@@ -2185,7 +2263,7 @@ export class RndtPanel {
       ),
       record.organisation && h("div", { className: "ordt-small" }, record.organisation),
       record.modified && h("div", { className: "ordt-small ordt-muted" }, `Metadata updated ${record.modified}`),
-      record.abstract && h("p", { className: "ordt-abstract" }, record.abstract),
+      record.abstract && this.renderAbstract(record.abstract),
       record.services.length
         ? h("ul", { className: "ordt-services" }, ...servicesWithDerivedWms(record.services).map((g) => this.renderService(record, g)))
         : !record.otherLinks.length && h("p", { className: "ordt-muted" }, "No services or downloads declared in this record."),
@@ -2219,6 +2297,23 @@ export class RndtPanel {
         menuWrap(h("div", { className: "ordt-menu", role: "menu", hidden: true }, ...more), "More record actions"),
       ),
     ];
+  }
+
+  /** The abstract cut at a few lines, with More / Less: a long one pushed the first service below the fold. */
+  private renderAbstract(abstract: string): HTMLElement {
+    const text = h("p", { className: "ordt-abstract ordt-clamped" }, abstract);
+    const toggle = h("button", { className: "ordt-link ordt-abstract-toggle", type: "button" }, "More");
+    toggle.addEventListener("click", () => {
+      toggle.textContent = text.classList.toggle("ordt-clamped") ? "More" : "Less";
+    });
+    return h("div", { className: "ordt-abstract-wrap" }, text, toggle);
+  }
+
+  /** No More link under an abstract that fits. Without layout (a hidden panel) the link stays. */
+  private fitAbstract(): void {
+    const text = this.detailEl.querySelector<HTMLElement>(".ordt-abstract");
+    const toggle = this.detailEl.querySelector<HTMLElement>(".ordt-abstract-toggle");
+    if (text && toggle && text.clientHeight > 0) toggle.hidden = text.scrollHeight <= text.clientHeight;
   }
 
   private copyButton(value: string, label = "Copy URL"): HTMLButtonElement {

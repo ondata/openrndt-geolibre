@@ -268,6 +268,22 @@
   overflow-wrap: anywhere;
 }
 
+.ordt-abstract-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.ordt-clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  overflow: hidden;
+}
+
 .ordt-services {
   display: flex;
   flex-direction: column;
@@ -722,6 +738,20 @@
   margin-left: auto;
 }
 
+/* With no chip row, the handle of the folded form sits at the end of the zoom row. */
+.ordt-filters-link {
+  margin-left: auto;
+}
+
+/* No record found: the remedies, one per row. */
+.ordt-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding-top: 4px;
+}
+
 .ordt-head-row {
   display: flex;
   flex-wrap: wrap;
@@ -831,12 +861,6 @@
   align-self: start;
 }
 
-.ordt-result .ordt-menu-button {
-  color: var(--ordt-muted);
-  background: none;
-  border-color: transparent;
-}
-
 .ordt-meta-org {
   justify-content: space-between;
   flex-wrap: nowrap;
@@ -939,7 +963,7 @@
 }
 
 /* Detail view: one record in place of filters and list; search bar and footer stay. */
-.ordt-in-detail > :is(.ordt-form, .ordt-help-all, .ordt-settings, .ordt-summary, .ordt-results-head, .ordt-results, .ordt-pager) {
+.ordt-in-detail > :is(.ordt-form, .ordt-help-all, .ordt-settings, .ordt-summary, .ordt-results-head, .ordt-empty, .ordt-results, .ordt-pager) {
   display: none !important;
 }
 
@@ -949,9 +973,18 @@
   gap: 8px;
 }
 
-.ordt-back {
-  align-self: flex-start;
-  font-size: 12px;
+/* "← N results" and the place in the page: fixed under the search bar while the record scrolls. */
+.ordt-detail-bar {
+  position: sticky;
+  top: var(--ordt-bar-h, 46px);
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 -12px;
+  padding: 4px 12px 6px;
+  background: var(--ordt-bg);
+  border-bottom: 1px solid var(--ordt-border);
 }
 
 .ordt-detail-title {
@@ -976,12 +1009,18 @@ a.ordt-menu-item {
 
 /* Service block in the detail view: kind, layer count, host, actions; then the layer list. */
 .ordt-service-head {
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+}
+
+.ordt-service-head > .ordt-host {
+  flex: 0 1 auto;
 }
 
 .ordt-layer-count {
+  flex: none;
   font-size: 12px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .ordt-layer-count:empty {
@@ -989,8 +1028,10 @@ a.ordt-menu-item {
 }
 
 .ordt-service-actions {
+  flex: none;
   margin-left: auto;
   gap: 10px;
+  white-space: nowrap;
 }
 
 .ordt-layers {

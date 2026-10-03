@@ -1078,7 +1078,9 @@ describe("folded filters after a search", () => {
     expect(container.querySelector<HTMLElement>(".ordt-count")!.hidden).toBe(true);
     expect(new URL(requested.at(-1)!).searchParams.get("q")).toBe("(alberi)");
     expect(chipLabels(container)).toEqual([]);
-    expect(container.querySelector(".ordt-summary-text")!.textContent).toBe("No filters");
+    // No filter left: the chip row gives way to the Filters link.
+    expect(container.querySelector<HTMLElement>(".ordt-summary")!.hidden).toBe(true);
+    expect(container.querySelector<HTMLElement>(".ordt-filters-link")!.hidden).toBe(false);
     expect(clearAll().hidden).toBe(true);
   });
 
@@ -1355,7 +1357,12 @@ describe("Detail view", () => {
     expect(view.hidden).toBe(false);
     expect(panel.classList.contains("ordt-in-detail")).toBe(true);
     expect(view.querySelector(".ordt-detail-title")!.textContent).toBe(title);
-    const back = view.querySelector<HTMLButtonElement>(".ordt-back")!;
+    // The way back is in the fixed bar above the view, with the place in the page.
+    const bar = container.querySelector<HTMLElement>(".ordt-detail-bar")!;
+    expect(bar.hidden).toBe(false);
+    expect(view.querySelector(".ordt-back")).toBeNull();
+    const back = bar.querySelector<HTMLButtonElement>(".ordt-back")!;
+    expect(bar.querySelector(".ordt-detail-position")!.textContent).toBe("2 of 5");
     expect(back.textContent).toBe("← 41 results");
     // Services and links live only in the view, not in the cards.
     expect(container.querySelector(".ordt-results .ordt-services")).toBeNull();
@@ -1364,6 +1371,7 @@ describe("Detail view", () => {
     card.scrollIntoView = scrolled;
     back.click();
     expect(view.hidden).toBe(true);
+    expect(bar.hidden).toBe(true);
     expect(view.childElementCount).toBe(0);
     expect(panel.classList.contains("ordt-in-detail")).toBe(false);
     // The card just seen is marked and brought to the top of the list.
@@ -1371,7 +1379,9 @@ describe("Detail view", () => {
     expect(scrolled).toHaveBeenCalledWith({ block: "start" });
     // Opening another record moves the mark.
     const other = container.querySelectorAll<HTMLElement>(".ordt-result")[2];
-    openDetail(other).querySelector<HTMLButtonElement>(".ordt-back")!.click();
+    openDetail(other);
+    expect(bar.querySelector(".ordt-detail-position")!.textContent).toBe("3 of 5");
+    bar.querySelector<HTMLButtonElement>(".ordt-back")!.click();
     expect(card.classList.contains("ordt-last-viewed")).toBe(false);
     expect(other.classList.contains("ordt-last-viewed")).toBe(true);
   });
@@ -2037,5 +2047,92 @@ describe("search saved in the project (getProjectState, applyProjectState)", () 
     expect(ctx.requested).toHaveLength(1);
     expect(new URL(ctx.requested[0]).searchParams.get("q")).toBe("(idrografia)");
     plugin.deactivate(ctx.host);
+  });
+});
+
+describe("panel refinements (#19)", () => {
+  const none = JSON.stringify({ start: 1, num: 20, total: 0, results: [] });
+  const text = (container: HTMLElement) => container.querySelector<HTMLInputElement>('.ordt-search-bar input[name="text"]')!;
+  const anywhere = (container: HTMLElement) => {
+    const where = container.querySelector<HTMLSelectElement>('select[name="where"]')!;
+    where.value = "anywhere";
+    where.dispatchEvent(new Event("change"));
+  };
+
+  it("with a filter keeps the chip row, with none shows a Filters link next to Zoom to results", async () => {
+    const { container } = await mountPanel(() => fixture("search-alberi.json"));
+    const form = container.querySelector<HTMLFormElement>("form")!;
+    const summary = container.querySelector<HTMLElement>(".ordt-summary")!;
+    const link = container.querySelector<HTMLButtonElement>(".ordt-filters-link")!;
+    // The default area, the map view, is a filter.
+    form.requestSubmit();
+    await flush();
+    expect(summary.hidden).toBe(false);
+    expect(link.hidden).toBe(true);
+
+    anywhere(container);
+    form.requestSubmit();
+    await flush();
+    expect(summary.hidden).toBe(true);
+    expect(link.hidden).toBe(false);
+    expect(link.textContent).toBe("Filters");
+    expect(link.closest(".ordt-results-head")).not.toBeNull();
+    link.click();
+    expect(form.hidden).toBe(false);
+    expect(link.textContent).toBe("Hide filters");
+    link.click();
+    expect(form.hidden).toBe(true);
+  });
+
+  it("with no results hides curl, sort and the menu, and offers the remedies that apply", async () => {
+    const { container, requested } = await mountPanel(() => none);
+    const form = container.querySelector<HTMLFormElement>("form")!;
+    text(container).value = "bombazza fiumi";
+    form.requestSubmit();
+    await flush();
+    expect(container.querySelector<HTMLElement>(".ordt-head-tools")!.hidden).toBe(true);
+    const empty = container.querySelector<HTMLElement>(".ordt-empty")!;
+    expect(empty.hidden).toBe(false);
+    const links = () => Array.from(empty.querySelectorAll<HTMLButtonElement>("button"));
+    expect(links().map((b) => b.textContent)).toEqual([
+      "Search Anywhere instead of the map view",
+      "Match any word (bombazza or fiumi)",
+    ]);
+    // The chip row stays, with Clear all.
+    expect(container.querySelector<HTMLElement>(".ordt-summary")!.hidden).toBe(false);
+    // No footprint and no Filters link: the row of the zoom links is not left empty.
+    expect(container.querySelector<HTMLElement>(".ordt-filters-link")!.parentElement!.hidden).toBe(true);
+
+    links()[0].click();
+    await flush();
+    expect(new URL(requested.at(-1)!).searchParams.get("bbox")).toBeNull();
+    expect(links().map((b) => b.textContent)).toEqual(["Match any word (bombazza or fiumi)"]);
+    links()[0].click();
+    await flush();
+    expect(new URL(requested.at(-1)!).searchParams.get("q")).toBe("(bombazza OR fiumi)");
+    // Nothing else to suggest: the message alone.
+    expect(empty.hidden).toBe(true);
+  });
+
+  it("offers no remedy when there are results", async () => {
+    const { container } = await mountPanel(() => fixture("search-alberi.json"));
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    expect(container.querySelector<HTMLElement>(".ordt-empty")!.hidden).toBe(true);
+    expect(container.querySelector<HTMLElement>(".ordt-head-tools")!.hidden).toBe(false);
+  });
+
+  it("cuts a long abstract, with More and Less", async () => {
+    const { container } = await mountPanel(() => fixture("search-alberi.json"));
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    container.querySelector<HTMLButtonElement>(".ordt-result-title")!.click();
+    const abstract = container.querySelector<HTMLElement>(".ordt-detail-view .ordt-abstract")!;
+    const toggle = container.querySelector<HTMLButtonElement>(".ordt-detail-view .ordt-abstract-toggle")!;
+    expect(abstract.classList.contains("ordt-clamped")).toBe(true);
+    expect(toggle.textContent).toBe("More");
+    toggle.click();
+    expect(abstract.classList.contains("ordt-clamped")).toBe(false);
+    expect(toggle.textContent).toBe("Less");
   });
 });
