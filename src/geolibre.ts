@@ -29,6 +29,8 @@ let activePanel: RndtPanel | null = null;
 let fitWhenSettled: ((bbox: Bbox) => void) | null = null;
 /** The search of a project, given before the plugin is turned on. */
 let savedState: PanelState | null = null;
+/** The link already followed: GeoLibre gives its parameters again at every project it opens. */
+let followedLink: string | null = null;
 
 export const plugin: Plugin = {
   id: PLUGIN_ID,
@@ -124,6 +126,11 @@ export const plugin: Plugin = {
   handleUrlParameters(_app, params) {
     const link = linkSearchFrom(params);
     if (!link || !activePanel) return;
+    // A link opens the app on a search, once: a project opened later brings
+    // its own search, or none.
+    const key = JSON.stringify(link);
+    if (key === followedLink) return;
+    followedLink = key;
     // The link's box replaces the move to Italy made at activation.
     if (link.bbox) fitWhenSettled?.(link.bbox);
     activePanel.searchFromLink(link);

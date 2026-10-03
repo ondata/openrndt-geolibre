@@ -1815,6 +1815,20 @@ describe("search from a link (?rndt=, ?rndtBbox=)", () => {
     plugin.deactivate(host);
   });
 
+  it("follows a link once: GeoLibre gives the parameters again when a project is opened", async () => {
+    const { host, requested } = await mountPanel(() => fixture("search-services.json"));
+    await handle(host, "rndt=una+sola+volta");
+    await flush();
+    expect(requested).toHaveLength(1);
+    await handle(host, "rndt=una+sola+volta");
+    await flush();
+    expect(requested).toHaveLength(1);
+    await handle(host, "rndt=un+altro+link");
+    await flush();
+    expect(requested).toHaveLength(2);
+    plugin.deactivate(host);
+  });
+
   it("does nothing with no value, or with the plugin off", async () => {
     const { host, requested } = await mountPanel(() => "{}");
     await handle(host, "rndt");
