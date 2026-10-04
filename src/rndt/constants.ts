@@ -80,6 +80,49 @@ export const INSPIRE_THEMES: Option[] = [
   { value: "Servizi di pubblica utilità e servizi amministrativi", label: "Utility and governmental services" },
 ];
 
+/**
+ * The INSPIRE short code of each theme (`hy` for Idrografia), as a link
+ * writes it: shorter than the label and the same in every language. Read from
+ * the INSPIRE registry (https://inspire.ec.europa.eu/theme/theme.it.json) on
+ * 2026-10-04; every label matches a value of INSPIRE_THEMES.
+ */
+export const INSPIRE_THEME_CODES: Record<string, string> = {
+  ac: "Condizioni atmosferiche",
+  ad: "Indirizzi",
+  af: "Impianti agricoli e di acquacoltura",
+  am: "Zone sottoposte a gestione/limitazioni/regolamentazione e unità con obbligo di comunicare dati",
+  au: "Unità amministrative",
+  br: "Regioni biogeografiche",
+  bu: "Edifici",
+  cp: "Parcelle catastali",
+  ef: "Impianti di monitoraggio ambientale",
+  el: "Elevazione",
+  er: "Risorse energetiche",
+  ge: "Geologia",
+  gg: "Sistemi di griglie geografiche",
+  gn: "Nomi geografici",
+  hb: "Habitat e biotopi",
+  hh: "Salute umana e sicurezza",
+  hy: "Idrografia",
+  lc: "Copertura del suolo",
+  lu: "Utilizzo del territorio",
+  mf: "Elementi geografici meteorologici",
+  mr: "Risorse minerarie",
+  nz: "Zone a rischio naturale",
+  of: "Elementi geografici oceanografici",
+  oi: "Orto immagini",
+  pd: "Distribuzione della popolazione — demografia",
+  pf: "Produzione e impianti industriali",
+  ps: "Siti protetti",
+  rs: "Sistemi di coordinate",
+  sd: "Distribuzione delle specie",
+  so: "Suolo",
+  sr: "Regioni marine",
+  su: "Unità statistiche",
+  tn: "Reti di trasporto",
+  us: "Servizi di pubblica utilità e servizi amministrativi",
+};
+
 /** INSPIRE spatial data service types (`apiso_ServiceType_s`). */
 export const SERVICE_TYPES: Option[] = [
   { value: "view", label: "View (WMS, WMTS)" },

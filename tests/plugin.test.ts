@@ -5,6 +5,7 @@ import plugin from "../src/geolibre";
 import type { GeoLibreRightPanelRegistration } from "../src/lib/geolibre/host-api";
 import { ITALY_BBOX, PANEL_ID } from "../src/rndt/constants";
 import type { RndtHost } from "../src/rndt/host";
+import { URL_PARAMETER_NAMES } from "../src/rndt/url-params";
 
 const fixture = (name: string) => readFileSync(join(__dirname, "fixtures", name), "utf8");
 const encode = (text: string) => new TextEncoder().encode(text).buffer as ArrayBuffer;
@@ -1798,7 +1799,34 @@ describe("search from a link (?rndt=, ?rndtBbox=)", () => {
   const handle = (host: RndtHost, query: string) => plugin.handleUrlParameters!(host, new URLSearchParams(query));
 
   it("declares the parameters it owns", () => {
-    expect(plugin.urlParameterNames).toEqual(["rndt", "rndtBbox"]);
+    expect(plugin.urlParameterNames).toEqual(URL_PARAMETER_NAMES);
+    expect(plugin.urlParameterNames).toEqual(expect.arrayContaining(["rndt", "rndtBbox", "rndtTheme", "rndtKind"]));
+  });
+
+  it("puts the link's filters in the form and searches with them (#30)", async () => {
+    const { host, requested, container } = await mountPanel(() => fixture("search-services.json"));
+    await handle(host, "rndt=fiumi&rndtKind=data&rndtTheme=hy&rndtAs=WMS&rndtSort=newest");
+    await flush();
+
+    const q = new URL(requested[0]).searchParams.get("q")!;
+    expect(q).toContain("fiumi");
+    expect(q).toContain("Idrografia");
+    expect(container.querySelector<HTMLInputElement>('input[name="kind"][value="data"]')!.checked).toBe(true);
+    expect(container.querySelector<HTMLSelectElement>('select[name="theme"]')!.value).toBe("Idrografia");
+    expect(container.querySelector<HTMLInputElement>('input[name="availableAs"][value="WMS"]')!.checked).toBe(true);
+    expect(container.querySelector<HTMLSelectElement>('select[name="sort"]')!.value).toBe("apiso_Modified_dt:desc");
+    plugin.deactivate(host);
+  });
+
+  it("starts from an empty form: a filter set by hand does not survive a link", async () => {
+    const { host, requested, container } = await mountPanel(() => fixture("search-services.json"));
+    container.querySelector<HTMLInputElement>('input[name="organisation"]')!.value = "Regione Puglia";
+    await handle(host, "rndt=strade");
+    await flush();
+
+    expect(container.querySelector<HTMLInputElement>('input[name="organisation"]')!.value).toBe("");
+    expect(new URL(requested[0]).searchParams.get("q")).toBe("(strade)");
+    plugin.deactivate(host);
   });
 
   it("searches the text anywhere, also when the panel is rendered after the link is handled", async () => {
@@ -2276,7 +2304,7 @@ describe("Copy for an agent (#23)", () => {
     const entry = () => container.querySelector<HTMLButtonElement>(".ordt-results-head .ordt-copy-agent")!;
     const menu = entry().closest<HTMLElement>(".ordt-menu")!;
     // Above Clear results, and out of sight until there are results.
-    expect(Array.from(menu.querySelectorAll("button"), (b) => b.firstChild!.textContent)).toEqual(["Copy for an agent", "Clear results"]);
+    expect(Array.from(menu.querySelectorAll("button"), (b) => b.firstChild!.textContent)).toEqual(["Share", "Copy for an agent", "Clear results"]);
     expect(container.querySelector<HTMLElement>(".ordt-head-tools")!.hidden).toBe(true);
 
     container.querySelector<HTMLInputElement>('.ordt-search-bar input[name="text"]')!.value = "alberi";
@@ -2298,6 +2326,96 @@ describe("Copy for an agent (#23)", () => {
     const titles = Array.from(container.querySelectorAll(".ordt-result-title"), (b) => b.textContent!);
     expect(titles).toHaveLength(5);
     for (const title of titles) expect(text).toContain(`| ${title.replace(/\|/g, "\\|")} |`);
+  });
+});
+
+describe("Share (#31)", () => {
+  afterEach(() => {
+    delete (navigator as { share?: unknown }).share;
+    delete (navigator as { canShare?: unknown }).canShare;
+  });
+
+  async function searched(text: string) {
+    const ctx = await mountPanel(() => fixture("search-alberi.json"));
+    ctx.container.querySelector<HTMLInputElement>('.ordt-search-bar input[name="text"]')!.value = text;
+    ctx.container.querySelector<HTMLInputElement>('input[name="kind"][value="data"]')!.checked = true;
+    ctx.container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const entry = () => ctx.container.querySelector<HTMLButtonElement>(".ordt-results-head .ordt-share")!;
+    return { ...ctx, entry };
+  }
+
+  it("hands the search's GeoLibre web link to the system share sheet", async () => {
+    const share = vi.fn(async () => undefined);
+    Object.defineProperty(navigator, "share", { value: share, configurable: true });
+    const { entry, host } = await searched("alberi");
+    entry().click();
+    await flush();
+
+    expect(share).toHaveBeenCalledTimes(1);
+    const { title, url } = (share.mock.calls[0] as unknown as [{ title: string; url: string }])[0];
+    expect(title).toBe("RNDT: alberi");
+    const link = new URL(url);
+    expect(link.origin).toBe("https://web.geolibre.app");
+    expect(link.searchParams.get("plugin")).toBe("openrndt-geolibre");
+    expect(link.searchParams.get("rndt")).toBe("alberi");
+    expect(link.searchParams.get("rndtKind")).toBe("data");
+    plugin.deactivate(host);
+  });
+
+  it("copies the link where there is no share sheet, and says so", async () => {
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    const { entry, host } = await searched("alberi");
+    entry().click();
+    await flush();
+
+    expect((writeText.mock.calls[0] as unknown as [string])[0]).toMatch(/^https:\/\/web\.geolibre\.app\/\?plugin=openrndt-geolibre&rndt=alberi/);
+    expect(entry().textContent).toBe("Link copied");
+    plugin.deactivate(host);
+  });
+
+  it("copies when the share sheet refuses, and does nothing when it is closed", async () => {
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    const share = vi.fn(async () => {
+      throw new DOMException("closed", "AbortError");
+    });
+    Object.defineProperty(navigator, "share", { value: share, configurable: true });
+    const { entry, host } = await searched("alberi");
+    entry().click();
+    await flush();
+    expect(writeText).not.toHaveBeenCalled();
+
+    share.mockImplementationOnce(async () => {
+      throw new DOMException("not allowed", "NotAllowedError");
+    });
+    entry().click();
+    await flush();
+    expect(writeText).toHaveBeenCalledTimes(1);
+    plugin.deactivate(host);
+  });
+
+  it("shares the record open in the detail view", async () => {
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    const { host, container } = await searched("alberi");
+    const view = openDetail(container.querySelector<HTMLElement>(".ordt-result")!);
+    await flush();
+    const id = view.querySelector<HTMLButtonElement>('.ordt-menu-item[title]')!.title;
+    // The detail view's own menu has Share first.
+    const share = view.querySelector<HTMLButtonElement>(".ordt-detail-actions .ordt-share")!;
+    expect(share.closest(".ordt-menu")!.querySelector("button")).toBe(share);
+    share.click();
+    await flush();
+
+    const link = new URL((writeText.mock.calls[0] as unknown as [string])[0]);
+    expect([...link.searchParams]).toEqual([
+      ["plugin", "openrndt-geolibre"],
+      ["rndt", id],
+    ]);
+    expect(share.textContent).toBe("Link copied");
+    plugin.deactivate(host);
   });
 });
 

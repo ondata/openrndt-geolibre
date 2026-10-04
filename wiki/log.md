@@ -1,6 +1,8 @@
 # Update Log
 
 ## 2026-10-04
+* **Update**: [URL parameters](reference/url-parameters.md): a parameter for every field of the form, a link starts from an empty form (#30). [Share a search](guides/share-a-search.md): Share, through the system share sheet (#31).
+* **Update**: [URL parameters](reference/url-parameters.md), [Share a search](guides/share-a-search.md), [Requests to GeoLibre](upstream/geolibre-requests.md): `?plugin=openrndt-geolibre` tried on web.geolibre.app, the plugin never opens in `layout=viewer` (#2898).
 * **Update**: [Requests to GeoLibre](upstream/geolibre-requests.md): #2855, the source of a WMS layer in its Metadata dialog.
 * **Update**: [Requests to GeoLibre](upstream/geolibre-requests.md): all seven closed by merged pull requests, none released yet; #2840 added. [An update needs a reinstall](limits/update-needs-reinstall.md), [Strip credentials](limits/strip-credentials.md), [Project file names](limits/project-file-names.md), [Services that fail](limits/services-that-fail.md), [proj4 in the bundle](decisions/proj4-in-the-bundle.md), [GeoLibre hooks used](reference/geolibre-hooks.md) and the README say what changes after GeoLibre 3.2.0.
 

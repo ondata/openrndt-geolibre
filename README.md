@@ -51,6 +51,7 @@ When a service fails, the panel offers **Copy error report**: a ready-to-paste e
 - **Results**: active filters as removable chips, or a **Filters** link when there is none; with no record found, links that widen the search (anywhere instead of the map view, any word instead of all); pager, sort and a `curl` button that copies the query; cards with type, formats, organisation and metadata date; a ⋯ menu per card to hide or keep only its organisation. Footprints on the map, highlighted on hover in both directions; with overlapping footprints a click lets you choose.
 - **Detail view**: a record opens in its own view with its abstract, services and links. WMS and WFS layers are listed as soon as it opens, with a readable name and the layer code. Tick one or more WMS layers and add them, named with their titles; a layer added from a dataset record is limited to the record's extent, when that is smaller than the service's (one municipality of a national service); for a WFS pick one feature type and download its features as GeoJSON (only in the current map view if you like; above 10,000 features the panel asks first). With GeoLibre 3.2.0 or later the features are drawn with the style the server gives for that layer (SLD), when it has one. An ArcGIS REST service (MapServer, ImageServer, FeatureServer) lists its layers the same way: ticked layers are added as images, and one layer's features can be downloaded as GeoJSON, page by page.
 - **Recent searches**: a click in the search box lists the last 20 searches, with their filters, and the records opened by id; a click runs one again, on the area it had. Kept on your computer, can be turned off in Settings.
+- **Share**: in the ⋯ of the results header (the search, or the record open) and of a record's detail view (that record), a GeoLibre web link that opens the same search for anyone, through the system share sheet or copied: see [Open a search from a link](#open-a-search-from-a-link).
 - **For an AI agent**: **Copy for an agent**, in the ⋯ of the results header, copies the search as Markdown: the filters in words, the `curl` command, the records of the page as a table and how to go on with [openrndt](https://github.com/ondata/openrndt).
 - **Contact**: in the detail view, **Contact** next to the organisation shows whom the record names as its point of contact and copies a ready email (in Italian) for any request: a question on the data, its licence, an update. With no address in the record, the email asks RNDT whom to write to.
 - **Errors**: when a server is gone (its name is not in the DNS) the panel says so; **Copy error report** prepares an email for the record's contact.
@@ -58,27 +59,46 @@ When a service fails, the panel offers **Copy error report**: a ready-to-paste e
 
 ## Open a search from a link
 
-From version 0.1.6. Two parameters in the address of GeoLibre web turn the plugin on, open the panel and start a search:
+From version 0.1.6 a link can open GeoLibre web on a search; from the version after 0.1.9 it carries every filter of the form. The parameters turn the plugin on, open the panel and start the search:
 
 | Parameter | Value | Example |
 |---|---|---|
-| `rndt` | the text to search; a record id (as "Copy id" gives it) opens that record | `?rndt=idrografia` |
-| `rndtBbox` | search area as west, south, east, north; the map moves there | `?rndtBbox=12.95,37.60,14.30,38.30` |
+| `rndt` | the text to search; a record id (as "Copy id" gives it) opens that record | `rndt=idrografia` |
+| `rndtBbox` | search area as west, south, east, north; the map moves there | `rndtBbox=12.95,37.60,14.30,38.30` |
+| `rndtWithin` | `1`: records inside the area, instead of touching it | `rndtWithin=1` |
+| `rndtKind` | `data` or `services` | `rndtKind=services` |
+| `rndtService` | service types: `view`, `download`, `discovery`, `transformation`, `invoke`, `other` | `rndtService=view,download` |
+| `rndtAs` | available as `WMS`, `WFS`, `ArcGIS REST` (or `arcgis`) | `rndtAs=WMS,WFS` |
+| `rndtMode` | `any` word, or `lucene` syntax, instead of all words | `rndtMode=any` |
+| `rndtField` | search only in `title`, `abstract`, `lineage` or `limitation` | `rndtField=title` |
+| `rndtKeywords` | keywords, comma separated | `rndtKeywords=idrografia` |
+| `rndtOrg` | organisation, a part of its name | `rndtOrg=Regione Puglia` |
+| `rndtOrgNot` | `1`: hide that organisation instead of keeping only it | `rndtOrgNot=1` |
+| `rndtTheme` | INSPIRE theme, by its code (`hy` hydrography, `cp` cadastral parcels, `au` administrative units, …); data only | `rndtTheme=hy` |
+| `rndtOpen` | `1`: open data only; data only | `rndtOpen=1` |
+| `rndtDate` | the date the range applies to: `revision` (default), `publication`, `creation`, `catalogue` | `rndtDate=publication` |
+| `rndtFrom`, `rndtTo` | date range, `yyyy-mm-dd` | `rndtFrom=2020-01-01` |
+| `rndtSort` | `title`, `title-desc`, `newest`, `oldest` (default: relevance) | `rndtSort=newest` |
 
 ```text
 https://web.geolibre.app/?rndt=idrografia
 https://web.geolibre.app/?rndt=catastale&rndtBbox=12.95,37.60,14.30,38.30
+https://web.geolibre.app/?rndt=fiumi&rndtKind=data&rndtTheme=hy&rndtAs=WMS&rndtSort=newest
 ```
 
-Without `rndtBbox` the search is on the whole catalogue, so a link finds the same records for everyone. Names are case-sensitive. A box that is not valid is ignored, with a warning in the browser console; `?rndt` with no value does nothing.
+A link starts from an empty form: the filters it does not name are at their defaults, and without `rndtBbox` the search is on the whole catalogue, so a link finds the same records for everyone. Names are case-sensitive. A value that is not valid is ignored, with a warning in the browser console, and the rest is still searched; `?rndt` with no value does nothing. The theme codes are those of the [INSPIRE registry](https://inspire.ec.europa.eu/theme).
 
-These links work where the plugin is installed: GeoLibre never installs a plugin from a link. For someone who does not have it, add a project that lists the plugin, such as [this one](https://gist.github.com/aborruso/68601ad2b7f4af7a9156ba932f1b10a6):
+**Share**, in the ⋯ of the results header and of a record's detail view, builds this link for you: the search on screen, or the record open. It hands the link to the system share sheet where the browser offers one (on Windows: nearby sharing, mail, WhatsApp, Teams…), and copies it otherwise.
+
+The link Share builds starts with `?plugin=openrndt-geolibre`. On GeoLibre after 3.2.0 (already on web.geolibre.app) that installs the plugin for whoever lacks it, after asking ("Trust and load"), then runs the search. It does not work with `layout=viewer`, GeoLibre's read-only view, where plugins of the registry never open ([opengeos/GeoLibre#2898](https://github.com/opengeos/GeoLibre/issues/2898)).
+
+With GeoLibre 3.2.0 the parameters work where the plugin is installed. For someone who does not have it, add a project that lists the plugin, such as [this one](https://gist.github.com/aborruso/68601ad2b7f4af7a9156ba932f1b10a6):
 
 ```text
 https://web.geolibre.app/?url=https://gist.githubusercontent.com/aborruso/68601ad2b7f4af7a9156ba932f1b10a6/raw/rndt.geolibre.json&rndt=idrografia
 ```
 
-The first time GeoLibre asks whether to load the plugin ("Trust and load"), then no more. The project loads the plugin from the registry, so the search starts once a version with these parameters is there. A way to do without the project, `?plugin=openrndt-geolibre`, comes with the next GeoLibre release ([opengeos/GeoLibre#2819](https://github.com/opengeos/GeoLibre/issues/2819)).
+The first time GeoLibre asks whether to load the plugin ("Trust and load"), then no more. The project loads the plugin from the registry, so the filters work once a version with these parameters is there.
 
 ## The search travels with the project
 

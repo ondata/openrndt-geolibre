@@ -132,7 +132,7 @@ export const plugin: Plugin = {
     if (key === followedLink) return;
     followedLink = key;
     // The link's box replaces the move to Italy made at activation.
-    if (link.bbox) fitWhenSettled?.(link.bbox);
+    if (link.form.bbox) fitWhenSettled?.(link.form.bbox);
     activePanel.searchFromLink(link);
   },
   // The last search travels with the project (`plugins.settings`): saved in

@@ -1,7 +1,7 @@
 ---
 type: Guide
 title: Share a search
-description: Three ways to pass a search on - a link that opens GeoLibre on a search, a project that carries the search, and a text for an AI agent.
+description: Ways to pass a search on - Share, a link that opens GeoLibre on a search, a project that carries the search, and a text for an AI agent.
 tags: [link, project, share, url-parameters]
 status: stable
 sources:
@@ -19,6 +19,19 @@ sources:
     title: A project that lists the plugin
 ---
 
+# With Share
+
+From the version after 0.1.9 (#31). **Share** is in the ⋯ menu of the results header and in the ⋯ menu of a record's detail view. It builds the GeoLibre web link of what is on screen:
+
+- from the results header: the search, with every filter that is not at its default (the parameters of [URL parameters](../reference/url-parameters.md)), or the record open, if one is;
+- from a detail view: that record, as `?rndt=<id>`.
+
+The link always starts with `https://web.geolibre.app/?plugin=openrndt-geolibre`, also from GeoLibre Desktop, whose own address means nothing to whoever receives it. Where the browser offers the system share sheet, Share opens it; otherwise it copies the link and the entry reads "Link copied". Closing the share sheet without sharing does nothing.
+
+Seen on 2026-10-04 with the development copy on web.geolibre.app: in a Chromium browser on Windows 11 the Windows share sheet opens ("Condividi link"), with nearby sharing, WhatsApp, Gmail, Outlook, Teams and LinkedIn; in a headless Chrome on Linux the link is copied. GeoLibre Desktop not tried yet.[^log]
+
+The link needs GeoLibre after 3.2.0 to install the plugin for someone who lacks it, and the filters need the plugin version that reads them; see below.
+
 # With a link
 
 From version 0.1.6. Two parameters in the address of GeoLibre web turn the plugin on, open the panel and start a search:
@@ -30,7 +43,15 @@ https://web.geolibre.app/?rndt=catastale&rndtBbox=12.95,37.60,14.30,38.30
 
 The details are in [URL parameters](../reference/url-parameters.md).
 
-The link works where the plugin is installed: GeoLibre never installs a plugin from a link. For someone who does not have it, add a project that lists the plugin:[^gist]
+With GeoLibre 3.2.0 the link works where the plugin is installed. The next GeoLibre release adds `?plugin=openrndt-geolibre`, already on web.geolibre.app: put it before the search and whoever lacks the plugin is asked to install it ("Trust and load"), then the search runs:
+
+```text
+https://web.geolibre.app/?plugin=openrndt-geolibre&rndt=idrografia
+```
+
+Not with `layout=viewer`: there the plugin does not open, installed or not. Details in [URL parameters](../reference/url-parameters.md).
+
+Until that release, for someone who does not have the plugin, add a project that lists the plugin:[^gist]
 
 ```text
 https://web.geolibre.app/?url=https://gist.githubusercontent.com/aborruso/68601ad2b7f4af7a9156ba932f1b10a6/raw/rndt.geolibre.json&rndt=idrografia
@@ -78,5 +99,5 @@ In the ⋯ menu of the results header, **Copy for an agent** copies the search a
 The label reads "Copied: paste it into your agent" for 3 seconds. The entry is there when the search has results. The text of a page of 20 records is about 4 KB.[^agent]
 
 [^gist]: A project that lists the plugin
-[^log]: LOG, 2026-10-03
+[^log]: LOG, 2026-10-03 and 2026-10-04
 [^agent]: agentText, and LOG, 2026-10-03

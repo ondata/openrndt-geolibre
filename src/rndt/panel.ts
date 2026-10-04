@@ -53,7 +53,7 @@ import {
 } from "./ogc";
 import { clearHistory, loadHistory, matchesEntry, saveHistory, whenLabel, withEntry, withTopUpdated, withoutEntry, type HistoryEntry } from "./history";
 import type { PanelState } from "./project-state";
-import type { LinkSearch } from "./url-params";
+import { shareUrl, type LinkSearch } from "./url-params";
 import { agentText } from "./agent-text";
 import { bboxError, buildCurlCommand, buildSearchUrl, clampBbox, emptyForm, idForm, recordIdIn, type Bbox, type ResourceKind, type LinkKind, type SearchForm, type SpatialRel, type TextMode } from "./query";
 import { footprints, parseSearchResponse, type RndtRecord, type RndtService } from "./records";
@@ -801,6 +801,7 @@ export class RndtPanel {
   private stickyObserver: ResizeObserver | null = null;
   private copyQueryEl!: HTMLButtonElement;
   private copyAgentLabelEl!: HTMLElement;
+  private shareLabelEl!: HTMLElement;
   private copyAgentHintEl!: HTMLElement;
   private footprintsToggleEl!: HTMLButtonElement;
   /** A search asked by a link before the first mount. */
@@ -879,21 +880,18 @@ export class RndtPanel {
   }
 
   /**
-   * Run the search a link asks for (`?rndt=`, `?rndtBbox=`): now, or at the
-   * first mount when GeoLibre has not rendered the panel yet. Without a box
-   * it searches anywhere, so the same link finds the same records for
-   * everyone; the other filters stay as they are.
+   * Run the search a link asks for (`?rndt=`, `?rndtKind=`, … see
+   * url-params.ts): now, or at the first mount when GeoLibre has not rendered
+   * the panel yet. The link's form replaces the whole form, every field it
+   * leaves out at its default and the area Anywhere without a box, so the same
+   * link finds the same records for everyone.
    */
   searchFromLink(link: LinkSearch): void {
     if (!this.root) {
       this.pendingLink = link;
       return;
     }
-    this.field<HTMLInputElement>("text").value = link.text;
-    const where = this.field<HTMLSelectElement>("where");
-    where.value = link.bbox ? "box" : "anywhere";
-    where.dispatchEvent(new Event("change"));
-    if (link.bbox) this.field<HTMLInputElement>("box").value = link.bbox.join(", ");
+    this.writeForm(link.form);
     this.formEl.requestSubmit();
   }
 
@@ -1707,10 +1705,16 @@ export class RndtPanel {
       onchange: () => this.changeSort(),
     });
     this.copyAgentLabelEl = h("span", {}, "Copy for an agent");
+    this.shareLabelEl = h("span", {}, "Share");
     this.copyAgentHintEl = h("span", { className: "ordt-menu-hint ordt-muted" });
     const menu = h(
       "div",
       { className: "ordt-menu", role: "menu", hidden: true },
+      h(
+        "button",
+        { className: "ordt-menu-item ordt-share", type: "button", "data-keep-open": "", onclick: () => void this.share(this.shareLabelEl) },
+        this.shareLabelEl,
+      ),
       h(
         "button",
         { className: "ordt-menu-item ordt-copy-agent", type: "button", "data-keep-open": "", onclick: () => this.copyForAgent() },
@@ -2379,6 +2383,38 @@ export class RndtPanel {
     );
   }
 
+  /**
+   * Share the search on screen, or the record open, as a GeoLibre web link
+   * (#31): through the system share sheet where the browser offers one, else
+   * copied to the clipboard. A share sheet closed without sharing is not an error.
+   * `record`: the record of the detail view's own menu.
+   */
+  private async share(label: HTMLElement, record?: RndtRecord): Promise<void> {
+    const state = this.projectState();
+    if (!state && !record) return;
+    const url = shareUrl(state?.form ?? emptyForm(), record?.id ?? state?.recordId ?? null);
+    const title = record ? `RNDT: ${record.title}` : state?.form.text ? `RNDT: ${state.form.text}` : "RNDT search";
+    const show = (text: string) => {
+      label.textContent = text;
+      setTimeout(() => (label.textContent = "Share"), 3000);
+    };
+    if (typeof navigator.share === "function" && (!navigator.canShare || navigator.canShare({ title, url }))) {
+      try {
+        await navigator.share({ title, url });
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        // Refused (no user gesture, a policy): fall back to the clipboard.
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      show("Link copied");
+    } catch {
+      this.setStatus("Could not copy the link to the clipboard.", "error");
+    }
+  }
+
   /** Copy the search on screen, its page of records and the commands to go on, as Markdown for an AI agent. */
   private copyForAgent(): void {
     if (!this.lastForm) return;
@@ -2666,6 +2702,14 @@ export class RndtPanel {
         "Copy id",
       ),
     ];
+    const shareLabel = h("span", {}, "Share");
+    more.unshift(
+      h(
+        "button",
+        { className: "ordt-menu-item ordt-share", type: "button", "data-keep-open": "", onclick: () => void this.share(shareLabel, record) },
+        shareLabel,
+      ),
+    );
     if (record.bbox && this.footprintsLayer) {
       more.push(
         h(
