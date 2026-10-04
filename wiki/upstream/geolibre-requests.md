@@ -35,6 +35,10 @@ sources:
     resource: https://github.com/opengeos/GeoLibre/issues/2840
     title: opengeos/GeoLibre#2840
     last_modified: 2026-10-04T00:00:00Z
+  - id: i2898
+    resource: https://github.com/opengeos/GeoLibre/issues/2898
+    title: opengeos/GeoLibre#2898
+    last_modified: 2026-10-04T00:00:00Z
   - id: releases
     resource: https://github.com/opengeos/GeoLibre/releases
     title: GeoLibre releases
@@ -47,7 +51,7 @@ All seven were opened on 2026-10-03 and closed the same day by a merged pull req
 
 | Issue | Kind | Asked | Closed by | What it gives | Here |
 |---|---|---|---|---|---|
-| [#2819](https://github.com/opengeos/GeoLibre/issues/2819) | feature | `?plugin=<id>` for plugins of the registry, behind the trust prompt | [#2831](https://github.com/opengeos/GeoLibre/pull/2831) | `?plugin=openrndt-geolibre` opens the plugin; not installed, GeoLibre shows name, version and author and asks "Trust and load" | a link needs no project file: [Share a search](../guides/share-a-search.md) |
+| [#2819](https://github.com/opengeos/GeoLibre/issues/2819) | feature | `?plugin=<id>` for plugins of the registry, behind the trust prompt | [#2831](https://github.com/opengeos/GeoLibre/pull/2831) | `?plugin=openrndt-geolibre` opens the plugin; not installed, GeoLibre asks "Install this plugin?" with name, version, author, description, homepage and manifest address, and installs it after "Trust and load" (seen on web.geolibre.app, 2026-10-04) | a link needs no project file: [Share a search](../guides/share-a-search.md) |
 | [#2820](https://github.com/opengeos/GeoLibre/issues/2820) | feature | the host's proj4 for plugins, as `getDeckGL()` gives deck.gl | [#2824](https://github.com/opengeos/GeoLibre/pull/2824) | `app.getProj4()` | no gain while the minimum version is 3.2.0: [proj4 in the bundle](../decisions/proj4-in-the-bundle.md), [#29](https://github.com/ondata/openrndt-geolibre/issues/29) |
 | [#2821](https://github.com/opengeos/GeoLibre/issues/2821) | feature | a way for an external plugin's project state to survive "Strip credentials" | [#2836](https://github.com/opengeos/GeoLibre/pull/2836) | `publishableSettings` in the registry entry | needs a line in our registry entry: [Strip credentials](../limits/strip-credentials.md), [#27](https://github.com/ondata/openrndt-geolibre/issues/27) |
 | [#2823](https://github.com/opengeos/GeoLibre/issues/2823) | feature | an `addWfsLayer` in the plugin API (GML fallback, reprojection, refresh) | [#2826](https://github.com/opengeos/GeoLibre/pull/2826) | `app.addWfsLayer(name, { url, typeName, version?, bbox? })`, with the host's limit of 1,000 features | WFS without GeoJSON output: [Services that fail](../limits/services-that-fail.md), [#28](https://github.com/ondata/openrndt-geolibre/issues/28) |
@@ -63,6 +67,7 @@ In #2843 the maintainers also found that on Linux and macOS the fallback gave a 
 
 | Issue | Kind | Asks | Here |
 |---|---|---|---|
+| [#2898](https://github.com/opengeos/GeoLibre/issues/2898) | bug | whether `?plugin=` should open an installed registry plugin in `layout=viewer`: the code ignores every registry plugin there, the docs say only the install is skipped | in viewer the plugin never opens from a link: [URL parameters](../reference/url-parameters.md) |
 | [#2855](https://github.com/opengeos/GeoLibre/issues/2855) | feature | the Metadata dialog of a WMS or tile layer to show its source (address, layers, version), and a `metadata` option in `addWmsLayer` and the other `add*Layer` calls | a layer added from the panel would keep the record it comes from; today the dialog shows only name and type |
 
 # Why they exist
