@@ -35,6 +35,18 @@ sources:
     resource: https://github.com/opengeos/GeoLibre/issues/2840
     title: opengeos/GeoLibre#2840
     last_modified: 2026-10-04T00:00:00Z
+  - id: i2886
+    resource: https://github.com/opengeos/GeoLibre/issues/2886
+    title: opengeos/GeoLibre#2886
+    last_modified: 2026-10-04T00:00:00Z
+  - id: i2887
+    resource: https://github.com/opengeos/GeoLibre/issues/2887
+    title: opengeos/GeoLibre#2887
+    last_modified: 2026-10-04T00:00:00Z
+  - id: i2888
+    resource: https://github.com/opengeos/GeoLibre/issues/2888
+    title: opengeos/GeoLibre#2888
+    last_modified: 2026-10-04T00:00:00Z
   - id: i2898
     resource: https://github.com/opengeos/GeoLibre/issues/2898
     title: opengeos/GeoLibre#2898
@@ -62,6 +74,16 @@ All seven were opened on 2026-10-03 and closed the same day by a merged pull req
 In #2843 the maintainers also found that on Linux and macOS the fallback gave a plugin GeoLibre's own `index.html` as the body of a failed request; on Windows it gave "Failed to fetch".
 
 "Closed by" is read in the pull requests on 2026-10-04; what they give is their description and GeoLibre's plugin API guide on `main`, not tried here.
+
+# Opened and closed on 2026-10-04
+
+Found on the Agenzia delle Entrate cadastral WMS (layer `fabbricati`, drawn in EPSG:6706). Each was closed by a pull request from this project, merged on 2026-10-04; none is in a release yet.
+
+| Issue | Kind | Asked | Closed by | What it gives | Here |
+|---|---|---|---|---|---|
+| [#2886](https://github.com/opengeos/GeoLibre/issues/2886) | bug | WMS identify to use the CRS the layer is drawn in, not always EPSG:3857 | [#2889](https://github.com/opengeos/GeoLibre/pull/2889) | GetFeatureInfo in `source.crs`, else the CRS of the GetMap tiles; projected CRSs in Desktop | no plugin change: the panel already passes `crs` |
+| [#2887](https://github.com/opengeos/GeoLibre/issues/2887) | bug | read `queryable`, skip GetFeatureInfo on layers that are not queryable, show a WMS exception as an error | [#2890](https://github.com/opengeos/GeoLibre/pull/2890) | `queryable` from capabilities in Add Data, `addWmsLayer({ queryable: false })`, a "does not provide feature information" message | the panel can pass the flag: [#32](https://github.com/ondata/openrndt-geolibre/issues/32) |
+| [#2888](https://github.com/opengeos/GeoLibre/issues/2888) | feature | read GetFeatureInfo HTML tables into fields instead of one `result` text | [#2896](https://github.com/opengeos/GeoLibre/pull/2896) | `th`/`td` rows, or a header row over a data row, become fields | no plugin change |
 
 # Opened on 2026-10-04
 

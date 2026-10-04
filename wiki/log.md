@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-10-04
+* **Update**: [Requests to GeoLibre](upstream/geolibre-requests.md): #2886, #2887, #2888 closed by #2889, #2890, #2896, merged; #32 opened for `queryable: false`.
 * **Update**: [Registry status](upstream/registry-status.md): 0.2.0 is in the registry (opengeos/geolibre-plugins#78); [URL parameters](reference/url-parameters.md), [Share a search](guides/share-a-search.md) and the README name 0.2.0.
 * **Update**: [URL parameters](reference/url-parameters.md): a parameter for every field of the form, a link starts from an empty form (#30). [Share a search](guides/share-a-search.md): Share, through the system share sheet (#31).
 * **Update**: [URL parameters](reference/url-parameters.md), [Share a search](guides/share-a-search.md), [Requests to GeoLibre](upstream/geolibre-requests.md): `?plugin=openrndt-geolibre` tried on web.geolibre.app, the plugin never opens in `layout=viewer` (#2898).
