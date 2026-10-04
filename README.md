@@ -4,7 +4,7 @@ A [GeoLibre](https://github.com/opengeos/GeoLibre) plugin to search the **RNDT**
 
 It is the GeoLibre counterpart of the [openrndt](https://github.com/ondata/openrndt) CLI and uses the same RNDT REST API (`https://geodati.gov.it/RNDT/rest/metadata/search`).
 
-Status: **beta**, open for testing. It is in the [GeoLibre plugin registry](https://plugins.geolibre.app/).
+Status: **beta**, open for testing. It is in the [GeoLibre plugin registry](https://plugins.geolibre.app/): <https://plugins.geolibre.app/catalog/openrndt-geolibre/>
 
 ![The RNDT panel in GeoLibre Desktop: a record opened in the detail view, its WMS layers listed, one added to the map](docs/images/detail-view.png)
 
