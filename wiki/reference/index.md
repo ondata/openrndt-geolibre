@@ -1,7 +1,7 @@
 # Reference
 
 * [Search form and query](search-query.md) - Each filter of the search form and the clause of the RNDT REST query it becomes.
-* [URL parameters](url-parameters.md) - The two query parameters of a GeoLibre address that the plugin owns, rndt and rndtBbox.
+* [URL parameters](url-parameters.md) - The query parameters of a GeoLibre address that the plugin owns, one per field of the search form, and how GeoLibre's ?plugin= combines with them.
 * [Project state](project-state.md) - What the plugin writes in a GeoLibre project, under plugins.settings, and how it reads it back.
 * [Coordinate systems converted](coordinate-systems.md) - The EPSG codes of GeoJSON data that the plugin converts to WGS84 before adding the features, and what happens with the others.
 * [Readable layer names](layer-names.md) - Where the readable name of a WMS or WFS layer comes from - the capabilities title, or the RNDT records that link to the same service.
