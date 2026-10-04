@@ -21,7 +21,7 @@ sources:
 
 # With Share
 
-From the version after 0.1.9 (#31). **Share** is in the ⋯ menu of the results header and in the ⋯ menu of a record's detail view. It builds the GeoLibre web link of what is on screen:
+From version 0.2.0 (#31). **Share** is in the ⋯ menu of the results header and in the ⋯ menu of a record's detail view. It builds the GeoLibre web link of what is on screen:
 
 - from the results header: the search, with every filter that is not at its default (the parameters of [URL parameters](../reference/url-parameters.md)), or the record open, if one is;
 - from a detail view: that record, as `?rndt=<id>`.
@@ -30,7 +30,7 @@ The link always starts with `https://web.geolibre.app/?plugin=openrndt-geolibre`
 
 Seen on 2026-10-04 with the development copy on web.geolibre.app: in a Chromium browser on Windows 11 the Windows share sheet opens ("Condividi link"), with nearby sharing, WhatsApp, Gmail, Outlook, Teams and LinkedIn; in a headless Chrome on Linux the link is copied. GeoLibre Desktop not tried yet.[^log]
 
-The link needs GeoLibre after 3.2.0 to install the plugin for someone who lacks it, and the filters need the plugin version that reads them; see below.
+The link needs GeoLibre after 3.2.0 (already on web.geolibre.app) to install the plugin for someone who lacks it; the registry has served 0.2.0, which reads the filters, since 2026-10-04.
 
 # With a link
 

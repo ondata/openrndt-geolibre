@@ -40,11 +40,11 @@ sources:
 | `rndtFrom`, `rndtTo` | `yyyy-mm-dd` | date range |
 | `rndtSort` | `title`, `title-desc`, `newest`, `oldest` | sort |
 
-`rndt` and `rndtBbox` from version 0.1.6, the others from the version after 0.1.9 (#30). The names are case-sensitive (`?Rndt=` is not read) and public once a link is shared: they are not to be renamed. The short values (`abstract`, `newest`, `publication`) stand for the field names the catalogue uses, so a link does not change if those do. The theme codes are the INSPIRE registry's, mapped to the Italian labels the catalogue stores; all 34 checked against `https://inspire.ec.europa.eu/theme/theme.it.json` on 2026-10-04.[^url-params]
+`rndt` and `rndtBbox` from version 0.1.6, the others from version 0.2.0 (#30). The names are case-sensitive (`?Rndt=` is not read) and public once a link is shared: they are not to be renamed. The short values (`abstract`, `newest`, `publication`) stand for the field names the catalogue uses, so a link does not change if those do. The theme codes are the INSPIRE registry's, mapped to the Italian labels the catalogue stores; all 34 checked against `https://inspire.ec.europa.eu/theme/theme.it.json` on 2026-10-04.[^url-params]
 
 # Rules
 
-- A link starts from an empty form: every field it does not name is at its default, so the same link gives the same search to everyone (from the version after 0.1.9; before, the other filters stayed as they were).
+- A link starts from an empty form: every field it does not name is at its default, so the same link gives the same search to everyone (from version 0.2.0; before, the other filters stayed as they were).
 - Without `rndtBbox` the area is **Anywhere**: see [the decision](../decisions/link-searches-anywhere.md).
 - `rndtTheme` and `rndtOpen` do nothing with `rndtKind=services`: the catalogue's theme and open data fields describe data, as in the form.
 - `rndtWithin` without `rndtBbox`, and `rndtDate` without `rndtFrom` or `rndtTo`, change nothing.

@@ -59,7 +59,7 @@ When a service fails, the panel offers **Copy error report**: a ready-to-paste e
 
 ## Open a search from a link
 
-From version 0.1.6 a link can open GeoLibre web on a search; from the version after 0.1.9 it carries every filter of the form. The parameters turn the plugin on, open the panel and start the search:
+From version 0.1.6 a link can open GeoLibre web on a search; from version 0.2.0 it carries every filter of the form. The parameters turn the plugin on, open the panel and start the search:
 
 | Parameter | Value | Example |
 |---|---|---|
@@ -98,7 +98,7 @@ With GeoLibre 3.2.0 the parameters work where the plugin is installed. For someo
 https://web.geolibre.app/?url=https://gist.githubusercontent.com/aborruso/68601ad2b7f4af7a9156ba932f1b10a6/raw/rndt.geolibre.json&rndt=idrografia
 ```
 
-The first time GeoLibre asks whether to load the plugin ("Trust and load"), then no more. The project loads the plugin from the registry, so the filters work once a version with these parameters is there.
+The first time GeoLibre asks whether to load the plugin ("Trust and load"), then no more. The project loads the plugin from the registry, which has served 0.2.0, with the filters, since 2026-10-04.
 
 ## The search travels with the project
 

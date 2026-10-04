@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-10-04
+* **Update**: [Registry status](upstream/registry-status.md): 0.2.0 is in the registry (opengeos/geolibre-plugins#78); [URL parameters](reference/url-parameters.md), [Share a search](guides/share-a-search.md) and the README name 0.2.0.
 * **Update**: [URL parameters](reference/url-parameters.md): a parameter for every field of the form, a link starts from an empty form (#30). [Share a search](guides/share-a-search.md): Share, through the system share sheet (#31).
 * **Update**: [URL parameters](reference/url-parameters.md), [Share a search](guides/share-a-search.md), [Requests to GeoLibre](upstream/geolibre-requests.md): `?plugin=openrndt-geolibre` tried on web.geolibre.app, the plugin never opens in `layout=viewer` (#2898).
 * **Update**: [Requests to GeoLibre](upstream/geolibre-requests.md): #2855, the source of a WMS layer in its Metadata dialog.

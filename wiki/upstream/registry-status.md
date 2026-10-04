@@ -20,20 +20,20 @@ sources:
     title: Releases of the plugin
 ---
 
-# State on 2026-10-03
+# State on 2026-10-04
 
 | | Version |
 |---|---|
-| In the registry (what Manage Plugins installs) | 0.1.9 |
-| Latest release of the repository | 0.1.9 |
+| In the registry (what Manage Plugins installs) | 0.2.0 |
+| Latest release of the repository | 0.2.0 |
 
-The registry has the latest release: 0.1.9 was read in its list and in the plugin's `plugin.json` on 2026-10-03, after [opengeos/geolibre-plugins#65](https://github.com/opengeos/geolibre-plugins/pull/65) was merged. 0.1.8 never was in the registry: the pull request was opened for it and brought to 0.1.9 before its merge.
+The registry has the latest release: 0.2.0 was read in its list (with `publishableSettings: true`) and in the plugin's `plugin.json` on 2026-10-04, after [opengeos/geolibre-plugins#78](https://github.com/opengeos/geolibre-plugins/pull/78) was merged. The entry now points at the zip of our own release. Tried the same day in a clean browser: `https://web.geolibre.app/?plugin=openrndt-geolibre&rndt=fiumi&rndtKind=data&rndtTheme=hy&rndtAs=WMS&rndtSort=newest` asked to install the plugin, then searched with every filter (30 records).
 
 This page ages: read the registry's list after its `stale_after` date.
 
 # What a gap means
 
-When the registry is behind the repository, a plugin installed from Manage Plugins lacks what the newer releases add: before 0.1.6 it had neither the [URL parameters](../reference/url-parameters.md) nor the conversion of [coordinate systems](../reference/coordinate-systems.md), before 0.1.7 no [search saved in a project](../reference/project-state.md). The same goes for a project that loads the plugin from the registry, such as the one used in [Share a search](../guides/share-a-search.md).
+When the registry is behind the repository, a plugin installed from Manage Plugins lacks what the newer releases add: before 0.1.6 it had neither the [URL parameters](../reference/url-parameters.md) nor the conversion of [coordinate systems](../reference/coordinate-systems.md), before 0.1.7 no [search saved in a project](../reference/project-state.md), before 0.2.0 no link parameters beyond text and area and no Share. The same goes for a project that loads the plugin from the registry, such as the one used in [Share a search](../guides/share-a-search.md).
 
 To use a newer version before the registry has it: install from the zip of the release, see [Install the plugin](../guides/install.md).
 
@@ -41,6 +41,7 @@ To use a newer version before the registry has it: install from the zip of the r
 
 | Version | In the registry |
 |---|---|
+| 0.2.0 | 2026-10-04, [opengeos/geolibre-plugins#78](https://github.com/opengeos/geolibre-plugins/pull/78), with `publishableSettings` |
 | 0.1.9 | 2026-10-03, [opengeos/geolibre-plugins#65](https://github.com/opengeos/geolibre-plugins/pull/65) |
 | 0.1.7 | 2026-10-03, [opengeos/geolibre-plugins#64](https://github.com/opengeos/geolibre-plugins/pull/64) |
 | 0.1.4 | 2026-10-02, [opengeos/geolibre-plugins#62](https://github.com/opengeos/geolibre-plugins/pull/62) |
