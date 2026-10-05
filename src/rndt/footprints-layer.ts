@@ -38,11 +38,18 @@ export class FootprintsLayer {
   private lastMove = 0;
   private readonly onStyleData = () => this.ensure();
   private readonly onClick = (event: MapLayerMouseEvent) => {
+    if (this.clickToolActive()) return;
     const hits = this.hitsAt(event.features);
     if (hits.length === 1) this.onSelect(hits[0].id);
     else if (hits.length > 1) this.openMenu(hits, event.point);
   };
   private readonly onMove = (event: MapLayerMouseEvent) => {
+    if (this.clickToolActive()) {
+      // Identify's own crosshair stays, and nothing of ours is shown.
+      this.setHover(null);
+      this.hideTooltip();
+      return;
+    }
     this.map.getCanvas().style.cursor = "pointer";
     if (this.menu) return;
     const hits = this.hitsAt(event.features);
@@ -50,6 +57,7 @@ export class FootprintsLayer {
     this.showTooltip(hits, event.point);
   };
   private readonly onLeave = () => {
+    if (this.clickToolActive()) return;
     this.map.getCanvas().style.cursor = "";
     if (this.menu) return;
     this.setHover(null);
@@ -81,6 +89,18 @@ export class FootprintsLayer {
     map.on("click", FILL_ID, this.onClick);
     map.on("mousemove", FILL_ID, this.onMove);
     map.on("mouseleave", FILL_ID, this.onLeave);
+  }
+
+  /**
+   * GeoLibre's Identify is on: a click on the map queries a layer, so the
+   * footprints answer neither click nor hover, as GeoLibre's own handlers do.
+   * The plugin API does not say which map tool is active
+   * (opengeos/GeoLibre#2949); Identify sets an inline `cursor: crosshair` on the
+   * canvas container (`setMapLibreIdentifyCursor`, GeoLibre 3.3.0), which this
+   * layer never writes.
+   */
+  private clickToolActive(): boolean {
+    return this.map.getCanvasContainer().style.cursor === "crosshair";
   }
 
   /**

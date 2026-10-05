@@ -9,6 +9,8 @@ function fakeMap() {
   const sources = new Map<string, { setData: ReturnType<typeof vi.fn> }>();
   const handlers: Record<string, ((arg?: unknown) => void)[]> = {};
   const container = document.createElement("div");
+  const canvasContainer = document.createElement("div");
+  const canvas = { style: { cursor: "" } };
   const map = {
     order,
     on: (event: string, ...rest: unknown[]) => {
@@ -32,9 +34,12 @@ function fakeMap() {
     setLayoutProperty: vi.fn((id: string, _name: string, value: string) => void layout.set(id, value)),
     getLayoutProperty: (id: string) => layout.get(id),
     layout,
-    getCanvas: () => ({ style: {} }),
+    getCanvas: () => canvas,
+    getCanvasContainer: () => canvasContainer,
     getContainer: () => container,
     container,
+    canvas,
+    canvasContainer,
   };
   return map;
 }
@@ -219,6 +224,33 @@ describe("FootprintsLayer", () => {
         Object.defineProperty(HTMLElement.prototype, "offsetWidth", widths[0]!);
         Object.defineProperty(HTMLElement.prototype, "offsetHeight", widths[1]!);
       }
+    });
+
+    it("answers neither click nor hover while GeoLibre's Identify is on, and leaves its crosshair alone", () => {
+      const map = fakeMap();
+      const onSelect = vi.fn();
+      const onHover = vi.fn();
+      new FootprintsLayer(map as unknown as MapLibreMap, onSelect, onHover).setData(data);
+      // What GeoLibre 3.3.0's Identify writes (setMapLibreIdentifyCursor).
+      map.canvasContainer.style.cursor = "crosshair";
+      map.canvas.style.cursor = "crosshair";
+      map.fire("mousemove", hit("italy", "palermo"));
+      expect(onHover).not.toHaveBeenCalled();
+      expect(map.container.querySelector(".ordt-footprint-tooltip")).toBeNull();
+      map.fire("click", hit("italy"));
+      map.fire("click", hit("italy", "sicily"));
+      expect(onSelect).not.toHaveBeenCalled();
+      expect(map.container.querySelector(".ordt-footprint-menu")).toBeNull();
+      map.fire("mouseleave");
+      expect(map.canvas.style.cursor).toBe("crosshair");
+
+      // Identify off: footprints answer again.
+      map.canvasContainer.style.cursor = "";
+      map.canvas.style.cursor = "";
+      map.fire("mousemove", hit("palermo"));
+      expect(map.canvas.style.cursor).toBe("pointer");
+      map.fire("click", hit("italy"));
+      expect(onSelect).toHaveBeenCalledWith("italy");
     });
 
     it("shows the smallest title on hover and marks it", () => {
