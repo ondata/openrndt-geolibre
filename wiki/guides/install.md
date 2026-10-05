@@ -6,8 +6,8 @@ tags: [install, registry, desktop, web]
 status: stable
 sources:
   - id: readme
-    resource: ../../README.md
-    title: README, "Try it"
+    resource: https://github.com/ondata/openrndt-geolibre/blob/f9c631c/README.md
+    title: README before 2026-10-05, "Try it"
   - id: registry
     resource: https://plugins.geolibre.app/
     title: GeoLibre plugin registry

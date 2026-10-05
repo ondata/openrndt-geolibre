@@ -7,8 +7,8 @@ tags: [development, release, registry]
 status: stable
 sources:
   - id: readme
-    resource: ../../README.md
-    title: README, "A release in the plugin registry"
+    resource: https://github.com/ondata/openrndt-geolibre/blob/f9c631c/README.md
+    title: README before 2026-10-05, "A release in the plugin registry"
   - id: log
     resource: ../../LOG.md
     title: LOG, 2026-10-02 and 2026-10-03

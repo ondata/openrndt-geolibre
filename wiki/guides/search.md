@@ -6,8 +6,8 @@ tags: [search, results, filters]
 status: stable
 sources:
   - id: readme
-    resource: ../../README.md
-    title: README, "What it does"
+    resource: https://github.com/ondata/openrndt-geolibre/blob/f9c631c/README.md
+    title: README before 2026-10-05, "What it does"
   - id: panel
     resource: ../../src/rndt/panel.ts
     title: The panel

@@ -6,8 +6,8 @@ tags: [development, release]
 status: stable
 sources:
   - id: readme
-    resource: ../../README.md
-    title: README, "A release in the plugin registry", step 1
+    resource: https://github.com/ondata/openrndt-geolibre/blob/f9c631c/README.md
+    title: README before 2026-10-05, "A release in the plugin registry", step 1
   - id: constants
     resource: ../../src/rndt/constants.ts
     title: PLUGIN_VERSION
@@ -29,4 +29,4 @@ GeoLibre compares only the numeric part of a version: between `0.2.0-alpha.1` an
 
 The registry does not follow by itself: see [Release in the registry](registry-release.md) and [Registry updates in batches](../decisions/registry-updates-in-batches.md).
 
-[^readme]: README, "A release in the plugin registry", step 1
+[^readme]: README before 2026-10-05, "A release in the plugin registry", step 1

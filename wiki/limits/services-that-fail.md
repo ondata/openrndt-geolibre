@@ -6,8 +6,8 @@ tags: [errors, wms, wfs, arcgis, services]
 status: stable
 sources:
   - id: readme
-    resource: ../../README.md
-    title: README, "Known limits"
+    resource: https://github.com/ondata/openrndt-geolibre/blob/f9c631c/README.md
+    title: README before 2026-10-05, "Known limits"
   - id: host
     resource: ../../src/rndt/host.ts
     title: Fetch helpers and checks on the host name

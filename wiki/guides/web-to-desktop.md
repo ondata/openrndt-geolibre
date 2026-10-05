@@ -6,8 +6,8 @@ tags: [web, desktop, cors, project]
 status: stable
 sources:
   - id: readme
-    resource: ../../README.md
-    title: README, "The search travels with the project"
+    resource: https://github.com/ondata/openrndt-geolibre/blob/f9c631c/README.md
+    title: README before 2026-10-05, "The search travels with the project"
   - id: log
     resource: ../../LOG.md
     title: LOG, 2026-10-03

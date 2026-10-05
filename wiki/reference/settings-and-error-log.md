@@ -9,8 +9,8 @@ sources:
     resource: ../../src/rndt/settings.ts
     title: Settings and error log
   - id: readme
-    resource: ../../README.md
-    title: README, "What it does"
+    resource: https://github.com/ondata/openrndt-geolibre/blob/f9c631c/README.md
+    title: README before 2026-10-05, "What it does"
 ---
 
 # Settings
@@ -47,4 +47,4 @@ In the storage of the webview (`localStorage`), under the keys `openrndt-geolibr
 **Copy error report**, in the box of a failing service: it prepares an email for the record's contact, with RNDT in copy, about a broken service. It is copied to the clipboard, because GeoLibre Desktop opens no `mailto:` link from a plugin.[^readme]
 
 [^settings]: Settings and error log
-[^readme]: README, "What it does"
+[^readme]: README before 2026-10-05, "What it does"

@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-10-05
+* **Update**: 12 pages: sources that cited README sections removed on 2026-10-05 now point to the README at f9c631c (#40).
 * **Update**: [Share a search](guides/share-a-search.md): the gist project is gone, `?plugin=openrndt-geolibre` installs the plugin and searches (#40).
 * **Update**: [Requests to GeoLibre](upstream/geolibre-requests.md), [An update needs a reinstall](limits/update-needs-reinstall.md): #2958, the held-back warning.
 * **Update**: [Registry status](upstream/registry-status.md): 0.3.2 is in the registry (opengeos/geolibre-plugins#94); [Footprints](reference/footprints.md): from 0.3.2.

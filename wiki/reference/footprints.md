@@ -9,8 +9,8 @@ sources:
     resource: ../../src/rndt/footprints-layer.ts
     title: Footprints overlay on the MapLibre map
   - id: readme
-    resource: ../../README.md
-    title: README, "Known limits"
+    resource: https://github.com/ondata/openrndt-geolibre/blob/f9c631c/README.md
+    title: README before 2026-10-05, "Known limits"
 ---
 
 # What they are
@@ -33,4 +33,4 @@ After a search, the extent each record declares is drawn on the map as an orange
 Footprints and "Zoom to extent" use the extent the record declares, as it is. When the metadata is wrong the footprint is in the wrong place (all 100 records of Comune di Capannori are drawn in Ethiopia), and a search by area does not find the record. The plugin does not try to correct it: see [issue #13](https://github.com/ondata/openrndt-geolibre/issues/13).[^readme]
 
 [^footprints]: Footprints overlay on the MapLibre map
-[^readme]: README, "Known limits"
+[^readme]: README before 2026-10-05, "Known limits"

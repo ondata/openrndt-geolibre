@@ -6,8 +6,8 @@ tags: [cors, web, desktop, wms, wfs, arcgis]
 status: stable
 sources:
   - id: readme
-    resource: ../../README.md
-    title: README, "Known limits"
+    resource: https://github.com/ondata/openrndt-geolibre/blob/f9c631c/README.md
+    title: README before 2026-10-05, "Known limits"
   - id: host
     resource: ../../src/rndt/host.ts
     title: Fetch helpers
@@ -34,5 +34,5 @@ ArcGIS layers are added as images fetched by the webview, also in Desktop, so th
 
 Save the project in the web version and open it in Desktop: see [From the web version to Desktop](../guides/web-to-desktop.md).
 
-[^readme]: README, "Known limits"
+[^readme]: README before 2026-10-05, "Known limits"
 [^log]: LOG, 2026-10-02

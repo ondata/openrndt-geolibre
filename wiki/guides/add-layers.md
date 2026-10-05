@@ -6,8 +6,8 @@ tags: [wms, wfs, arcgis, layers]
 status: stable
 sources:
   - id: readme
-    resource: ../../README.md
-    title: README, "What it does" and "Known limits"
+    resource: https://github.com/ondata/openrndt-geolibre/blob/f9c631c/README.md
+    title: README before 2026-10-05, "What it does" and "Known limits"
   - id: panel
     resource: ../../src/rndt/panel.ts
     title: The panel
