@@ -2,6 +2,7 @@
 
 ## 2026-10-05
 
+- **0.3.2 is in the registry**: opengeos/geolibre-plugins#94 merged by giswqs at 14:31 UTC; `plugin-registry.json`, the plugin's `plugin.json` and the catalog page give 0.3.2. #38 closed.
 - **#94 preview**: its check failed on the GitHub Pages build of opengeos/pages-preview ("Page build failed", 12:55 UTC, as for another commit at 12:09), not on the PR; the next Pages build (13:07 UTC) published it. Tried there: Identify off, a click on two Sardinian footprints opens the menu; "Identify visible layers" on (canvas container `cursor: crosshair` in the web build too), the same click opens nothing. Said in a comment on the PR.
 - **0.3.2 to the registry**: [opengeos/geolibre-plugins#94](https://github.com/opengeos/geolibre-plugins/pull/94) from `ondata:update-openrndt-geolibre-0.3.2`, only `version` and `source` changed; `validate_plugins.mjs --changed-since origin/main` and pre-commit pass locally.
 - **Release 0.3.2**: footprints stand down while GeoLibre's Identify is on (#38). Zip 1,089,429 bytes, sha256 `2afc0dff1f54499aff0a149f677dcfc2025e6d7ae189ef256287f0816f5559fb`. Registry not updated yet (0.3.1).
