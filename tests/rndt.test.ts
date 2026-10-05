@@ -16,7 +16,7 @@ import {
   supportsWebMercator,
 } from "../src/rndt/ogc";
 import { buildCurlCommand, buildQuery, buildSearchUrl, clampBbox, emptyForm, idForm, recordIdIn, type Bbox, type SearchForm } from "../src/rndt/query";
-import { extractOtherLinks, extractServices, footprints, inferKind, parseSearchResponse } from "../src/rndt/records";
+import { extractOtherLinks, extractServices, footprints, inferKind, parseSearchResponse, provenance } from "../src/rndt/records";
 
 const fixture = (name: string) => readFileSync(join(__dirname, "fixtures", name), "utf8");
 
@@ -125,6 +125,19 @@ describe("search results", () => {
     expect(services).toEqual([{ kind: "WMS", url: wms }]);
     expect(extractOtherLinks(result, services)).toEqual([page]);
     expect(extractServices({ _source: { links_s: ["https://x.it/page.html"] } })).toEqual([]);
+  });
+
+  it("gives a record's provenance for the layers added from it, without empty fields", () => {
+    const record = parseSearchResponse(JSON.parse(fixture("search-alberi.json")), RNDT_BASE_URL).records[0];
+    expect(provenance(record)).toEqual({
+      catalogue: "RNDT",
+      recordId: record.id,
+      recordTitle: record.title,
+      organisation: record.organisation,
+      recordUrl: record.htmlUrl,
+    });
+    expect(record.htmlUrl).toMatch(/\/rest\/metadata\/item\/.+\/html$/);
+    expect(provenance({ ...record, organisation: "" })).not.toHaveProperty("organisation");
   });
 
   it("builds one footprint polygon per record with a bbox", () => {

@@ -56,7 +56,7 @@ import type { PanelState } from "./project-state";
 import { shareUrl, type LinkSearch } from "./url-params";
 import { agentText } from "./agent-text";
 import { bboxError, buildCurlCommand, buildSearchUrl, clampBbox, emptyForm, idForm, recordIdIn, type Bbox, type ResourceKind, type LinkKind, type SearchForm, type SpatialRel, type TextMode } from "./query";
-import { footprints, parseSearchResponse, type RndtRecord, type RndtService } from "./records";
+import { footprints, parseSearchResponse, provenance, type RndtRecord, type RndtService } from "./records";
 import {
   appendErrorLog,
   clearErrorLog,
@@ -3325,6 +3325,7 @@ export class RndtPanel {
               ...(crsOf(layer) !== "EPSG:3857" && { crs: crsOf(layer)! }),
               // Identify sends no GetFeatureInfo to a layer marked not queryable (GeoLibre 3.3.0).
               ...(layer.queryable === false && { queryable: false }),
+              metadata: provenance(record),
             });
             this.addedWms.set(`${caps.getMapUrl}|${name}`, id);
             setOnMap(name, true);
@@ -3594,6 +3595,7 @@ export class RndtPanel {
           try {
             const id = this.app.addTileLayer!(nameOf(name), tileUrl(name), {
               attribution: info.copyright || undefined,
+              metadata: provenance(record),
             });
             this.addedWms.set(`${arcgis.serviceUrl}|${name}`, id);
             setOnMap(name, true);

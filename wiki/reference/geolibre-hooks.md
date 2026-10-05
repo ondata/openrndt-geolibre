@@ -47,6 +47,7 @@ GeoLibre 3.3.0, to be declared as `minGeoLibreVersion` in the registry entry wit
 | `getDrawnFeatures`, `activatePlugin` | search in shapes drawn with GeoEditor | no |
 | `fetchArrayBuffer`, `fetchVectorUrl` | read the catalogue and the services through the native client in Desktop | no: in the web version the browser reads them |
 | `addWmsLayer`, `addTileLayer`, `addGeoJsonLayer` | add layers | per kind of service |
+| `metadata` on `addWmsLayer` and `addTileLayer` | the record a layer comes from (GeoLibre 3.3.0, [#36](https://github.com/ondata/openrndt-geolibre/issues/36)) | no |
 | `addWmsLayer({ queryable: false })` | no GetFeatureInfo on a layer the server marks not queryable (GeoLibre 3.3.0, [#32](https://github.com/ondata/openrndt-geolibre/issues/32)) | no |
 | `importLayerStyle` | draw WFS features with the server's SLD (GeoLibre 3.2.0); its presence also tells that `addWmsLayer` takes a `crs` | no |
 | `getLayers` | know whether an added layer is still in the project (GeoLibre 3.1.0) | no |
@@ -64,7 +65,6 @@ Asked upstream from this plugin and released in 3.3.0 (see [Requests to GeoLibre
 | Method | What it gives | Here |
 |---|---|---|
 | `addWfsLayer` | GeoLibre's own WFS layer, GML included | [#28](https://github.com/ondata/openrndt-geolibre/issues/28) |
-| `metadata` on `addWmsLayer`, `addWfsLayer`, `addTileLayer` | the layer keeps where it comes from | not planned yet |
 | `registerTranslations` | the plugin's own strings per language | [#3](https://github.com/ondata/openrndt-geolibre/issues/3) |
 | `registerMenuContribution` | items in Add Data, Processing or Controls | not planned yet |
 | `nativeFetch` | Desktop only: any method, no CORS, a cookie jar | no use found |
@@ -73,6 +73,7 @@ Asked upstream from this plugin and released in 3.3.0 (see [Requests to GeoLibre
 
 # What GeoLibre 3.3.0 does not give a plugin
 
+- `metadata` on `addGeoJsonLayer` ([#37](https://github.com/ondata/openrndt-geolibre/issues/37)), and a way to fill a layer's descriptive metadata (`descriptiveMetadata`: title, abstract, keywords, contact, links), which only the user or Python can set.
 - A call to mark the project as modified: none in the plugin types at `v3.3.0` (see [A search is not a project change](../limits/unsaved-search.md)).
 
 [^geolibre-types]: GeoLibre 3.3.0, plugin types

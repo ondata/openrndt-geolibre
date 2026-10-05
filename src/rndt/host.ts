@@ -22,6 +22,8 @@ export interface WmsLayerOptions {
   bounds?: Bbox;
   /** False for a layer that answers no GetFeatureInfo: identify skips it (GeoLibre 3.3.0). */
   queryable?: false;
+  /** Provenance merged into the layer's metadata (GeoLibre 3.3.0). */
+  metadata?: Record<string, string>;
 }
 
 export interface RndtHostExtras {
@@ -33,7 +35,7 @@ export interface RndtHostExtras {
    * `{z}/{x}/{y}` or `{bbox-epsg-3857}`. The webview fetches the tiles, so
    * the server must send CORS headers (ArcGIS Server does by default).
    */
-  addTileLayer?: (name: string, url: string, options?: { attribution?: string; bounds?: Bbox }) => string;
+  addTileLayer?: (name: string, url: string, options?: { attribution?: string; bounds?: Bbox; metadata?: Record<string, string> }) => string;
   fetchArrayBuffer?: (url: string) => Promise<ArrayBuffer>;
   /**
    * Desktop-native downloader of GeoLibre's Add Vector Layer, with a 180 s

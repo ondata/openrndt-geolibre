@@ -1683,6 +1683,8 @@ describe("WMS layers that do not declare EPSG:3857", () => {
     Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent!.startsWith("Add to map"))!.click();
     const options = Object.fromEntries(vi.mocked(host.addWmsLayer!).mock.calls.map((c) => [c[1].layers, c[1]]));
     expect(options.fabbricati).toMatchObject({ queryable: false });
+    // Every layer carries the record it comes from (#36).
+    expect(options["CP.CadastralParcel"].metadata).toMatchObject({ catalogue: "RNDT", recordId: expect.any(String), recordUrl: expect.stringMatching(/\/html$/) });
     expect(options["CP.CadastralParcel"]).not.toHaveProperty("queryable");
   });
 
@@ -1787,6 +1789,7 @@ describe("ArcGIS REST services", () => {
     button(item, "Add to map (1)").click();
     expect(host.addTileLayer).toHaveBeenCalledWith("Depuratori - ed.2023", expect.stringContaining(`${ARPAE}/export?bbox={bbox-epsg-3857}&`), expect.anything());
     expect(vi.mocked(host.addTileLayer!).mock.calls[0][1]).toContain("layers=show%3A1");
+    expect(vi.mocked(host.addTileLayer!).mock.calls[0][2]).toMatchObject({ metadata: { catalogue: "RNDT", recordId: expect.any(String) } });
     expect(item.querySelector('[aria-label="ArcGIS layers"] .ordt-layer-tag')!.textContent).toBe("on the map");
   });
 

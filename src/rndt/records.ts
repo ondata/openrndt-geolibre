@@ -225,6 +225,22 @@ export function parseRecord(result: Json, baseUrl: string): RndtRecord {
   };
 }
 
+/**
+ * Where a layer added from a record comes from, for the `metadata` of
+ * GeoLibre's add calls (3.3.0): shown in the layer's Metadata dialog and saved
+ * with the project. Empty fields are left out.
+ */
+export function provenance(record: RndtRecord): Record<string, string> {
+  const fields: Record<string, string> = {
+    catalogue: "RNDT",
+    recordId: record.id,
+    recordTitle: record.title,
+    organisation: record.organisation,
+    recordUrl: record.htmlUrl,
+  };
+  return Object.fromEntries(Object.entries(fields).filter(([, value]) => value));
+}
+
 export function parseSearchResponse(payload: unknown, baseUrl: string): SearchPage {
   const data = asObject(payload);
   const results = Array.isArray(data.results) ? data.results : [];
