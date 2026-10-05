@@ -23,6 +23,8 @@ sources:
 
 The registry copy is no longer affected. Tried in GeoLibre Desktop 3.3.0 on Windows on 2026-10-05, with the registry copy (0.2.0): saving asks no "Strip credentials?", and the reopened project brings back the same search and the same open record.[^log] The registry entry declares `publishableSettings: true` ([#27](https://github.com/ondata/openrndt-geolibre/issues/27)), and GeoLibre 3.3.0 reads it ([opengeos/GeoLibre#2836](https://github.com/opengeos/GeoLibre/pull/2836)).[^pr2836]
 
+The prompt can still appear, for 4 fields that are not the plugin's: GeoLibre writes the default state of its Elevation Profile into every project, and counts it ([opengeos/GeoLibre#2944](https://github.com/opengeos/GeoLibre/issues/2944)). "Keep in file" keeps the search either way.
+
 What follows still holds for the development copy, which is not in the registry, and for GeoLibre before 3.3.0.
 
 # The limit

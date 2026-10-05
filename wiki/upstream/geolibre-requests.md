@@ -51,6 +51,10 @@ sources:
     resource: https://github.com/opengeos/GeoLibre/issues/2898
     title: opengeos/GeoLibre#2898
     last_modified: 2026-10-04T00:00:00Z
+  - id: i2944
+    resource: https://github.com/opengeos/GeoLibre/issues/2944
+    title: opengeos/GeoLibre#2944
+    last_modified: 2026-10-05T00:00:00Z
   - id: releases
     resource: https://github.com/opengeos/GeoLibre/releases
     title: GeoLibre releases
@@ -91,6 +95,12 @@ Found on the Agenzia delle Entrate cadastral WMS (layer `fabbricati`, drawn in E
 |---|---|---|---|
 | [#2898](https://github.com/opengeos/GeoLibre/issues/2898) | bug | whether `?plugin=` should open an installed registry plugin in `layout=viewer`: the code ignores every registry plugin there, the docs say only the install is skipped | in viewer the plugin never opens from a link: [URL parameters](../reference/url-parameters.md) |
 | [#2855](https://github.com/opengeos/GeoLibre/issues/2855) | feature | the Metadata dialog of a WMS or tile layer to show its source (address, layers, version), and a `metadata` option in `addWmsLayer` and the other `add*Layer` calls | a layer added from the panel would keep the record it comes from; today the dialog shows only name and type |
+
+# Opened on 2026-10-05
+
+| Issue | Kind | Asks | Here |
+|---|---|---|---|
+| [#2944](https://github.com/opengeos/GeoLibre/issues/2944) | bug | the Elevation Profile's default state, written into every project though the plugin was never opened, makes "Strip credentials?" count 4 fields | the prompt still appears with the registry copy, whose search is kept and not counted: [Strip credentials](../limits/strip-credentials.md) |
 
 # Why they exist
 
