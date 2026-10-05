@@ -184,6 +184,26 @@ describe("WMS capabilities", () => {
     expect(caps.layers.filter((l) => l.group).map((l) => l.name)).toEqual(["Cartografia_Catastale", "vestizioni"]);
   });
 
+  it("reads queryable, inherited from the nearest ancestor that sets it", () => {
+    const q = Object.fromEntries(
+      parseWmsCapabilities(fixture("wms-ade-130.xml"), "https://x.it/wms").layers.map((l) => [l.name, l.queryable]),
+    );
+    expect(q.fabbricati).toBe(false);
+    expect(q["CP.CadastralParcel"]).toBe(true);
+    // `vestizioni` sets none: it takes the group's queryable="1"; its children set "0".
+    expect(q.vestizioni).toBe(true);
+    expect(q.codice_plla).toBe(false);
+
+    const wms = (attrs: string) => `<WMS_Capabilities version="1.3.0"><Capability><Layer ${attrs}><Name>top</Name>
+      <Layer><Name>child</Name></Layer><Layer queryable="1"><Name>own</Name></Layer></Layer></Capability></WMS_Capabilities>`;
+    const inherited = parseWmsCapabilities(wms('queryable="0"'), "https://x.it/wms").layers;
+    expect(inherited.map((l) => l.queryable)).toEqual([false, false, true]);
+    // No attribute anywhere: unknown, not false.
+    const none = parseWmsCapabilities(wms(""), "https://x.it/wms").layers;
+    expect(none.map((l) => l.queryable)).toEqual([undefined, undefined, true]);
+    expect(none[0]).not.toHaveProperty("queryable");
+  });
+
   it("picks the system to ask a layer in when it has no EPSG:3857", () => {
     const layer = (crs: string[]) => ({ name: "a", title: "a", crs, bbox: null, group: false });
     const cadastre = parseWmsCapabilities(fixture("wms-ade-130.xml"), "https://x.it/wms").layers[0];

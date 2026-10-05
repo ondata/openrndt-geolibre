@@ -3323,6 +3323,8 @@ export class RndtPanel {
               transparent: true,
               bounds: wmsLayerBounds(layer.bbox, record.bbox, record.type),
               ...(crsOf(layer) !== "EPSG:3857" && { crs: crsOf(layer)! }),
+              // Identify sends no GetFeatureInfo to a layer marked not queryable (GeoLibre 3.3.0).
+              ...(layer.queryable === false && { queryable: false }),
             });
             this.addedWms.set(`${caps.getMapUrl}|${name}`, id);
             setOnMap(name, true);

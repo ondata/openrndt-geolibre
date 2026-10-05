@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-10-05
+* **Update**: [Add layers to the map](guides/add-layers.md), [GeoLibre hooks used](reference/geolibre-hooks.md): layers marked not queryable are added as such (#32).
 * **Update**: [An update needs a reinstall](limits/update-needs-reinstall.md), [Install the plugin](guides/install.md): GeoLibre 3.3.0 offers Update, tried in Desktop.
 * **Update**: [Strip credentials](limits/strip-credentials.md): with GeoLibre 3.3.0 the registry copy keeps its search, tried in Desktop (#27 closed).
 * **Update**: [GeoLibre hooks used](reference/geolibre-hooks.md), [overview](overview.md), [Install the plugin](guides/install.md), [Add layers to the map](guides/add-layers.md): minimum GeoLibre 3.3.0 (#35); hooks checked at `v3.3.0`, with the 3.3.0 calls not used yet.

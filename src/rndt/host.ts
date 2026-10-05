@@ -19,6 +19,8 @@ export interface WmsLayerOptions {
   crs?: string;
   attribution?: string;
   bounds?: Bbox;
+  /** False for a layer that answers no GetFeatureInfo: identify skips it (GeoLibre 3.3.0). */
+  queryable?: false;
 }
 
 export interface RndtHostExtras {

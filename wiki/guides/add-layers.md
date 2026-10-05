@@ -28,6 +28,7 @@ Tick one or more layers and press **Add to map**. The layers are added with thei
 
 - A layer added from a dataset record is limited to the record's extent, when that is smaller than the service's (one municipality of a national service).
 - A layer not offered in `EPSG:3857` is asked in a system it lists; this needs GeoLibre Desktop.
+- A layer the server marks `queryable="0"` (on the layer or on its parent) is added as not queryable: GeoLibre's Identify says it "does not provide feature information" and sends no request. Tried on `fabbricati` of the cadastral WMS in GeoLibre Desktop 3.3.0 ([#32](https://github.com/ondata/openrndt-geolibre/issues/32)).
 - When the capabilities declare a request address on a private host, the address of the capabilities is used instead, and a note says so.
 
 # WFS

@@ -11,6 +11,11 @@ export interface WmsLayer {
   bbox: Bbox | null;
   /** True for a layer that holds other layers. */
   group: boolean;
+  /**
+   * The `queryable` attribute of the layer or, by WMS inheritance, of its
+   * nearest ancestor that sets it; undefined when none does.
+   */
+  queryable?: boolean;
 }
 
 export interface WmsCapabilities {
@@ -197,20 +202,37 @@ export function parseWmsCapabilities(xml: string, requestUrl: string): WmsCapabi
     href(getMap ? descendants(getMap, "OnlineResource")[0] : null) || serviceBaseUrl(requestUrl);
 
   const layers: WmsLayer[] = [];
-  const walk = (layer: Element, inheritedCrs: string[], inheritedBbox: Bbox | null) => {
+  const walk = (layer: Element, inheritedCrs: string[], inheritedBbox: Bbox | null, inheritedQueryable?: boolean) => {
     const own = [...childElements(layer, "CRS"), ...childElements(layer, "SRS")]
       .flatMap((el) => text(el).split(/\s+/))
       .filter(Boolean);
     const crs = Array.from(new Set([...inheritedCrs, ...own]));
     const bbox = wmsLayerBbox(layer) ?? inheritedBbox;
+    const queryable = queryableAttribute(layer) ?? inheritedQueryable;
     const name = text(firstChild(layer, "Name"));
     const children = childElements(layer, "Layer");
-    if (name) layers.push({ name, title: text(firstChild(layer, "Title")) || name, crs, bbox, group: children.length > 0 });
-    for (const child of children) walk(child, crs, bbox);
+    if (name) {
+      layers.push({
+        name,
+        title: text(firstChild(layer, "Title")) || name,
+        crs,
+        bbox,
+        group: children.length > 0,
+        ...(queryable !== undefined && { queryable }),
+      });
+    }
+    for (const child of children) walk(child, crs, bbox, queryable);
   };
   const capability = descendants(doc, "Capability")[0];
   for (const top of capability ? childElements(capability, "Layer") : []) walk(top, [], null);
   return { version, getMapUrl: serviceBaseUrl(stripQueryEnd(getMapUrl)), layers };
+}
+
+function queryableAttribute(layer: Element): boolean | undefined {
+  const value = layer.getAttribute("queryable")?.trim();
+  if (value === "1" || value === "true") return true;
+  if (value === "0" || value === "false") return false;
+  return undefined;
 }
 
 /** GeoLibre's plugin `addWmsLayer` requests Web Mercator tiles unless it is given a `crs`. */

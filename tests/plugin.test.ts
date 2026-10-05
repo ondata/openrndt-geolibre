@@ -1639,6 +1639,19 @@ describe("WMS layers that do not declare EPSG:3857", () => {
     expect(vi.mocked(host.addWmsLayer!).mock.calls[0][1]).not.toHaveProperty("crs");
   });
 
+  it("passes queryable: false only for a layer the server marks not queryable", async () => {
+    const { host, item } = await openAde(false, true);
+    for (const name of ["fabbricati", "CP.CadastralParcel"]) {
+      const box = item.querySelector<HTMLInputElement>(`[aria-label="WMS layers"] input[value="${name}"]`)!;
+      box.checked = true;
+      box.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent!.startsWith("Add to map"))!.click();
+    const options = Object.fromEntries(vi.mocked(host.addWmsLayer!).mock.calls.map((c) => [c[1].layers, c[1]]));
+    expect(options.fabbricati).toMatchObject({ queryable: false });
+    expect(options["CP.CadastralParcel"]).not.toHaveProperty("queryable");
+  });
+
   it("keeps them disabled when the test tile is an error", async () => {
     const { item } = await openAde(false);
     const boxes = Array.from(item.querySelectorAll<HTMLInputElement>('[aria-label="WMS layers"] input'));
