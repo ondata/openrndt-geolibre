@@ -2,6 +2,7 @@
 
 ## 2026-10-05
 
+- **#94 preview**: its check failed on the GitHub Pages build of opengeos/pages-preview ("Page build failed", 12:55 UTC, as for another commit at 12:09), not on the PR; the next Pages build (13:07 UTC) published it. Tried there: Identify off, a click on two Sardinian footprints opens the menu; "Identify visible layers" on (canvas container `cursor: crosshair` in the web build too), the same click opens nothing. Said in a comment on the PR.
 - **0.3.2 to the registry**: [opengeos/geolibre-plugins#94](https://github.com/opengeos/geolibre-plugins/pull/94) from `ondata:update-openrndt-geolibre-0.3.2`, only `version` and `source` changed; `validate_plugins.mjs --changed-since origin/main` and pre-commit pass locally.
 - **Release 0.3.2**: footprints stand down while GeoLibre's Identify is on (#38). Zip 1,089,429 bytes, sha256 `2afc0dff1f54499aff0a149f677dcfc2025e6d7ae189ef256287f0816f5559fb`. Registry not updated yet (0.3.1).
 - **[GeoLibre#2951](https://github.com/opengeos/GeoLibre/issues/2951) opened**: an optional `maxFeatures` on `addWfsLayer`. At v3.3.0 `plugin-wfs-layer.ts` sends `maxFeatures: "1000"` written in the code, while the Add Data WFS dialog lets the user set it (1,000 by default; `layer-refresh.ts` sends `count` for WFS 2.0, `maxFeatures` before). Added to #28 as its prerequisite: with `addWfsLayer` as it is, the panel would go from 10,000 features (and a confirmation above) to 1,000.
