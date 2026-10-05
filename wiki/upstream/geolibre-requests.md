@@ -59,6 +59,10 @@ sources:
     resource: https://github.com/opengeos/GeoLibre/issues/2949
     title: opengeos/GeoLibre#2949
     last_modified: 2026-10-05T00:00:00Z
+  - id: i2951
+    resource: https://github.com/opengeos/GeoLibre/issues/2951
+    title: opengeos/GeoLibre#2951
+    last_modified: 2026-10-05T00:00:00Z
   - id: releases
     resource: https://github.com/opengeos/GeoLibre/releases
     title: GeoLibre releases
@@ -105,6 +109,7 @@ Found on the Agenzia delle Entrate cadastral WMS (layer `fabbricati`, drawn in E
 | Issue | Kind | Asks | Here |
 |---|---|---|---|
 | [#2944](https://github.com/opengeos/GeoLibre/issues/2944) | bug | the Elevation Profile's default state, written into every project though the plugin was never opened, makes "Strip credentials?" count 4 fields | closed by [#2946](https://github.com/opengeos/GeoLibre/pull/2946), merged the same day, not released: the untouched default state is no longer saved. Until a release the prompt still appears with the registry copy, whose search is kept and not counted: [Strip credentials](../limits/strip-credentials.md) |
+| [#2951](https://github.com/opengeos/GeoLibre/issues/2951) | feature | an optional `maxFeatures` on `addWfsLayer`, which sends 1,000 written in the code, as the WFS dialog already lets the user choose | open; prerequisite of [#28](https://github.com/ondata/openrndt-geolibre/issues/28), WFS without GeoJSON through `addWfsLayer` |
 | [#2949](https://github.com/opengeos/GeoLibre/issues/2949) | feature | a way for plugins to know when Identify or another map click tool is active (a getter and a change event) | open. Meanwhile the footprints read Identify's crosshair on the map's canvas container ([#38](https://github.com/ondata/openrndt-geolibre/issues/38)) |
 
 # Why they exist
