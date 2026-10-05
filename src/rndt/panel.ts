@@ -3441,7 +3441,7 @@ export class RndtPanel {
                 : "The service returned no features.";
               return;
             }
-            const wgs84 = toWgs84(data);
+            const wgs84 = await toWgs84(data, this.app.getProj4 && (() => this.app.getProj4!()));
             const layerId = this.app.addGeoJsonLayer!(nameOf(name) || record.title, fixAxisOrder(wgs84.fc));
             const styled = await this.applyServerStyle(layerId, getStylesUrl(caps.getFeatureUrl, name));
             result.dataset.kind = "info";
@@ -3762,7 +3762,7 @@ export class RndtPanel {
     try {
       const data = await fetchJson(this.app, service.url, { download: true });
       if (!isFeatureCollection(data)) throw new Error("the file is not a GeoJSON FeatureCollection");
-      const wgs84 = toWgs84(data);
+      const wgs84 = await toWgs84(data, this.app.getProj4 && (() => this.app.getProj4!()));
       this.app.addGeoJsonLayer!(record.title, fixAxisOrder(wgs84.fc));
       this.note(area, `Added ${data.features.length} features${wgs84.from ? `, converted from EPSG:${wgs84.from}` : ""}.`);
     } catch (error) {

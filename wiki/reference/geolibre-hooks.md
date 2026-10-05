@@ -51,6 +51,7 @@ GeoLibre 3.3.0, to be declared as `minGeoLibreVersion` in the registry entry wit
 | `importLayerStyle` | draw WFS features with the server's SLD (GeoLibre 3.2.0); its presence also tells that `addWmsLayer` takes a `crs` | no |
 | `getLayers` | know whether an added layer is still in the project (GeoLibre 3.1.0) | no |
 | `getProjectSnapshot` | know the layers already in a reopened project | no |
+| `getProj4` | convert GeoJSON in a projected system (GeoLibre 3.3.0, [#29](https://github.com/ondata/openrndt-geolibre/issues/29)) | no: without it such a file gives an error |
 | `exportTextFile` | export the error log (GeoLibre 3.1.0) | no |
 | `openExternalUrl` | open links in the system browser | no |
 
@@ -62,7 +63,6 @@ Asked upstream from this plugin and released in 3.3.0 (see [Requests to GeoLibre
 
 | Method | What it gives | Here |
 |---|---|---|
-| `getProj4` | the host's proj4 | [#29](https://github.com/ondata/openrndt-geolibre/issues/29) |
 | `addWfsLayer` | GeoLibre's own WFS layer, GML included | [#28](https://github.com/ondata/openrndt-geolibre/issues/28) |
 | `metadata` on `addWmsLayer`, `addWfsLayer`, `addTileLayer` | the layer keeps where it comes from | not planned yet |
 | `registerTranslations` | the plugin's own strings per language | [#3](https://github.com/ondata/openrndt-geolibre/issues/3) |

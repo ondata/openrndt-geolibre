@@ -1,5 +1,11 @@
 import type { Feature, FeatureCollection, Geometry, Position } from "geojson";
-import proj4 from "proj4";
+import type * as Proj4 from "proj4";
+
+/**
+ * GeoLibre's own proj4 (`app.getProj4`, GeoLibre 3.3.0): the plugin carries no
+ * copy. It resolves to the module namespace; the callable library is `default`.
+ */
+export type GetProj4 = () => Promise<typeof Proj4>;
 
 /**
  * GeoJSON is WGS84 longitude/latitude (RFC 7946), but Italian publishers
@@ -52,9 +58,13 @@ export function declaredEpsg(fc: FeatureCollection): number | null {
 /**
  * The collection in WGS84, with the code it was converted from (null when it
  * already was longitude/latitude). Throws, with the reason, for a system the
- * plugin has no definition of and for projected coordinates with no `crs`.
+ * plugin has no definition of, for projected coordinates with no `crs`, and
+ * for a host that gives plugins no proj4. proj4 is asked only to convert.
  */
-export function toWgs84(fc: FeatureCollection): { fc: FeatureCollection; from: number | null } {
+export async function toWgs84(
+  fc: FeatureCollection,
+  getProj4: GetProj4 | undefined,
+): Promise<{ fc: FeatureCollection; from: number | null }> {
   const code = declaredEpsg(fc);
   if (code === 0 || (code !== null && AS_IS.has(code))) return { fc: stripCrs(fc), from: null };
   if (code === null) {
@@ -68,7 +78,9 @@ export function toWgs84(fc: FeatureCollection): { fc: FeatureCollection; from: n
   }
   const definition = DEFINITIONS[code];
   if (!definition) throw new Error(`the coordinates are in EPSG:${code}, a system the plugin cannot convert`);
-  const convert = proj4(definition, "WGS84").forward;
+  if (!getProj4) throw new Error(`the coordinates are in EPSG:${code}, and this GeoLibre gives plugins no proj4 to convert them`);
+  // Definitions are passed as strings, never registered: the host's registry is shared.
+  const convert = (await getProj4()).default(definition, "WGS84").forward;
   const mapped: FeatureCollection = {
     ...stripCrs(fc),
     features: fc.features.map((f: Feature) => ({ ...f, geometry: mapGeometry(f.geometry, convert) as Geometry })),

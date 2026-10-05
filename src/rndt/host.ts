@@ -1,6 +1,7 @@
 import type { Feature, FeatureCollection, Geometry } from "geojson";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import type { GeoLibreAppAPI } from "../lib/geolibre/host-api";
+import type { GetProj4 } from "./crs";
 import type { Bbox } from "./query";
 
 /**
@@ -63,6 +64,8 @@ export interface RndtHostExtras {
   /** The project as it would be saved: its layers carry their source (a WMS: `url` and `layers`). */
   getProjectSnapshot?: () => { layers?: unknown[] };
   /** Save a text file through the system "Save as" dialog (GeoLibre 3.1.0). */
+  /** GeoLibre's proj4 library (3.3.0), loaded on first call. */
+  getProj4?: GetProj4;
   exportTextFile?: (
     filename: string,
     content: string,

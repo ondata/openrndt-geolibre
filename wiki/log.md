@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-10-05
+* **Update**: [proj4 from GeoLibre](decisions/proj4-in-the-bundle.md) (was "proj4 in the bundle"), [Coordinate systems converted](reference/coordinate-systems.md), [GeoLibre hooks used](reference/geolibre-hooks.md): the plugin uses `app.getProj4()` (#29).
 * **Update**: [Requests to GeoLibre](upstream/geolibre-requests.md), [Strip credentials](limits/strip-credentials.md): #2944, the Elevation Profile's default state counted as 4 credentials.
 * **Update**: [Add layers to the map](guides/add-layers.md), [GeoLibre hooks used](reference/geolibre-hooks.md): layers marked not queryable are added as such (#32).
 * **Update**: [An update needs a reinstall](limits/update-needs-reinstall.md), [Install the plugin](guides/install.md): GeoLibre 3.3.0 offers Update, tried in Desktop.

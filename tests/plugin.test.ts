@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import type { FeatureCollection } from "geojson";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import plugin from "../src/geolibre";
 import type { GeoLibreRightPanelRegistration } from "../src/lib/geolibre/host-api";
@@ -447,6 +448,39 @@ describe("RNDT panel", () => {
     expect(getFeature.searchParams.get("COUNT")).toBe("22521");
     expect(host.addGeoJsonLayer).toHaveBeenCalled();
     expect(item.textContent).toContain("Added 1 of 22,521 features");
+  });
+
+  it("converts WFS features in a projected system with the host's proj4", async () => {
+    const features = JSON.stringify({
+      type: "FeatureCollection",
+      crs: { type: "name", properties: { name: "urn:ogc:def:crs:EPSG::3003" } },
+      features: [{ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: [1684025.02199723, 4847704.06671932] } }],
+    });
+    const { host, container } = await mountPanel((url) =>
+      url.includes("/rest/metadata/search")
+        ? fixture("search-alberi.json")
+        : /RESULTTYPE=hits/i.test(url)
+          ? '<wfs:FeatureCollection numberMatched="1" numberReturned="0"/>'
+          : /REQUEST=GetFeature/i.test(url)
+            ? features
+            : fixture("wfs-fvg-200.xml"),
+    );
+    host.getProj4 = vi.fn(() => import("proj4"));
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const card = Array.from(container.querySelectorAll<HTMLElement>(".ordt-result")).find((li) =>
+      Array.from(li.querySelectorAll(".ordt-badge-service")).some((b) => b.textContent === "WFS"),
+    )!;
+    const item = openDetail(card);
+    await flush();
+    Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent === "Add features")!.click();
+    for (let i = 0; i < 4; i++) await flush();
+
+    expect(host.getProj4).toHaveBeenCalledTimes(1);
+    const data = vi.mocked(host.addGeoJsonLayer!).mock.calls[0][1] as FeatureCollection;
+    const [lon, lat] = (data.features[0].geometry as { coordinates: number[] }).coordinates;
+    expect(lon).toBeCloseTo(11.2857, 3);
+    expect(lat).toBeCloseTo(43.7594, 3);
   });
 
   it("dresses WFS features with the server's SLD when the host can import a style", async () => {

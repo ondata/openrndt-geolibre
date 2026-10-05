@@ -47,6 +47,6 @@ The conversions from Monte Mario and ED50 use 7-parameter shifts, which are off 
 
 # Weight
 
-proj4 is in the plugin's bundle: see [proj4 in the bundle](../decisions/proj4-in-the-bundle.md).
+The conversion uses GeoLibre's own proj4, not a copy in the plugin: see [proj4 from GeoLibre](../decisions/proj4-in-the-bundle.md).
 
 [^log]: LOG, 2026-10-02
