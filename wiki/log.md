@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-10-05
+* **Update**: [Requests to GeoLibre](upstream/geolibre-requests.md): #2944 closed by #2946; #2949 opened.
 * **Update**: [Registry status](upstream/registry-status.md): 0.3.1 is in the registry (opengeos/geolibre-plugins#93).
 * **Update**: [Services that fail](limits/services-that-fail.md): the DNS check goes to `dns.google`, said in the README too.
 * **Update**: [Registry status](upstream/registry-status.md): 0.3.1 in opengeos/geolibre-plugins#93.
