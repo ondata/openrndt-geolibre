@@ -22,7 +22,7 @@ sources:
 
 # Since GeoLibre 3.3.0
 
-Manage Plugins offers the new version with an **Update** button, and Update loads it. Tried in GeoLibre Desktop 3.3.0 on Windows on 2026-10-05, with the registry copy.[^log] It comes from [opengeos/GeoLibre#2835](https://github.com/opengeos/GeoLibre/pull/2835).[^pr2835] What follows holds for GeoLibre before 3.3.0.
+Manage Plugins offers the new version with an **Update** button, and Update loads it. Tried in GeoLibre Desktop 3.3.0 on Windows on 2026-10-05, with the registry copy.[^log] At that start Diagnostics still logs "changed since you last trusted it … uninstall it, then install it again": ignore it and use Update (asked to reword in [opengeos/GeoLibre#2958](https://github.com/opengeos/GeoLibre/issues/2958)). It comes from [opengeos/GeoLibre#2835](https://github.com/opengeos/GeoLibre/pull/2835).[^pr2835] What follows holds for GeoLibre before 3.3.0.
 
 # What the user sees
 
