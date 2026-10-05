@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-10-05
+* **Update**: [Services that fail](limits/services-that-fail.md): the DNS check goes to `dns.google`, said in the README too.
 * **Update**: [Registry status](upstream/registry-status.md): 0.3.1 in opengeos/geolibre-plugins#93.
 * **Update**: [Release](development/release.md): the zip carries a minified bundle and the catalog screenshots (0.3.1).
 * **Update**: [Add layers to the map](guides/add-layers.md), [GeoLibre hooks used](reference/geolibre-hooks.md): provenance metadata on WMS and ArcGIS image layers (#36).

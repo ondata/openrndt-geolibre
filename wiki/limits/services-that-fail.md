@@ -33,6 +33,8 @@ sources:
 | An ArcGIS server draws no test image | "The server did not draw a test image in EPSG:3857." | try again later |
 | A record of type service declares no endpoint, only web pages | only "Other links" are listed | none: there is nothing to add |
 
+Whether a name exists is asked, after a failed request only, to Google's public DNS-over-HTTPS resolver (`https://dns.google/resolve`, `nameIsMissing` in `src/rndt/host.ts`): it receives the server's name and nothing else. An unreachable resolver counts as "the name exists".
+
 # The cadastral WFS
 
 The WFS of Agenzia delle Entrate (`wfs.cartografia.agenziaentrate.gov.it`) offers GML only, and GeoLibre's own WFS dialog fails on it too ("The service returned an XML error instead of features"), tried in GeoLibre Desktop 3.2.0 on 2026-10-03. Asked directly on the same day, the service:[^log]

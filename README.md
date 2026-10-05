@@ -54,7 +54,7 @@ When a service fails, the panel offers **Copy error report**: a ready-to-paste e
 - **Share**: in the ⋯ of the results header (the search, or the record open) and of a record's detail view (that record), a GeoLibre web link that opens the same search for anyone, through the system share sheet or copied: see [Open a search from a link](#open-a-search-from-a-link).
 - **For an AI agent**: **Copy for an agent**, in the ⋯ of the results header, copies the search as Markdown: the filters in words, the `curl` command, the records of the page as a table and how to go on with [openrndt](https://github.com/ondata/openrndt).
 - **Contact**: in the detail view, **Contact** next to the organisation shows whom the record names as its point of contact and copies a ready email (in Italian) for any request: a question on the data, its licence, an update. With no address in the record, the email asks RNDT whom to write to.
-- **Errors**: when a server is gone (its name is not in the DNS) the panel says so; **Copy error report** prepares an email for the record's contact.
+- **Errors**: when a server is gone (its name is not in the DNS) the panel says so: after a failed request it asks Google's public DNS-over-HTTPS resolver (`dns.google`) whether the server's name exists, sending only that name; **Copy error report** prepares an email for the record's contact.
 - **Settings** (⚙ in the footer, off by default, stored on your computer only): log the service URLs that fail and export the log as JSON Lines.
 
 ## Open a search from a link
