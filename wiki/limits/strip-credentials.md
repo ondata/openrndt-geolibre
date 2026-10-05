@@ -1,13 +1,13 @@
 ---
 type: Limit
 title: Strip credentials
-description: When a project is saved GeoLibre counts the plugin's saved search as possible credentials; stripping them, or sharing the project, leaves the search out.
+description: Before GeoLibre 3.3.0, and still for the development copy, GeoLibre counts the plugin's saved search as possible credentials; stripping them, or sharing the project, leaves the search out.
 tags: [project, save, share, credentials]
 status: stable
 sources:
   - id: log
     resource: ../../LOG.md
-    title: LOG, 2026-10-03
+    title: LOG, 2026-10-03 and 2026-10-05
   - id: geolibre-credentials
     resource: https://github.com/opengeos/GeoLibre/blob/main/packages/core/src/credentials.ts
     title: GeoLibre, redaction of project credentials
@@ -18,6 +18,12 @@ sources:
     resource: https://github.com/opengeos/GeoLibre/pull/2836
     title: opengeos/GeoLibre#2836
 ---
+
+# Since GeoLibre 3.3.0
+
+The registry copy is no longer affected. Tried in GeoLibre Desktop 3.3.0 on Windows on 2026-10-05, with the registry copy (0.2.0): saving asks no "Strip credentials?", and the reopened project brings back the same search and the same open record.[^log] The registry entry declares `publishableSettings: true` ([#27](https://github.com/ondata/openrndt-geolibre/issues/27)), and GeoLibre 3.3.0 reads it ([opengeos/GeoLibre#2836](https://github.com/opengeos/GeoLibre/pull/2836)).[^pr2836]
+
+What follows still holds for the development copy, which is not in the registry, and for GeoLibre before 3.3.0.
 
 # The limit
 
@@ -40,8 +46,8 @@ Choose **Keep in file**. The state holds no key and no password: only the search
 
 Asked in [opengeos/GeoLibre#2821](https://github.com/opengeos/GeoLibre/issues/2821): a way for a plugin outside the core to have its state kept. See [Requests to GeoLibre](../upstream/geolibre-requests.md).
 
-Closed by [opengeos/GeoLibre#2836](https://github.com/opengeos/GeoLibre/pull/2836), merged on 2026-10-03 and not in a release on 2026-10-04: a registry entry can declare `publishableSettings`, `true` or a list of state keys. GeoLibre reads it from the registry only, keeps that state in stripped, shared and exported projects and no longer counts it in the prompt; a credential-named field in it is still dropped.[^pr2836] None of the plugin's state keys is such a name. Our registry entry does not declare it yet: [#27](https://github.com/ondata/openrndt-geolibre/issues/27). The development copy is not in the registry, so its state stays stripped.
+Closed by [opengeos/GeoLibre#2836](https://github.com/opengeos/GeoLibre/pull/2836), merged on 2026-10-03 and released in GeoLibre 3.3.0 (2026-10-05): a registry entry can declare `publishableSettings`, `true` or a list of state keys. GeoLibre reads it from the registry only, keeps that state in stripped, shared and exported projects and no longer counts it in the prompt; a credential-named field in it is still dropped.[^pr2836] None of the plugin's state keys is such a name. Our registry entry declares `publishableSettings: true` since 0.2.0 (opengeos/geolibre-plugins#78). The development copy is not in the registry, so its state stays stripped.
 
-[^log]: LOG, 2026-10-03
+[^log]: LOG, 2026-10-03 and 2026-10-05
 [^geolibre-credentials]: GeoLibre, redaction of project credentials
 [^pr2836]: opengeos/GeoLibre#2836

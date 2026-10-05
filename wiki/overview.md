@@ -26,7 +26,7 @@ It is the GeoLibre counterpart of the [openrndt](https://github.com/ondata/openr
 |---|---|
 | Plugin id | `openrndt-geolibre` |
 | Name in GeoLibre | RNDT catalogue |
-| Minimum GeoLibre | 3.2.0 |
+| Minimum GeoLibre | 3.3.0 |
 | Renderer | MapLibre only |
 | Status | beta, open for testing |
 | License | MIT |

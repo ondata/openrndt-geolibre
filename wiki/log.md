@@ -1,5 +1,10 @@
 # Update Log
 
+## 2026-10-05
+* **Update**: [An update needs a reinstall](limits/update-needs-reinstall.md), [Install the plugin](guides/install.md): GeoLibre 3.3.0 offers Update, tried in Desktop.
+* **Update**: [Strip credentials](limits/strip-credentials.md): with GeoLibre 3.3.0 the registry copy keeps its search, tried in Desktop (#27 closed).
+* **Update**: [GeoLibre hooks used](reference/geolibre-hooks.md), [overview](overview.md), [Install the plugin](guides/install.md), [Add layers to the map](guides/add-layers.md): minimum GeoLibre 3.3.0 (#35); hooks checked at `v3.3.0`, with the 3.3.0 calls not used yet.
+
 ## 2026-10-04
 * **Update**: [Requests to GeoLibre](upstream/geolibre-requests.md): #2886, #2887, #2888 closed by #2889, #2890, #2896, merged; #32 opened for `queryable: false`.
 * **Update**: [Registry status](upstream/registry-status.md): 0.2.0 is in the registry (opengeos/geolibre-plugins#78); [URL parameters](reference/url-parameters.md), [Share a search](guides/share-a-search.md) and the README name 0.2.0.

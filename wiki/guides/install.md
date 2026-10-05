@@ -15,7 +15,7 @@ sources:
 
 # Requirements
 
-[GeoLibre](https://github.com/opengeos/GeoLibre/releases) 3.2.0 or later, Desktop or web (`https://web.geolibre.app`).
+[GeoLibre](https://github.com/opengeos/GeoLibre/releases) 3.3.0 or later, Desktop or web (`https://web.geolibre.app`).
 
 # From Manage Plugins
 
@@ -27,7 +27,7 @@ This is the way to prefer: a project saved afterwards carries the address of the
 
 # After a new version in the registry
 
-When the registry gets a new version, GeoLibre does not offer it as an update to who has the plugin already. At the next start the plugin is not loaded: Manage Plugins shows it as "Failed", with "Plugin at '…/plugin.json' changed since you last trusted it and was not loaded", and it is missing from the Plugins menu. In Manage Plugins uninstall it and install it again. Why: [An update needs a reinstall](../limits/update-needs-reinstall.md).
+Since GeoLibre 3.3.0, Manage Plugins offers the new version with an **Update** button; tried in Desktop on 2026-10-05. Before 3.3.0 the plugin is not loaded at the next start and Manage Plugins shows it as "Failed" ("Plugin at '…/plugin.json' changed since you last trusted it and was not loaded"): uninstall it and install it again. See [An update needs a reinstall](../limits/update-needs-reinstall.md).
 
 # In the web version
 

@@ -15,13 +15,13 @@ sources:
     resource: ../../src/lib/geolibre/host-api.ts
     title: Plugin API types from the template
   - id: geolibre-types
-    resource: https://github.com/opengeos/GeoLibre/blob/v3.2.0/packages/plugins/src/types.ts
-    title: GeoLibre 3.2.0, plugin types
+    resource: https://github.com/opengeos/GeoLibre/blob/v3.3.0/packages/plugins/src/types.ts
+    title: GeoLibre 3.3.0, plugin types
 ---
 
 # Minimum version
 
-GeoLibre 3.2.0, declared as `minGeoLibreVersion` in the registry entry. Every hook below is in GeoLibre's plugin types at tag `v3.2.0` (checked on 2026-10-03).[^geolibre-types]
+GeoLibre 3.3.0, to be declared as `minGeoLibreVersion` in the registry entry with the next registry update; the entry still says 3.2.0 ([#35](https://github.com/ondata/openrndt-geolibre/issues/35)). Every hook below is in GeoLibre's plugin types at tag `v3.3.0` (checked on 2026-10-05).[^geolibre-types]
 
 # Declared by the plugin
 
@@ -55,15 +55,25 @@ GeoLibre 3.2.0, declared as `minGeoLibreVersion` in the registry entry. Every ho
 
 Every method except `registerRightPanel` is called only if present.[^host]
 
-# What GeoLibre 3.2.0 does not give a plugin
+# In GeoLibre 3.3.0, not used yet
 
-- A way to be activated by `?plugin=`: built-in plugins only.
-- Its own proj4.
-- A way to keep its project state through "Strip credentials".
-- A call to add GeoLibre's own WFS layer: the API has `addGeoJsonLayer`, `addWmsLayer`, `addTileLayer`, `addWmtsLayer`, `addCogLayer` and `addZarrLayer`, nothing for a WFS.
-- A call to mark the project as modified: none was found in the plugin types (see [A search is not a project change](../limits/unsaved-search.md)).
+Asked upstream from this plugin and released in 3.3.0 (see [Requests to GeoLibre](../upstream/geolibre-requests.md)), or added by the maintainers:
 
-The first three and the WFS call were asked upstream and added on `main` after 3.2.0 (2026-10-03): `?plugin=` for registry plugins, `getProj4()`, `publishableSettings` in the registry entry, `addWfsLayer()`. Not in a release on 2026-10-04, and the plugin uses none yet: see [Requests to GeoLibre](../upstream/geolibre-requests.md).
+| Method | What it gives | Here |
+|---|---|---|
+| `getProj4` | the host's proj4 | [#29](https://github.com/ondata/openrndt-geolibre/issues/29) |
+| `addWfsLayer` | GeoLibre's own WFS layer, GML included | [#28](https://github.com/ondata/openrndt-geolibre/issues/28) |
+| `addWmsLayer({ queryable })` | no GetFeatureInfo on a layer that is not queryable | [#32](https://github.com/ondata/openrndt-geolibre/issues/32) |
+| `metadata` on `addWmsLayer`, `addWfsLayer`, `addTileLayer` | the layer keeps where it comes from | not planned yet |
+| `registerTranslations` | the plugin's own strings per language | [#3](https://github.com/ondata/openrndt-geolibre/issues/3) |
+| `registerMenuContribution` | items in Add Data, Processing or Controls | not planned yet |
+| `nativeFetch` | Desktop only: any method, no CORS, a cookie jar | no use found |
 
-[^geolibre-types]: GeoLibre 3.2.0, plugin types
+`?plugin=` for registry plugins and `publishableSettings` in the registry entry need nothing in the plugin's code.
+
+# What GeoLibre 3.3.0 does not give a plugin
+
+- A call to mark the project as modified: none in the plugin types at `v3.3.0` (see [A search is not a project change](../limits/unsaved-search.md)).
+
+[^geolibre-types]: GeoLibre 3.3.0, plugin types
 [^host]: Host methods beyond the template's API
