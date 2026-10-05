@@ -73,7 +73,7 @@ Asked upstream from this plugin and released in 3.3.0 (see [Requests to GeoLibre
 
 # What GeoLibre 3.3.0 does not give a plugin
 
-- `metadata` on `addGeoJsonLayer` ([#37](https://github.com/ondata/openrndt-geolibre/issues/37)), and a way to fill a layer's descriptive metadata (`descriptiveMetadata`: title, abstract, keywords, contact, links), which only the user or Python can set.
+- `metadata` on `addGeoJsonLayer`, and `descriptiveMetadata` (title, abstract, keywords, contact, links: the form of the Metadata dialog, exported as STAC) on the add calls, which only the user or Python can set: to ask, [#37](https://github.com/ondata/openrndt-geolibre/issues/37).
 - A call to mark the project as modified: none in the plugin types at `v3.3.0` (see [A search is not a project change](../limits/unsaved-search.md)).
 
 [^geolibre-types]: GeoLibre 3.3.0, plugin types
