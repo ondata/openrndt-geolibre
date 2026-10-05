@@ -17,7 +17,7 @@ sources:
 
 1. Set the same version in three files: `src/rndt/constants.ts` (`PLUGIN_VERSION`), `geolibre-plugin/plugin.json`, `package.json` (and `package-lock.json`). A test fails when the entry and `plugin.json` disagree: GeoLibre refuses a plugin whose manifest and export do not match.
 2. Run `npm test`, `npx tsc --noEmit -p .` and `npm run lint`.
-3. `npm run package:geolibre` writes the zip.
+3. `npm run package:geolibre` writes the zip: `plugin.json`, the minified `dist/` (the registry serves it as built) and the images in `geolibre-plugin/screenshots/`, which the registry entry lists under `screenshots` for the catalog page (PNG, JPEG or WebP, at most 1 MiB each, up to four).
 4. Add the release to `LOG.md`; commit as `chore: release <version>`; push.
 5. Create the GitHub release `v<version>` with the zip attached and the changes since the previous version.
 

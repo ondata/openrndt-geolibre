@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-10-05
+* **Update**: [Release](development/release.md): the zip carries a minified bundle and the catalog screenshots (0.3.1).
 * **Update**: [Add layers to the map](guides/add-layers.md), [GeoLibre hooks used](reference/geolibre-hooks.md): provenance metadata on WMS and ArcGIS image layers (#36).
 * **Update**: [proj4 from GeoLibre](decisions/proj4-in-the-bundle.md) (was "proj4 in the bundle"), [Coordinate systems converted](reference/coordinate-systems.md), [GeoLibre hooks used](reference/geolibre-hooks.md): the plugin uses `app.getProj4()` (#29).
 * **Update**: [Requests to GeoLibre](upstream/geolibre-requests.md), [Strip credentials](limits/strip-credentials.md): #2944, the Elevation Profile's default state counted as 4 credentials.

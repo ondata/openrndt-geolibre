@@ -10,7 +10,7 @@ export const PLUGIN_ID = DEV_COPY ? "openrndt-geolibre-dev" : "openrndt-geolibre
 export const PLUGIN_NAME = DEV_COPY ? "RNDT catalogue (dev)" : "RNDT catalogue";
 /** Title of the panel and label of the toolbar menu. */
 export const PLUGIN_LABEL = DEV_COPY ? "RNDT (dev)" : "RNDT";
-export const PLUGIN_VERSION = "0.3.0";
+export const PLUGIN_VERSION = "0.3.1";
 
 /** Right-panel id, unique across plugins. */
 export const PANEL_ID = `${PLUGIN_ID}-search`;

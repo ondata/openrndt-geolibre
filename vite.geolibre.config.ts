@@ -86,11 +86,13 @@ export default defineConfig(({ mode }) => ({
       external: [],
       output: {
         assetFileNames: () => "style.css",
+        // Vite leaves whitespace in an "es" library build; the registry serves the bundle as built.
+        minify: true,
       },
     },
     cssCodeSplit: false,
     sourcemap: false,
-    minify: false,
+    minify: true,
   },
   // add bundlePluginAssets() here to enable the recipe above
   plugins: mode === "dev" ? [writeDevManifest()] : [],

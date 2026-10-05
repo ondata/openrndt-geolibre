@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -16,6 +16,12 @@ const entries = [
 
 if (manifest.style) {
   entries.push([manifest.style, join(bundleDir, manifest.style)]);
+}
+
+// Images for the registry's catalog page (`screenshots` in the registry entry).
+const screenshotsDir = join(bundleDir, "screenshots");
+for (const name of (await readdir(screenshotsDir).catch(() => [])).sort()) {
+  if (/\.(png|jpe?g|webp)$/i.test(name)) entries.push([`screenshots/${name}`, join(screenshotsDir, name)]);
 }
 
 await mkdir(bundleDir, { recursive: true });
