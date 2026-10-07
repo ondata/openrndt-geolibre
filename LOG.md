@@ -1,5 +1,12 @@
 # LOG
 
+## 2026-10-07
+
+- **Footprints stand down while GeoEditor is on** (#41): `clickToolActive()` also true while the map holds maplibre-gl-geo-editor's control (`.geo-editor-control`, added and removed with GeoEditor); seen by the user on web.geolibre.app, a layer in "Editing geometry" and a click opened the footprints menu. Same rule as Identify (#38). Test fails without the change. Not released.
+- **Recent searches close on a press anywhere outside the search bar** (#42): the `mousedown` listener moves from the panel root to `document` (capture), on while the list is open, removed by `destroy`; before, a click on the map left it open. Test fails without the change; 454 pass. Not released.
+- **Ctrl+V does nothing in the search box while GeoEditor is active** (user): maplibre-gl-geo-editor 0.11.1 registers a `document` `keydown` handler in `onAdd` that takes Ctrl/Cmd + C, V, Z, Y with `preventDefault()` even in text fields (`isInputField` only guards Delete/Backspace); closing its toolbar keeps it, Deactivate removes it (synthetic `keydown` on web.geolibre.app). Diagnostics showed "Clipboard is empty" at each press. Right-click → Paste also fails with the toolbar open (user), not reproduced headless. Not the plugin's: [opengeos/maplibre-gl-geo-editor#50](https://github.com/opengeos/maplibre-gl-geo-editor/issues/50).
+- **[opengeos/GeoLibre#3020](https://github.com/opengeos/GeoLibre/issues/3020)**: `getActiveMapTool()` (opengeos/GeoLibre#2966, merged 2026-10-05, closes #2949, not released) knows `"identify"` and `"feature-selection"`; asked to report GeoEditor too.
+
 ## 2026-10-05
 
 - **README rewritten as a showcase** (#40): for non-specialists, six examples of growing complexity, each web link tried on web.geolibre.app in a clean browser with the registry copy: `idrografia` 1,131 records; beaches of Sardinia (`spiagge` + box) 15; landslides, data, WMS, open data 159; Florence tram worksites by id, Add to map gives "Added 76 features, converted from EPSG:3003."; Pollina cadastral parcels in Desktop (from the 3.3.0 tries). Gist project, version notes, parameter table, manual install, source map and registry steps out of the README: they are in the wiki. New screenshot `docs/images/results-footprints.png`. Wiki [Share a search](wiki/guides/share-a-search.md) without the gist.
