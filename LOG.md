@@ -2,6 +2,7 @@
 
 ## 2026-10-07
 
+- **[opengeos/GeoLibre#3020](https://github.com/opengeos/GeoLibre/issues/3020) closed by [PR #3029](https://github.com/opengeos/GeoLibre/pull/3029)** (giswqs, merged 19:20 UTC, not released): `getActiveMapTool()` returns `"geo-editor"` while the GeoEditor plugin is on ("Edit geometry" included), `onActiveMapToolChange` fires on and off; precedence feature selection, Identify, GeoEditor. Opened #43: switch `clickToolActive()` to the API once a release ships #2966 and #3029, DOM checks as fallback.
 - **Release 0.3.3**: footprints stand down while GeoEditor is on (#41), recent searches close on a press outside the search bar (#42); both tried by the user in Desktop with the development copy. Zip 1,089,679 bytes, sha256 `eb5105314821fc098da202962565d03088f22948589d7e9c3f37202e67d6ccfe`. Registry not updated yet (0.3.2).
 - **Footprints stand down while GeoEditor is on** (#41): `clickToolActive()` also true while the map holds maplibre-gl-geo-editor's control (`.geo-editor-control`, added and removed with GeoEditor); seen by the user on web.geolibre.app, a layer in "Editing geometry" and a click opened the footprints menu. Same rule as Identify (#38). Test fails without the change. Tried by the user in Desktop.
 - **Recent searches close on a press anywhere outside the search bar** (#42): the `mousedown` listener moves from the panel root to `document` (capture), on while the list is open, removed by `destroy`; before, a click on the map left it open. Test fails without the change; 454 pass. Tried by the user in Desktop.
