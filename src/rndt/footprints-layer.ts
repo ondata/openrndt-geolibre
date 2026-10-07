@@ -45,7 +45,7 @@ export class FootprintsLayer {
   };
   private readonly onMove = (event: MapLayerMouseEvent) => {
     if (this.clickToolActive()) {
-      // Identify's own crosshair stays, and nothing of ours is shown.
+      // The tool's own cursor stays, and nothing of ours is shown.
       this.setHover(null);
       this.hideTooltip();
       return;
@@ -92,15 +92,21 @@ export class FootprintsLayer {
   }
 
   /**
-   * GeoLibre's Identify is on: a click on the map queries a layer, so the
-   * footprints answer neither click nor hover, as GeoLibre's own handlers do.
+   * A GeoLibre map tool is on: Identify, where a click queries a layer, or
+   * GeoEditor; the footprints then answer neither click nor hover, as
+   * GeoLibre's own handlers do.
    * The plugin API does not say which map tool is active
    * (opengeos/GeoLibre#2949); Identify sets an inline `cursor: crosshair` on the
    * canvas container (`setMapLibreIdentifyCursor`, GeoLibre 3.3.0), which this
-   * layer never writes.
+   * layer never writes. GeoEditor, whose clicks draw and edit geometry, is on
+   * while its map control (`geo-editor-control`, maplibre-gl-geo-editor 0.11.1)
+   * is on the map (opengeos/GeoLibre#3020).
    */
   private clickToolActive(): boolean {
-    return this.map.getCanvasContainer().style.cursor === "crosshair";
+    return (
+      this.map.getCanvasContainer().style.cursor === "crosshair" ||
+      this.map.getContainer().querySelector(".geo-editor-control") !== null
+    );
   }
 
   /**

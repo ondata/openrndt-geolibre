@@ -253,6 +253,32 @@ describe("FootprintsLayer", () => {
       expect(onSelect).toHaveBeenCalledWith("italy");
     });
 
+    it("answers neither click nor hover while GeoLibre's GeoEditor is on", () => {
+      const map = fakeMap();
+      const onSelect = vi.fn();
+      const onHover = vi.fn();
+      new FootprintsLayer(map as unknown as MapLibreMap, onSelect, onHover).setData(data);
+      // The map control maplibre-gl-geo-editor 0.11.1 adds while GeoEditor is on.
+      const editor = document.createElement("div");
+      editor.className = "maplibregl-ctrl maplibregl-ctrl-group geo-editor-control";
+      map.container.append(editor);
+      map.fire("mousemove", hit("italy", "palermo"));
+      expect(onHover).not.toHaveBeenCalled();
+      expect(map.container.querySelector(".ordt-footprint-tooltip")).toBeNull();
+      expect(map.canvas.style.cursor).toBe("");
+      map.fire("click", hit("italy"));
+      map.fire("click", hit("italy", "sicily"));
+      expect(onSelect).not.toHaveBeenCalled();
+      expect(map.container.querySelector(".ordt-footprint-menu")).toBeNull();
+
+      // GeoEditor off: footprints answer again.
+      editor.remove();
+      map.fire("mousemove", hit("palermo"));
+      expect(map.canvas.style.cursor).toBe("pointer");
+      map.fire("click", hit("italy"));
+      expect(onSelect).toHaveBeenCalledWith("italy");
+    });
+
     it("shows the smallest title on hover and marks it", () => {
       const map = fakeMap();
       const onHover = vi.fn();
