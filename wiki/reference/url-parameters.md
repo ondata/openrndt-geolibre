@@ -26,7 +26,7 @@ sources:
 | `rndt` | the text; a record id opens that record | text |
 | `rndtBbox` | `west,south,east,north` in WGS84 degrees; the map moves there | area |
 | `rndtWithin` | `1` | Inside the area |
-| `rndtKind` | `data`, `services` | type |
+| `rndtKind` | `data`, `services`, `all` (the default) | type |
 | `rndtService` | `view`, `download`, `discovery`, `transformation`, `invoke`, `other`, comma separated | service types |
 | `rndtAs` | `WMS`, `WFS`, `ArcGIS REST` (`arcgis`), comma separated | available as |
 | `rndtMode` | `any`, `lucene` | match mode |
@@ -46,7 +46,7 @@ sources:
 
 - A link starts from an empty form: every field it does not name is at its default, so the same link gives the same search to everyone (from version 0.2.0; before, the other filters stayed as they were).
 - Without `rndtBbox` the area is **Anywhere**: see [the decision](../decisions/link-searches-anywhere.md).
-- `rndtTheme` and `rndtOpen` do nothing with `rndtKind=services`: the catalogue's theme and open data fields describe data, as in the form.
+- `rndtTheme` and `rndtOpen` do nothing with `rndtKind=services`: the catalogue gives services no theme and no licence (0 of 3,163 services have `INSPIRETheme_s` or `isOpendata`, 2026-10-07), as in the form. The panel shows no chip for them and offers **Search datasets with a WMS**, which keeps them and searches datasets instead (#33).
 - `rndtWithin` without `rndtBbox`, and `rndtDate` without `rndtFrom` or `rndtTo`, change nothing.
 - With `rndtBbox` the map moves to the box instead of moving to Italy.
 - The numbers of the box can be separated by commas, semicolons or spaces. A box that is not valid (not four numbers, out of range, west not less than east) is ignored with a warning in the browser console, and so is any other value that is not valid; the rest is still searched.

@@ -31,6 +31,8 @@ Type a text and press **Search**. With no text the search returns the whole cata
 | Advanced: Search in | Anywhere, Title, Abstract, Lineage, Use limitation |
 | Advanced | INSPIRE theme, keywords, organisation (show only or hide), open data only, dates, sort |
 
+With Type **Services**, INSPIRE theme and Open data only are greyed out: the catalogue gives services neither (0 of 3,163, 2026-10-07), while datasets have both and list their WMS and WFS. Set before switching to Services, or by a link, they stay in the form and come back with Data or All; above the results the panel says they were not applied and offers **Search datasets with a WMS** (a WFS for the Download service type), which switches to Data, ticks Available as and searches again (#33). For example, Parcelle catastali: 21 services declare the theme as a keyword, 7,738 datasets have it and a WMS.
+
 "Current map view" is the default area. The "?" buttons and **Search help** explain each filter with examples that can be clicked. The exact query each filter becomes is in [Search form and query](../reference/search-query.md).
 
 # A record id

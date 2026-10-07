@@ -935,6 +935,11 @@ em.ordt-history-text {
   display: contents;
 }
 
+/* Theme or open data left out of a services search (#33): its own line under the chips. */
+.ordt-skipped {
+  flex-basis: 100%;
+}
+
 .ordt-chip {
   display: inline-flex;
   align-items: center;

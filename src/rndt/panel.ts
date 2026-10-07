@@ -658,6 +658,10 @@ const THEME_HELP = [
   "One of the 34 INSPIRE themes, as declared by the publisher. Almost every dataset has one; services have none, so with Services this filter is ignored.",
 ];
 
+/** Under the two fields greyed out with Services (#33). */
+const SERVICES_NO_THEME = "Not with Services: the catalogue gives services no theme.";
+const SERVICES_NO_LICENCE = "Not with Services: the catalogue gives services no licence.";
+
 const KEYWORDS_HELP = [
   "Keywords as the publisher wrote them. The match is exact and case-sensitive: opendata finds thousands of records, OpenData only a few.",
   "Separate several keywords with commas: a record needs just one of them.",
@@ -750,6 +754,8 @@ export class RndtPanel {
   private summaryToggleEl!: HTMLButtonElement;
   private chipsEl!: HTMLElement;
   private clearAllEl!: HTMLButtonElement;
+  /** Under the chips: theme or open data set with Services, so not sent, and the way to datasets. */
+  private skippedEl!: HTMLElement;
   /** Number of active advanced filters, next to "Advanced filters". */
   private advancedCountEl!: HTMLElement;
   /** "Search help": the help of the fields that have no "?" of their own. */
@@ -950,7 +956,6 @@ export class RndtPanel {
     setRadio("textMode", form.textMode);
     this.field<HTMLSelectElement>("field").value = form.field;
     setRadio("kind", form.kind);
-    this.formEl.querySelector<HTMLElement>(".ordt-service-types")!.hidden = form.kind !== "services";
     setChecks("availableAs", form.availableAs);
     setChecks("serviceType", form.serviceTypes);
     this.field<HTMLSelectElement>("theme").value = form.inspireThemes[0] ?? "";
@@ -968,6 +973,21 @@ export class RndtPanel {
     this.field<HTMLInputElement>("box").value = form.bbox ? form.bbox.join(", ") : "";
     setRadio("spatialRel", form.spatialRel);
     this.syncClearButtons();
+    this.syncKind();
+  }
+
+  /**
+   * The fields that follow the Type: Service type shows with Services only;
+   * INSPIRE theme and Open data only are greyed out with Services, their
+   * values kept for Data or All. The catalogue gives services neither field
+   * (0 of 3,163 services, 2026-10-07), so the query leaves them out (#33).
+   */
+  private syncKind(): void {
+    const services = checkedValue(this.formEl, "kind") === "services";
+    this.formEl.querySelector<HTMLElement>(".ordt-service-types")!.hidden = !services;
+    this.field<HTMLSelectElement>("theme").disabled = services;
+    this.field<HTMLInputElement>("openData").disabled = services;
+    for (const note of this.formEl.querySelectorAll<HTMLElement>(".ordt-services-note")) note.hidden = !services;
     this.updateAdvancedCount();
   }
 
@@ -1068,9 +1088,7 @@ export class RndtPanel {
         h("label", { className: "ordt-check" }, h("input", { type: "checkbox", name: "serviceType", value: o.value }), o.label),
       ),
     );
-    const toggleServiceTypes = () => {
-      serviceTypes.hidden = checkedValue(this.formEl, "kind") !== "services";
-    };
+    const toggleServiceTypes = () => this.syncKind();
 
     const boxInput = h("input", {
       className: "ordt-input",
@@ -1325,6 +1343,7 @@ export class RndtPanel {
           h("span", { className: "ordt-label-head" }, "INSPIRE theme", helpToggle(themeHelp, "Help on INSPIRE themes")),
           themeHelp,
           themes,
+          h("p", { className: "ordt-note ordt-services-note", hidden: true }, SERVICES_NO_THEME),
         ),
         h(
           "div",
@@ -1376,6 +1395,7 @@ export class RndtPanel {
           helpToggle(openDataHelp, "Help on open data"),
         ),
         openDataHelp,
+        h("p", { className: "ordt-note ordt-services-note", hidden: true }, SERVICES_NO_LICENCE),
         h(
           "div",
           { className: "ordt-label" },
@@ -1694,11 +1714,13 @@ export class RndtPanel {
       },
       "Clear all",
     );
+    this.skippedEl = h("p", { className: "ordt-note ordt-skipped", hidden: true });
     return h(
       "div",
       { className: "ordt-summary ordt-small", hidden: true },
       this.chipsEl,
       h("span", { className: "ordt-summary-links" }, this.summaryToggleEl, this.clearAllEl),
+      this.skippedEl,
     );
   }
 
@@ -1976,13 +1998,14 @@ export class RndtPanel {
   /** Filters set in "Advanced filters", sort order included. */
   private advancedCount(): number {
     const mode = checkedValue(this.formEl, "textMode");
+    const services = checkedValue(this.formEl, "kind") === "services";
     return [
       mode && mode !== "all",
       this.field("field").value,
-      this.field("theme").value,
+      !services && this.field("theme").value,
       this.field("keywords").value.trim(),
       this.field("organisation").value.trim(),
-      this.field<HTMLInputElement>("openData").checked,
+      !services && this.field<HTMLInputElement>("openData").checked,
       this.field("dateFrom").value || this.field("dateTo").value,
       this.field("sort").value,
     ].filter(Boolean).length;
@@ -2019,7 +2042,7 @@ export class RndtPanel {
         clear: () => {
           setRadio("kind", "all");
           for (const box of this.formEl.querySelectorAll<HTMLInputElement>('input[name="serviceType"]')) box.checked = false;
-          this.formEl.querySelector<HTMLElement>(".ordt-service-types")!.hidden = true;
+          this.syncKind();
         },
       });
     }
@@ -2044,7 +2067,8 @@ export class RndtPanel {
         },
       });
     }
-    if (this.field("theme").value) {
+    // With Services the query leaves theme and open data out: no chip for them (#33).
+    if (this.field("theme").value && kind !== "services") {
       chips.push({ label: selected("theme"), clear: () => (this.field("theme").value = "") });
     }
     const keywords = this.field("keywords").value.trim();
@@ -2063,7 +2087,7 @@ export class RndtPanel {
         },
       });
     }
-    if (this.field<HTMLInputElement>("openData").checked) {
+    if (this.field<HTMLInputElement>("openData").checked && kind !== "services") {
       chips.push({ label: "Open data only", clear: () => (this.field<HTMLInputElement>("openData").checked = false) });
     }
     const from = this.field("dateFrom").value;
@@ -2109,6 +2133,53 @@ export class RndtPanel {
     );
     this.updateAdvancedCount();
     this.clearAllEl.hidden = chips.length === 0;
+    this.renderSkipped();
+  }
+
+  /**
+   * Theme or Open data only set with Services: the search left them out, as
+   * the catalogue gives services neither. Datasets have both and list their
+   * WMS and WFS, so the way to "services of this theme" is a dataset search
+   * with Available as: offered with one button (#33).
+   */
+  private renderSkipped(): void {
+    const services = checkedValue(this.formEl, "kind") === "services";
+    const names = [
+      this.field("theme").value ? "Theme" : "",
+      this.field<HTMLInputElement>("openData").checked ? "Open data only" : "",
+    ].filter(Boolean);
+    this.skippedEl.hidden = !services || names.length === 0;
+    if (this.skippedEl.hidden) return this.skippedEl.replaceChildren();
+    const formats = this.datasetFormats();
+    this.skippedEl.replaceChildren(
+      `${names.join(" and ")} not applied: the catalogue gives services no theme and no licence. Datasets have them, with their WMS and WFS. `,
+      h(
+        "button",
+        { className: "ordt-link", type: "button", onclick: () => this.searchDatasets(formats) },
+        `Search datasets with a ${formats.join(" or ")}`,
+      ),
+    );
+  }
+
+  /** The dataset formats that stand for the ticked service types: Download is WFS, View or none is WMS. */
+  private datasetFormats(): string[] {
+    const types = [...this.formEl.querySelectorAll<HTMLInputElement>('input[name="serviceType"]:checked')].map((box) => box.value);
+    const formats: string[] = [];
+    if (types.includes("view") || !types.includes("download")) formats.push("WMS");
+    if (types.includes("download")) formats.push("WFS");
+    return formats;
+  }
+
+  /** From a services search to datasets with the same filters and the given formats ticked under Available as. */
+  private searchDatasets(formats: string[]): void {
+    this.formEl.querySelector<HTMLInputElement>('input[name="kind"][value="data"]')!.checked = true;
+    for (const box of this.formEl.querySelectorAll<HTMLInputElement>('input[name="serviceType"]')) box.checked = false;
+    for (const box of this.formEl.querySelectorAll<HTMLInputElement>('input[name="availableAs"]')) {
+      if (formats.includes(box.value)) box.checked = true;
+    }
+    this.syncKind();
+    this.refining = true;
+    this.formEl.requestSubmit();
   }
 
   /** After a search: the chip row with a filter, the Filters link in the results header with none. */
@@ -2142,7 +2213,7 @@ export class RndtPanel {
   }
 
   private afterReset(): void {
-    this.formEl.querySelector<HTMLElement>(".ordt-service-types")!.hidden = true;
+    this.syncKind();
     // Box and Touches/Inside follow the default area (the map view).
     const where = this.field<HTMLSelectElement>("where").value;
     this.formEl.querySelector<HTMLElement>('input[name="box"]')!.hidden = where !== "box";

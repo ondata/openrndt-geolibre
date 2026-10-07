@@ -1960,6 +1960,81 @@ describe("search from a link (?rndt=, ?rndtBbox=)", () => {
   });
 });
 
+describe("Services and the filters they do not declare (#33)", () => {
+  const handle = (host: RndtHost, query: string) => plugin.handleUrlParameters!(host, new URLSearchParams(query));
+  const q = (url: string) => new URL(url).searchParams.get("q") ?? "";
+  const skipped = (container: HTMLElement) => container.querySelector<HTMLElement>(".ordt-skipped")!;
+  const theme = (container: HTMLElement) => container.querySelector<HTMLSelectElement>('select[name="theme"]')!;
+  const openData = (container: HTMLElement) => container.querySelector<HTMLInputElement>('input[name="openData"]')!;
+  const pickKind = (container: HTMLElement, kind: string) => {
+    const radio = container.querySelector<HTMLInputElement>(`input[name="kind"][value="${kind}"]`)!;
+    radio.checked = true;
+    radio.dispatchEvent(new Event("change"));
+  };
+
+  beforeEach(() => localStorage.clear());
+
+  it("shows no chip for a theme or open data that a services search does not send, and says why", async () => {
+    const { host, requested, container } = await mountPanel(() => fixture("search-services.json"));
+    await handle(host, "rndtKind=services&rndtTheme=cp&rndtOpen=1");
+    await flush();
+    expect(q(requested[0])).toBe("apiso_Type_s:service");
+    expect(chipLabels(container)).toEqual(["Services"]);
+    expect(skipped(container).hidden).toBe(false);
+    expect(skipped(container).textContent).toContain("Theme and Open data only not applied");
+    // The values stay in the form, greyed out: they come back with Data.
+    expect([theme(container).value, theme(container).disabled]).toEqual(["Parcelle catastali", true]);
+    expect([openData(container).checked, openData(container).disabled]).toEqual([true, true]);
+    expect(container.querySelector(".ordt-count")!.hasAttribute("hidden")).toBe(true);
+    plugin.deactivate(host);
+  });
+
+  it("searches datasets with a WMS and the same theme from the notice", async () => {
+    const { host, requested, container } = await mountPanel(() => fixture("search-services.json"));
+    await handle(host, "rndtKind=services&rndtTheme=cp");
+    await flush();
+    skipped(container).querySelector<HTMLButtonElement>("button")!.click();
+    await flush();
+    const sent = q(requested.at(-1)!);
+    expect(sent).toContain('INSPIRETheme_s:("Parcelle catastali")');
+    expect(sent).toContain("apiso_Type_s:(dataset OR series)");
+    expect(sent).toContain("links_s:");
+    expect(container.querySelector<HTMLInputElement>('input[name="availableAs"][value="WMS"]')!.checked).toBe(true);
+    expect(theme(container).disabled).toBe(false);
+    expect(skipped(container).hidden).toBe(true);
+    expect(chipLabels(container)).toEqual(expect.arrayContaining(["Data", "WMS"]));
+    expect(chipLabels(container)).toHaveLength(3);
+    plugin.deactivate(host);
+  });
+
+  it("turns Download into WFS when it searches datasets", async () => {
+    const { host, requested, container } = await mountPanel(() => fixture("search-services.json"));
+    await handle(host, "rndtKind=services&rndtService=download&rndtTheme=hy");
+    await flush();
+    skipped(container).querySelector<HTMLButtonElement>("button")!.click();
+    await flush();
+    const as = [...container.querySelectorAll<HTMLInputElement>('input[name="availableAs"]:checked')].map((b) => b.value);
+    expect(as).toEqual(["WFS"]);
+    expect(q(requested.at(-1)!)).toContain("Idrografia");
+    plugin.deactivate(host);
+  });
+
+  it("from the form: a theme picked before Services is kept but not shown, nor saved in recent searches", async () => {
+    const { host, container } = await mountPanel(() => fixture("search-services.json"));
+    theme(container).value = "Idrografia";
+    pickKind(container, "services");
+    expect(theme(container).disabled).toBe(true);
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    expect(chipLabels(container)).toEqual(["Services", "Map view"]);
+    const saved = JSON.parse(localStorage.getItem("openrndt-geolibre:history") ?? "[]") as { filters: string[] }[];
+    expect(saved[0].filters).toEqual(["Services", "Map view"]);
+    pickKind(container, "data");
+    expect([theme(container).value, theme(container).disabled]).toEqual(["Idrografia", false]);
+    plugin.deactivate(host);
+  });
+});
+
 describe("search saved in the project (getProjectState, applyProjectState)", () => {
   const submit = async (container: HTMLElement, text: string) => {
     container.querySelector<HTMLInputElement>('input[name="text"]')!.value = text;
