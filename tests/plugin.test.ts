@@ -2633,6 +2633,20 @@ describe("Recent searches (#25)", () => {
     expect(items(container)).toHaveLength(3);
   });
 
+  it("closes on a press outside the search bar, in the panel or anywhere else on the page", async () => {
+    localStorage.setItem(KEY, JSON.stringify([entry("alberi"), entry("ortofoto")]));
+    const { container } = await mountPanel(() => fixture("search-alberi.json"));
+    box(container).dispatchEvent(new Event("focus"));
+    mousedown(box(container));
+    expect(list(container).hidden).toBe(false);
+    // The map, GeoLibre's layer list: outside the panel.
+    mousedown(document.body);
+    expect(list(container).hidden).toBe(true);
+    box(container).dispatchEvent(new Event("focus"));
+    mousedown(container.querySelector(".ordt-footer")!);
+    expect(list(container).hidden).toBe(true);
+  });
+
   it("removes one entry with its ×, and all of them after asking", async () => {
     localStorage.setItem(KEY, JSON.stringify([entry("a"), entry("b"), entry("c")]));
     const { container } = await mountPanel(() => fixture("search-alberi.json"));

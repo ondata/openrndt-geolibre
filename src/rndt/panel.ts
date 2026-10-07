@@ -856,11 +856,6 @@ export class RndtPanel {
         event.preventDefault();
         this.app.openExternalUrl(link.href);
       });
-      // A press outside the search bar closes the list of recent searches.
-      this.root.addEventListener("mousedown", (event) => {
-        // The path, not `contains`: the list redraws itself on a press, and its old rows are detached by now.
-        if (!event.composedPath().includes(this.searchBarEl)) this.showHistory(false);
-      });
       // A click anywhere else closes the open ⋯ menus.
       this.root.addEventListener("click", (event) => {
         for (const menu of this.root!.querySelectorAll<HTMLElement>(".ordt-menu:not([hidden])")) {
@@ -985,6 +980,7 @@ export class RndtPanel {
     this.stickyObserver = null;
     this.footprintsLayer?.remove();
     this.footprintsLayer = null;
+    document.removeEventListener("mousedown", this.onPressOutsideBar, true);
     this.root?.remove();
     this.root = undefined;
   }
@@ -1479,8 +1475,17 @@ export class RndtPanel {
       this.historyTyped = false;
     }
     this.historyEl.hidden = !show;
+    // Listened on the document, not the panel: a press on the map or elsewhere in GeoLibre closes it too (#42).
+    if (show) document.addEventListener("mousedown", this.onPressOutsideBar, true);
+    else document.removeEventListener("mousedown", this.onPressOutsideBar, true);
     this.renderHistory();
   }
+
+  /** A press outside the search bar closes the list of recent searches. */
+  private readonly onPressOutsideBar = (event: MouseEvent) => {
+    // The path, not `contains`: the list redraws itself on a press, and its old rows are detached by now.
+    if (!event.composedPath().includes(this.searchBarEl)) this.showHistory(false);
+  };
 
   private renderHistory(): void {
     const input = this.field<HTMLInputElement>("text");
