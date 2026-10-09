@@ -1937,6 +1937,29 @@ describe("search from a link (?rndt=, ?rndtBbox=)", () => {
     plugin.deactivate(ctx.host);
   });
 
+  it("adds the layers of a link, each record and service read once, and says which could not be (#44)", async () => {
+    const { host, requested, container } = await mountPanel((url) =>
+      url.includes("/rest/metadata/search") ? fixture("search-services.json") : fixture("wms-piemonte-111.xml"),
+    );
+    // GeoLibre 3.2.0 and later: a layer without EPSG:3857 is asked in its own system.
+    host.importLayerStyle = vi.fn();
+    const id = "c_l219:4bfe0c85-3a26-4e3f-a6c8-88cf6f6e2dcf";
+    await handle(host, `rndtLayer=${id}~wms~Microzone&rndtLayer=${id}~wms~Nope`);
+    for (let i = 0; i < 5; i++) await flush();
+
+    expect(host.addWmsLayer).toHaveBeenCalledTimes(1);
+    expect(host.addWmsLayer).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ layers: "Microzone", metadata: expect.objectContaining({ recordId: id, serviceType: "WMS", layerName: "Microzone" }) }),
+    );
+    // No search in the link: only the record, read once, and its WMS once.
+    expect(requested.filter((u) => u.includes("/rest/metadata/search"))).toHaveLength(1);
+    expect(requested.filter((u) => /REQUEST=GetCapabilities/i.test(u))).toHaveLength(1);
+    const note = container.querySelector(".ordt-link-note")!.textContent!;
+    expect(note).toMatch(/^Added 1 of 2 layers of the link\. Could not add Nope: not found in a WMS service of /);
+    plugin.deactivate(host);
+  });
+
   it("opens the record when the text is a record id", async () => {
     const { host, container } = await mountPanel(() => fixture("search-services.json"));
     await handle(host, "rndt=c_l219:a883ab12-e713-41fe-b2a2-34c7756dc4e2");
@@ -2553,6 +2576,94 @@ describe("Share (#31)", () => {
     expect(share.textContent).toBe("Link copied");
     plugin.deactivate(host);
   });
+
+  it("puts the catalogue layers turned on in the link, bottom to top, and names the others (#44)", async () => {
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    // The browser reads every server but one: no CORS there.
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.includes("nocors.example")) throw new TypeError("Failed to fetch");
+      return new Response("");
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const { entry, host, container } = await searched("alberi");
+      const wms = (id: string, url: string, layerName: string | null) => ({
+        id,
+        name: `Layer ${id}`,
+        type: "wms",
+        visible: id !== "hidden",
+        source: { url, layers: layerName ?? "x", version: "1.3.0", crs: "EPSG:3857" },
+        metadata: { catalogue: "RNDT", recordId: "c_x:1", ...(layerName && { serviceType: "WMS", layerName }) },
+      });
+      const layers = [
+        { id: "geo", name: "Tram worksites", type: "geojson", visible: true, source: {}, metadata: {} },
+        wms("wms-b", "https://s.example/wms", "B"),
+        wms("http", "http://old.example/wms", "C"),
+        {
+          id: "arc",
+          name: "Layer arc",
+          type: "xyz",
+          visible: true,
+          source: { tiles: ["https://a.example/arcgis/rest/services/P/MapServer/export?bbox={bbox-epsg-3857}&f=image"] },
+          metadata: { recordId: "c_y:2", serviceType: "ArcGIS", layerName: "3" },
+        },
+        wms("wms-a", "https://s.example/wms", "A"),
+        wms("hidden", "https://s.example/wms", "H"),
+        wms("old", "https://s.example/wms", null),
+        wms("nocors", "https://nocors.example/wms", "N"),
+        { id: "basemap", name: "World Imagery", type: "xyz", visible: true, source: { tiles: ["https://e.example/{z}/{y}/{x}"] }, metadata: { sourceKind: "maplibre-basemap-control" } },
+      ];
+      host.getProjectSnapshot = () => ({ layers });
+      host.getLayers = () => layers.map((l) => l.id);
+      entry().click();
+      await flush();
+      await flush();
+
+      const link = new URL((writeText.mock.calls[0] as unknown as [string])[0]);
+      expect(link.searchParams.getAll("rndtLayer")).toEqual(["c_x:1~wms~A", "c_y:2~arcgis~3", "c_x:1~wms~B"]);
+      // An http server is left out without asking: web.geolibre.app is https.
+      expect(fetchMock.mock.calls.some(([url]) => url.startsWith("http://"))).toBe(false);
+      expect(fetchMock.mock.calls.some(([url]) => url.startsWith("https://a.example/") && !url.includes("{bbox"))).toBe(true);
+      const note = container.querySelector(".ordt-link-note")!.textContent!;
+      expect(note).toContain("Layers in the link: 3.");
+      expect(note).toContain("Left out: Layer nocors; Layer old; Layer http; Tram worksites.");
+      plugin.deactivate(host);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("does not wait past its budget for a server that never answers (#44)", async () => {
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    // Like a real fetch, it gives up only when its signal aborts.
+    vi.stubGlobal("fetch", (_url: string, init?: { signal?: AbortSignal }) =>
+      new Promise((_, reject) => init?.signal?.addEventListener("abort", () => reject(new DOMException("timeout", "TimeoutError")))),
+    );
+    try {
+      const { entry, host, container } = await searched("alberi");
+      const layer = {
+        id: "slow",
+        name: "Slow",
+        type: "wms",
+        visible: true,
+        source: { url: "https://slow.example/wms", layers: "S", version: "1.3.0", crs: "EPSG:3857" },
+        metadata: { recordId: "c_x:1", serviceType: "WMS", layerName: "S" },
+      };
+      host.getProjectSnapshot = () => ({ layers: [layer] });
+      host.getLayers = () => ["slow"];
+      const started = Date.now();
+      entry().click();
+      await vi.waitFor(() => expect(writeText).toHaveBeenCalled(), { timeout: 4000 });
+      expect(Date.now() - started).toBeLessThan(3500);
+      expect(new URL((writeText.mock.calls[0] as unknown as [string])[0]).searchParams.has("rndtLayer")).toBe(false);
+      expect(container.querySelector(".ordt-link-note")!.textContent).toContain("Left out: Slow.");
+      plugin.deactivate(host);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  }, 6000);
 
   it("puts the map view in the link (#44)", async () => {
     const writeText = vi.fn(async () => undefined);

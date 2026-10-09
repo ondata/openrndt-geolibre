@@ -243,16 +243,18 @@ export const BROWSER_PROBE_TIMEOUT_MS = 5000;
  * apart (it fails the CORS check too), so both schemes are simply tried.
  */
 export async function browserNeedsHttp(httpsUrl: string): Promise<boolean> {
-  const reaches = async (url: string) => {
-    try {
-      await fetch(url, { signal: AbortSignal.timeout(BROWSER_PROBE_TIMEOUT_MS) });
-      return true;
-    } catch {
-      return false;
-    }
-  };
-  if (await reaches(httpsUrl)) return false;
-  return reaches(httpsUrl.replace(/^https:/i, "http:"));
+  if (await browserReaches(httpsUrl)) return false;
+  return browserReaches(httpsUrl.replace(/^https:/i, "http:"));
+}
+
+/** True when the browser itself gets an answer from the URL, whatever its status: the server sends CORS headers. */
+export async function browserReaches(url: string, timeoutMs = BROWSER_PROBE_TIMEOUT_MS): Promise<boolean> {
+  try {
+    await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Time allowed to the one-tile test of a WMS in EPSG:3857. */

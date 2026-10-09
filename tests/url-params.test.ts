@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { INSPIRE_THEME_CODES, INSPIRE_THEMES } from "../src/rndt/constants";
 import { emptyForm, type SearchForm } from "../src/rndt/query";
-import { linkHasView, linkSearchFrom, paramsFromForm, shareUrl, URL_PARAMETER_NAMES } from "../src/rndt/url-params";
+import { linkHasView, linkLayersFrom, linkSearchFrom, paramsFromForm, shareUrl, URL_PARAMETER_NAMES } from "../src/rndt/url-params";
 
 const read = (query: string) => linkSearchFrom(new URLSearchParams(query));
 const form = (fields: Partial<SearchForm>): SearchForm => ({ ...emptyForm(), ...fields });
@@ -199,6 +199,33 @@ describe("shareUrl", () => {
       ["zoom", "12.35"],
     ]);
     expect(linkHasView(url.searchParams)).toBe(true);
+  });
+});
+
+describe("rndtLayer (#44)", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("goes in the link bottom to top, before the view, and reads back the same", () => {
+    const layers = [
+      { recordId: "c_l219:a883ab12", kind: "wms" as const, name: "Microzone" },
+      { recordId: "r_sicili:enna~1", kind: "arcgis" as const, name: "3" },
+    ];
+    const url = new URL(shareUrl(form({ text: "catasto" }), null, { lon: 15, lat: 38, zoom: 9 }, layers));
+    expect([...url.searchParams].map(([name]) => name)).toEqual(["plugin", "rndt", "rndtLayer", "rndtLayer", "lat", "lon", "zoom"]);
+    expect(url.searchParams.getAll("rndtLayer")).toEqual(["c_l219:a883ab12~wms~Microzone", "r_sicili:enna~1~arcgis~3"]);
+    expect(linkLayersFrom(url.searchParams)).toEqual(layers);
+  });
+
+  it("keeps a ~ in the layer name, and drops values that are not valid with a warning", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const params = new URLSearchParams();
+    for (const value of ["c_x:1~wms~a~b", "c_x:1~wmts~a", "c_x:1~wms~", "nothing"]) params.append("rndtLayer", value);
+    expect(linkLayersFrom(params)).toEqual([{ recordId: "c_x:1", kind: "wms", name: "a~b" }]);
+    expect(warn).toHaveBeenCalledTimes(3);
+  });
+
+  it("is a parameter GeoLibre hands to the plugin", () => {
+    expect(URL_PARAMETER_NAMES).toContain("rndtLayer");
   });
 });
 

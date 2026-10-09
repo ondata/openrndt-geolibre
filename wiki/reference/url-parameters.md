@@ -39,6 +39,7 @@ sources:
 | `rndtDate` | `revision`, `publication`, `creation`, `catalogue` | date field |
 | `rndtFrom`, `rndtTo` | `yyyy-mm-dd` | date range |
 | `rndtSort` | `title`, `title-desc`, `newest`, `oldest` | sort |
+| `rndtLayer` | `<record id>~wms~<layer name>` or `<record id>~arcgis~<layer name>`, repeated once per layer, bottom to top | a layer to add (not released yet, #44) |
 
 `rndt` and `rndtBbox` from version 0.1.6, the others from version 0.2.0 (#30). The names are case-sensitive (`?Rndt=` is not read) and public once a link is shared: they are not to be renamed. The short values (`abstract`, `newest`, `publication`) stand for the field names the catalogue uses, so a link does not change if those do. The theme codes are the INSPIRE registry's, mapped to the Italian labels the catalogue stores; all 34 checked against `https://inspire.ec.europa.eu/theme/theme.it.json` on 2026-10-04.[^url-params]
 
@@ -48,6 +49,7 @@ sources:
 - Without `rndtBbox` the area is **Anywhere**: see [the decision](../decisions/link-searches-anywhere.md).
 - `rndtTheme` and `rndtOpen` do nothing with `rndtKind=services`: the catalogue gives services no theme and no licence (0 of 3,163 services have `INSPIRETheme_s` or `isOpendata`, 2026-10-07), as in the form. The panel shows no chip for them and offers **Search datasets with a WMS**, which keeps them and searches datasets instead (#33).
 - `rndtWithin` without `rndtBbox`, and `rndtDate` without `rndtFrom` or `rndtTo`, change nothing.
+- `rndtLayer` adds the layer from the first service of that kind (WMS, or ArcGIS REST for an image) in the record that lists the name, named with its capabilities title; a layer already on the map is not added again. The search, if the link has one, runs alongside. A layer that cannot be added is named under the search bar, the others are still added. A link holds about 15 layers before it grows past 2,000 characters, the length some mail and chat apps cut.
 - With `rndtBbox` the map moves to the box instead of moving to Italy, unless the link sets the view with GeoLibre's `lat` and `lon` (GeoLibre 3.0, `?lat=38.07&lon=15.49&zoom=12`): then the map stays there (from 0.3.4, #44). Share writes them.
 - The numbers of the box can be separated by commas, semicolons or spaces. A box that is not valid (not four numbers, out of range, west not less than east) is ignored with a warning in the browser console, and so is any other value that is not valid; the rest is still searched.
 - `rndtTheme` with several codes uses the first known one: the form filters on one theme.

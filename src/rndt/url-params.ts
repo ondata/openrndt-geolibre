@@ -10,6 +10,8 @@ import { bboxError, emptyForm, type Bbox, type LinkKind, type SearchForm } from 
  */
 export const TEXT_PARAM = "rndt";
 export const BBOX_PARAM = "rndtBbox";
+/** A layer turned on, repeated once per layer (#44): `<record id>~<wms|arcgis>~<layer name>`. */
+export const LAYER_PARAM = "rndtLayer";
 
 /** Short, stable names for the values of a few fields, as a link writes them. */
 const FIELDS: Record<string, string> = {
@@ -199,7 +201,7 @@ const PARAMS: Param[] = [
   mapped("rndtSort", SORTS, "sort"),
 ];
 
-export const URL_PARAMETER_NAMES = PARAMS.map((param) => param.name);
+export const URL_PARAMETER_NAMES = [...PARAMS.map((param) => param.name), LAYER_PARAM];
 
 /** A search asked by a link: the whole form, every field the link leaves out at its default. */
 export interface LinkSearch {
@@ -245,12 +247,14 @@ const SHARE_PLUGIN_ID = "openrndt-geolibre";
  * `?plugin=` (it installs the plugin where it is missing, after the trust
  * prompt, on GeoLibre after 3.2.0) and the search's parameters. With a record
  * open the link opens that record, as `?rndt=<id>` does. `view`: the map view,
- * which GeoLibre applies at startup (#44).
+ * which GeoLibre applies at startup (#44); `layers`: the layers turned on,
+ * bottom to top.
  */
-export function shareUrl(form: SearchForm, recordId: string | null, view: MapView | null = null): string {
+export function shareUrl(form: SearchForm, recordId: string | null, view: MapView | null = null, layers: LinkLayer[] = []): string {
   const params = recordId ? new URLSearchParams({ [TEXT_PARAM]: recordId }) : paramsFromForm(form);
   const query = new URLSearchParams({ plugin: SHARE_PLUGIN_ID });
   for (const [name, value] of params) query.set(name, value);
+  for (const layer of layers) query.append(LAYER_PARAM, `${layer.recordId}~${layer.kind}~${layer.name}`);
   if (view) {
     query.set("lat", String(Number(view.lat.toFixed(5))));
     query.set("lon", String(Number(view.lon.toFixed(5))));
@@ -274,4 +278,27 @@ export interface MapView {
 export function linkHasView(params: URLSearchParams): boolean {
   const value = (name: string) => Number(params.get(name)?.trim() || NaN);
   return Math.abs(value("lat")) <= 90 && Math.abs(value("lon")) <= 180;
+}
+
+/** A layer of a record a link asks to add (#44): the first service of that kind in the record that lists the name. */
+export interface LinkLayer {
+  recordId: string;
+  kind: "wms" | "arcgis";
+  name: string;
+}
+
+/**
+ * The layers a link asks for, in their order (bottom to top). The first
+ * `~wms~` or `~arcgis~` splits the value, so a record id or a layer name may
+ * hold a `~`. A value that is not
+ * valid is left out with a warning, as for the other parameters.
+ */
+export function linkLayersFrom(params: URLSearchParams): LinkLayer[] {
+  const layers: LinkLayer[] = [];
+  for (const raw of params.getAll(LAYER_PARAM)) {
+    const match = /^(.+?)~(wms|arcgis)~(.+)$/.exec(raw.trim());
+    if (match) layers.push({ recordId: match[1], kind: match[2] as LinkLayer["kind"], name: match[3] });
+    else console.warn(`[openrndt-geolibre] Ignoring ${LAYER_PARAM}=${raw} in the link: expected <record id>~<wms|arcgis>~<layer name>.`);
+  }
+  return layers;
 }

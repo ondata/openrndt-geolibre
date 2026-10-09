@@ -25,7 +25,7 @@ import {
   throwArcgisError,
   type ArcgisUrl,
 } from "./arcgis";
-import { answersWithImage, BROWSER_BLOCK_NOTE, browserGetsImage, browserNeedsHttp, drawnBbox, fetchJson, fetchText, fetchTextFrom, GEO_EDITOR_PLUGIN_ID, isDesktop, reachableEndpoint, testTile, type RndtHost } from "./host";
+import { answersWithImage, BROWSER_BLOCK_NOTE, browserGetsImage, browserNeedsHttp, browserReaches, drawnBbox, fetchJson, fetchText, fetchTextFrom, GEO_EDITOR_PLUGIN_ID, isDesktop, reachableEndpoint, testTile, type RndtHost, type WmsLayerOptions } from "./host";
 import {
   bestMatchingLayer,
   buildGetFeatureUrl,
@@ -49,11 +49,12 @@ import {
   upgradeToHttps,
   wmsLayerBounds,
   type WfsCapabilities,
+  type WmsCapabilities,
   type WmsLayer,
 } from "./ogc";
 import { clearHistory, loadHistory, matchesEntry, saveHistory, whenLabel, withEntry, withTopUpdated, withoutEntry, type HistoryEntry } from "./history";
 import type { PanelState } from "./project-state";
-import { shareUrl, type LinkSearch } from "./url-params";
+import { shareUrl, type LinkLayer, type LinkSearch } from "./url-params";
 import { agentText } from "./agent-text";
 import { bboxError, buildCurlCommand, buildSearchUrl, clampBbox, emptyForm, idForm, recordIdIn, type Bbox, type ResourceKind, type LinkKind, type SearchForm, type SpatialRel, type TextMode } from "./query";
 import { footprints, parseSearchResponse, provenance, type RndtRecord, type RndtService } from "./records";
@@ -180,6 +181,66 @@ interface ServiceGroup extends RndtService {
   layerHint: string | null;
   /** Set on a WMS or ArcGIS REST service the record does not declare, derived from this ArcGIS WMTS link. */
   derivedFrom?: string;
+}
+
+/** The name a layer is shown and added with: its title when it reads as one. ArcGIS names its WMS layers 0, 1, 2…: then even a code-like title says more. */
+function shownTitle(l: { name: string; title: string }): string | null {
+  return readableTitle(l.name, l.title) ?? (/^\d+$/.test(l.name) && l.title.trim() ? l.title.trim() : null);
+}
+
+/** Time each server has to answer the layer check of Share (#44). */
+const SHARE_PROBE_TIMEOUT_MS = 2500;
+
+/** A WMS read for adding its layers: by Add to map, or by a link (#44). */
+interface PreparedWms {
+  caps: WmsCapabilities;
+  byName: Map<string, WmsLayer>;
+  /** Said under the layers when the GetMap address is not the one the capabilities declare. */
+  endpointNote: string | null | undefined;
+  serverDraws3857: boolean;
+  hostTakesCrs: boolean;
+  crsOf: (layer: WmsLayer) => string | null;
+}
+
+/** An ArcGIS REST service read for adding its layers. */
+interface PreparedArcgis {
+  arcgis: ArcgisUrl;
+  info: ReturnType<typeof parseArcgisService>;
+  image: boolean;
+  layers: ReturnType<typeof parseArcgisService>["layers"];
+  /** The tile template a layer is added with, also what a saved project keeps of it. */
+  tileUrl: (name: string) => string;
+}
+
+/**
+ * A small GetMap of a WMS layer in the project, at the centre of the view,
+ * from what the project keeps of it (#44): in its own system when that is
+ * EPSG:3857 or geographic, else in EPSG:3857, as only CORS is asked.
+ */
+function wmsProbeUrl(source: Record<string, unknown>, layer: string, view: Bbox | null): string | null {
+  const { url, version, crs } = source;
+  if (typeof url !== "string") return null;
+  const system = typeof crs === "string" && GEOGRAPHIC_CRS.includes(crs) ? crs : "EPSG:3857";
+  try {
+    return probeGetMapUrl(url, typeof version === "string" ? version : "1.3.0", layer, view, system);
+  } catch {
+    return null;
+  }
+}
+
+/** One image of an ArcGIS tile layer in the project, at the centre of the view (#44). */
+function arcgisProbeUrl(source: Record<string, unknown>, view: Bbox | null): string | null {
+  const template = Array.isArray(source.tiles) ? source.tiles[0] : null;
+  return typeof template === "string" ? template.replace("{bbox-epsg-3857}", probeBbox3857(view)) : null;
+}
+
+/**
+ * Which layer of which service of the record a layer is, kept in its
+ * metadata next to the provenance: Share reads it to put the layer in a
+ * link (#44), and GeoLibre's Metadata dialog shows it.
+ */
+function layerSource(kind: "wms" | "arcgis", name: string): Record<string, string> {
+  return { serviceType: kind === "wms" ? "WMS" : "ArcGIS", layerName: name };
 }
 
 /** One key for every link to the same ArcGIS REST service, scheme and case aside. */
@@ -812,6 +873,9 @@ export class RndtPanel {
   private footprintsToggleEl!: HTMLButtonElement;
   /** A search asked by a link before the first mount. */
   private pendingLink: LinkSearch | null = null;
+  private pendingLayers: LinkLayer[] = [];
+  /** Under the filters: how the layers of a link were added (#44). */
+  private linkNoteEl!: HTMLElement;
   /** A state given by a project before the first mount. */
   private pendingState: PanelState | null = null;
   /** The id the last search opened by itself (an id typed as text), or null. */
@@ -830,6 +894,7 @@ export class RndtPanel {
       this.formEl = this.buildForm();
       this.searchBarEl = this.buildSearchBar();
       this.summaryEl = this.buildSummary();
+      this.linkNoteEl = h("p", { className: "ordt-note ordt-link-note", hidden: true });
       this.statusEl = h("div", { className: "ordt-status", role: "status", "aria-live": "polite" });
       this.listEl = h("ol", { className: "ordt-results" });
       this.pagerEl = h("div", { className: "ordt-pager" });
@@ -846,6 +911,7 @@ export class RndtPanel {
         this.helpEl,
         this.settingsEl,
         this.summaryEl,
+        this.linkNoteEl,
         this.resultsHeadEl,
         this.listEl,
         this.emptyEl,
@@ -873,9 +939,10 @@ export class RndtPanel {
     }
     container.append(this.root);
     // A link is the newer request: it wins over the state of the project.
-    const [link, state] = [this.pendingLink, this.pendingState];
+    const [link, layers, state] = [this.pendingLink, this.pendingLayers, this.pendingState];
     this.pendingLink = this.pendingState = null;
-    if (link) this.searchFromLink(link);
+    this.pendingLayers = [];
+    if (link || layers.length) this.searchFromLink(link, layers);
     else if (state) this.restore(state);
     return () => this.root?.remove();
   }
@@ -885,15 +952,19 @@ export class RndtPanel {
    * url-params.ts): now, or at the first mount when GeoLibre has not rendered
    * the panel yet. The link's form replaces the whole form, every field it
    * leaves out at its default and the area Anywhere without a box, so the same
-   * link finds the same records for everyone.
+   * link finds the same records for everyone. Its layers are added alongside.
    */
-  searchFromLink(link: LinkSearch): void {
+  searchFromLink(link: LinkSearch | null, layers: LinkLayer[] = []): void {
     if (!this.root) {
       this.pendingLink = link;
+      this.pendingLayers = layers;
       return;
     }
-    this.writeForm(link.form);
-    this.formEl.requestSubmit();
+    if (link) {
+      this.writeForm(link.form);
+      this.formEl.requestSubmit();
+    }
+    void this.addLinkLayers(layers);
   }
 
   /** What a project saves of the panel: the last search, its page, the open record. Null before any search. */
@@ -2345,12 +2416,9 @@ export class RndtPanel {
       let page: Awaited<ReturnType<typeof fetchPage>> | null = null;
       let byId = false;
       if (id) {
-        // `fileid:"r_liguri:D.5"` also finds `r_liguri:D.5.DS` and `…D.5.VS`
-        // (2026-10-02): the record is the one with exactly that id.
-        const found = await fetchPage(buildSearchUrl(RNDT_BASE_URL, idForm(id), 1, PAGE_SIZE));
-        const exact = found.records.filter((r) => r.id === id);
-        if (exact.length === 1) {
-          [page, current, start, byId] = [{ ...found, total: 1, records: exact }, idForm(id), 1, true];
+        const record = await this.recordById(id);
+        if (record) {
+          [page, current, start, byId] = [{ total: 1, start: 1, records: [record] }, idForm(id), 1, true];
         }
       }
       if (!page) {
@@ -2395,6 +2463,7 @@ export class RndtPanel {
 
   clearResults(): void {
     this.requestSeq++;
+    if (this.linkNoteEl) this.linkNoteEl.hidden = true;
     this.records = [];
     this.total = 0;
     this.lastForm = null;
@@ -2460,8 +2529,136 @@ export class RndtPanel {
   }
 
   /**
-   * Share the search on screen, or the record open, and the map view, as a
-   * GeoLibre web link (#31, #44): through the system share sheet where the browser offers one, else
+   * The record with exactly this id, or null. `fileid:"r_liguri:D.5"` also
+   * finds `r_liguri:D.5.DS` and `…D.5.VS` (2026-10-02). A page of records
+   * weighs about 1 MB, so the long native download path.
+   */
+  private async recordById(id: string): Promise<RndtRecord | null> {
+    const url = buildSearchUrl(RNDT_BASE_URL, idForm(id), 1, PAGE_SIZE);
+    const found = parseSearchResponse(await fetchJson(this.app, url, { download: true }), RNDT_BASE_URL);
+    const exact = found.records.filter((r) => r.id === id);
+    return exact.length === 1 ? exact[0] : null;
+  }
+
+  /**
+   * Add the layers a link asks for (#44), in the link's order, bottom to top,
+   * so they stack as they did. Each record and each service is read once; a
+   * layer comes from the first service of its kind in the record that lists
+   * it. One that cannot be added is named in the note, the others still are.
+   */
+  private async addLinkLayers(layers: LinkLayer[]): Promise<void> {
+    if (!layers.length) return;
+    const note = (text: string, kind: "info" | "error" | "busy") => {
+      this.linkNoteEl.hidden = false;
+      this.linkNoteEl.dataset.kind = kind;
+      this.linkNoteEl.textContent = text;
+    };
+    note(`Adding ${layers.length === 1 ? "the layer" : `${layers.length} layers`} of the link…`, "busy");
+    const once = <T,>(cache: Map<string, Promise<T>>, key: string, read: () => Promise<T>) => {
+      if (!cache.has(key)) cache.set(key, read());
+      return cache.get(key)!;
+    };
+    const records = new Map<string, Promise<RndtRecord | null>>();
+    const wmsServices = new Map<string, Promise<PreparedWms>>();
+    const arcgisServices = new Map<string, Promise<PreparedArcgis>>();
+    /** How to add one layer, found before any is added so the order holds. */
+    const resolve = async (link: LinkLayer): Promise<() => void> => {
+      const record = await once(records, link.recordId, () => this.recordById(link.recordId));
+      if (!record) throw new Error(`no record ${link.recordId} in the catalogue`);
+      const kind = link.kind === "wms" ? "WMS" : ARCGIS_KIND;
+      for (const service of servicesWithDerivedWms(record.services).filter((s) => s.kind === kind)) {
+        try {
+          if (link.kind === "wms") {
+            if (!this.app.addWmsLayer) break;
+            const wms = await once(wmsServices, service.url, () => this.prepareWms(record, service));
+            const layer = wms.byName.get(link.name);
+            if (!layer) continue;
+            if (!wms.crsOf(layer)) throw new Error("GeoLibre cannot display it (not offered in EPSG:3857)");
+            return () => {
+              if (this.wmsOnMap(wms.caps.getMapUrl, link.name)) return;
+              const id = this.app.addWmsLayer!(shownTitle(layer) || link.name, this.wmsOptions(record, wms, link.name));
+              this.addedWms.set(`${wms.caps.getMapUrl}|${link.name}`, id);
+            };
+          }
+          if (!this.app.addTileLayer) break;
+          const arcgis = await once(arcgisServices, service.url, () => this.prepareArcgis(record, service));
+          const layer = arcgis.layers.find((l) => l.name === link.name);
+          if (!layer || !arcgis.info.drawsImage) continue;
+          return () => {
+            if (this.wmsOnMap(arcgis.arcgis.serviceUrl, link.name, arcgis.tileUrl(link.name))) return;
+            const id = this.app.addTileLayer!(shownTitle(layer) || link.name, arcgis.tileUrl(link.name), {
+              attribution: arcgis.info.copyright || undefined,
+              metadata: { ...provenance(record), ...layerSource("arcgis", link.name) },
+            });
+            this.addedWms.set(`${arcgis.arcgis.serviceUrl}|${link.name}`, id);
+          };
+        } catch (error) {
+          if (error instanceof Error && error.message.startsWith("GeoLibre cannot")) throw error;
+          // This service did not answer: the next one of the record may list the layer.
+        }
+      }
+      throw new Error(`not found in a ${link.kind === "wms" ? "WMS" : "ArcGIS"} service of ${record.title}`);
+    };
+    const found = await Promise.allSettled(layers.map(resolve));
+    const failed: string[] = [];
+    found.forEach((result, i) => {
+      try {
+        if (result.status === "rejected") throw result.reason;
+        result.value();
+      } catch (error) {
+        failed.push(`${layers[i].name}: ${errorMessage(error)}`);
+      }
+    });
+    const added = layers.length - failed.length;
+    note(
+      [`Added ${added} of ${layers.length} ${layers.length === 1 ? "layer" : "layers"} of the link.`, ...failed.map((f) => `Could not add ${f}.`)].join(" "),
+      failed.length ? "error" : "info",
+    );
+  }
+
+  /**
+   * The layers turned on that a link can rebuild (#44), bottom to top: added
+   * from a record (WMS, or ArcGIS images), on an https server that lets the
+   * browser read it, as the web version needs. The names of the others turned
+   * on: data kept in the project (GeoJSON), layers not from the catalogue, or
+   * servers the web version cannot draw.
+   */
+  private async layersForLink(timeoutMs: number): Promise<{ layers: LinkLayer[]; left: string[] }> {
+    type Snapshot = { id?: unknown; name?: unknown; visible?: unknown; metadata?: Record<string, unknown>; source?: Record<string, unknown> };
+    let snapshot: Snapshot[] = [];
+    try {
+      snapshot = (this.app.getProjectSnapshot?.().layers ?? []) as Snapshot[];
+    } catch {
+      // No snapshot: no layers in the link.
+    }
+    const byId = new Map(snapshot.filter((l) => typeof l?.id === "string").map((l) => [l.id as string, l]));
+    // Top to bottom in GeoLibre; a link lists them bottom to top.
+    const order = (this.app.getLayers?.() ?? [...byId.keys()]).slice().reverse();
+    const view = this.app.getViewBounds?.() ?? null;
+    const checked = await Promise.all(
+      order.map(async (id): Promise<LinkLayer | string | null> => {
+        const layer = byId.get(id);
+        // A basemap of GeoLibre's basemap control is no layer to share (GeoLibre 3.3.0 tells it by this tag).
+        if (!layer || layer.visible === false || layer.metadata?.sourceKind === "maplibre-basemap-control") return null;
+        const name = typeof layer.name === "string" ? layer.name : id;
+        const { recordId, serviceType, layerName } = layer.metadata ?? {};
+        const kind = serviceType === "WMS" ? "wms" : serviceType === "ArcGIS" ? "arcgis" : null;
+        if (!kind || typeof recordId !== "string" || typeof layerName !== "string") return name;
+        const source = layer.source ?? {};
+        const probe = kind === "wms" ? wmsProbeUrl(source, layerName, view) : arcgisProbeUrl(source, view);
+        if (!probe || !/^https:/i.test(probe) || !(await browserReaches(probe, timeoutMs))) return name;
+        return { recordId, kind, name: layerName };
+      }),
+    );
+    return {
+      layers: checked.filter((c): c is LinkLayer => typeof c === "object" && c !== null),
+      left: checked.filter((c): c is string => typeof c === "string"),
+    };
+  }
+
+  /**
+   * Share the search on screen, or the record open, the map view and the
+   * layers turned on, as a GeoLibre web link (#31, #44): through the system share sheet where the browser offers one, else
    * copied to the clipboard. A share sheet closed without sharing is not an error.
    * `record`: the record of the detail view's own menu.
    */
@@ -2471,7 +2668,23 @@ export class RndtPanel {
     const map = this.app.getMap?.();
     const center = map?.getCenter().wrap();
     const view = map && center ? { lon: center.lng, lat: center.lat, zoom: map.getZoom() } : null;
-    const url = shareUrl(state?.form ?? emptyForm(), record?.id ?? state?.recordId ?? null, view);
+    // The share sheet and the clipboard need the click to be recent (about
+    // 5 s in Firefox): the layer checks get a shorter budget.
+    label.textContent = "Checking the layers…";
+    const { layers, left } = await this.layersForLink(SHARE_PROBE_TIMEOUT_MS);
+    label.textContent = "Share";
+    const url = shareUrl(state?.form ?? emptyForm(), record?.id ?? state?.recordId ?? null, view, layers);
+    if (layers.length || left.length) {
+      this.linkNoteEl.hidden = false;
+      this.linkNoteEl.dataset.kind = "info";
+      this.linkNoteEl.textContent = [
+        `Layers in the link: ${layers.length}.`,
+        left.length > 0 &&
+          `Left out: ${left.join("; ")}. A link brings back only catalogue layers drawn from a service (WMS, ArcGIS images) on an https server the web version can read.`,
+      ]
+        .filter(Boolean)
+        .join(" ");
+    }
     const title = record ? `RNDT: ${record.title}` : state?.form.text ? `RNDT: ${state.form.text}` : "RNDT search";
     const show = (text: string) => {
       label.textContent = text;
@@ -2490,7 +2703,12 @@ export class RndtPanel {
       await navigator.clipboard.writeText(url);
       show("Link copied");
     } catch {
-      this.setStatus("Could not copy the link to the clipboard.", "error");
+      this.setStatus(
+        layers.length || left.length
+          ? "Could not copy the link to the clipboard: the layer checks took too long. Try Share again."
+          : "Could not copy the link to the clipboard.",
+        "error",
+      );
     }
   }
 
@@ -3085,9 +3303,6 @@ export class RndtPanel {
     nameOf: (name: string) => string;
     setOnMap: (name: string, on: boolean) => void;
   } {
-    // ArcGIS names its WMS layers 0, 1, 2…: then even a code-like title says more.
-    const shownTitle = (l: { name: string; title: string }) =>
-      readableTitle(l.name, l.title) ?? (/^\d+$/.test(l.name) && l.title.trim() ? l.title.trim() : null);
     const readable = new Map(layers.map((l) => [l.name, shownTitle(l)]));
     const enabled = layers.filter((l) => !disabledReason(l.name));
     // Nothing ticked without a reason: the wanted layer, or the only one.
@@ -3292,49 +3507,77 @@ export class RndtPanel {
     };
   }
 
+  /**
+   * What adding layers of a WMS needs, read without the panel (#44): the
+   * capabilities, the GetMap address the browser can use, and the system
+   * each layer is asked in (null: GeoLibre cannot display it).
+   */
+  private async prepareWms(record: RndtRecord, service: ServiceGroup, progress: (text: string) => void = () => {}): Promise<PreparedWms> {
+    const fetched = await fetchTextFrom(this.app, capabilitiesUrl(service.url, "WMS"));
+    const caps = parseWmsCapabilities(fetched.text, fetched.url);
+    const endpoint = await reachableEndpoint(this.app, caps.getMapUrl, fetched.url, serviceBaseUrl);
+    const declared = endpoint.url;
+    caps.getMapUrl = upgradeToHttps(declared, fetched.url);
+    // https was our own guess (the record says http): keep the declared http
+    // URL when only that one is reachable from the browser, or GeoLibre's
+    // identify on the layer fails.
+    if (caps.getMapUrl !== declared && /^http:/i.test(service.url) && (await browserNeedsHttp(fetched.url))) {
+      caps.getMapUrl = declared;
+    }
+    // The capabilities list the systems a layer is offered in, but not
+    // always all of them: ArcGIS servers often draw EPSG:3857 without
+    // declaring it (Lombardy's ortofoto 2003, 2026-09-30). One small tile in
+    // EPSG:3857 tells: if the server draws it, the layers stay usable.
+    const undeclared = caps.layers.filter((l) => !supportsWebMercator(l));
+    let serverDraws3857 = false;
+    if (undeclared.length) {
+      progress("Checking whether the server draws EPSG:3857…");
+      const sample =
+        undeclared.find((l) => !l.group && l.bbox) ?? undeclared.find((l) => l.bbox) ?? undeclared[0];
+      serverDraws3857 =
+        (await testTile(
+          this.app,
+          probeGetMapUrl(caps.getMapUrl, caps.version, sample.name, sample.bbox ?? record.bbox),
+          PROBE_TILE_SIZE,
+        )) === "tile";
+    }
+    // Without EPSG:3857, GeoLibre 3.2.0 asks the tiles in a system the
+    // layer lists and redraws them.
+    const hostTakesCrs = this.app.importLayerStyle !== undefined;
+    const crsOf = (layer: WmsLayer) =>
+      supportsWebMercator(layer) || serverDraws3857 ? "EPSG:3857" : hostTakesCrs ? pickWmsCrs(layer, caps.version) : null;
+    return { caps, byName: new Map(caps.layers.map((l) => [l.name, l])), endpointNote: endpoint.note, serverDraws3857, hostTakesCrs, crsOf };
+  }
+
+  /** The options of `addWmsLayer` for one layer of a prepared WMS, as Add to map and a link add it. */
+  private wmsOptions(record: RndtRecord, wms: PreparedWms, name: string): WmsLayerOptions {
+    const { caps, crsOf } = wms;
+    const layer = wms.byName.get(name)!;
+    return {
+      url: caps.getMapUrl,
+      layers: name,
+      version: caps.version.startsWith("1.3") ? "1.3.0" : "1.1.1",
+      format: "image/png",
+      transparent: true,
+      bounds: wmsLayerBounds(layer.bbox, record.bbox, record.type),
+      ...(crsOf(layer) !== "EPSG:3857" && { crs: crsOf(layer)! }),
+      // Identify sends no GetFeatureInfo to a layer marked not queryable (GeoLibre 3.3.0).
+      ...(layer.queryable === false && { queryable: false }),
+      metadata: { ...provenance(record), ...layerSource("wms", name) },
+    };
+  }
+
   private async openWms(record: RndtRecord, service: ServiceGroup, area: HTMLElement, countEl: HTMLElement): Promise<void> {
     this.note(area, "Reading the WMS capabilities…", "busy");
     try {
-      const fetched = await fetchTextFrom(this.app, capabilitiesUrl(service.url, "WMS"));
-      const caps = parseWmsCapabilities(fetched.text, fetched.url);
-      const endpoint = await reachableEndpoint(this.app, caps.getMapUrl, fetched.url, serviceBaseUrl);
-      const declared = endpoint.url;
-      caps.getMapUrl = upgradeToHttps(declared, fetched.url);
-      // https was our own guess (the record says http): keep the declared http
-      // URL when only that one is reachable from the browser, or GeoLibre's
-      // identify on the layer fails.
-      if (caps.getMapUrl !== declared && /^http:/i.test(service.url) && (await browserNeedsHttp(fetched.url))) {
-        caps.getMapUrl = declared;
-      }
+      const wms = await this.prepareWms(record, service, (text) => this.note(area, text, "busy"));
+      const { caps, byName, serverDraws3857, hostTakesCrs, crsOf } = wms;
       if (!caps.layers.length) {
         if (service.derivedFrom) this.note(area, "This ArcGIS service has no WMS layers.", "info");
         else this.note(area, "The WMS lists no named layers.", "error", { record, service });
         return;
       }
       countEl.textContent = layerCount(caps.layers.length);
-      const byName = new Map(caps.layers.map((l) => [l.name, l]));
-      // The capabilities list the systems a layer is offered in, but not
-      // always all of them: ArcGIS servers often draw EPSG:3857 without
-      // declaring it (Lombardy's ortofoto 2003, 2026-09-30). One small tile in
-      // EPSG:3857 tells: if the server draws it, the layers stay usable.
-      const undeclared = caps.layers.filter((l) => !supportsWebMercator(l));
-      let serverDraws3857 = false;
-      if (undeclared.length) {
-        this.note(area, "Checking whether the server draws EPSG:3857…", "busy");
-        const sample =
-          undeclared.find((l) => !l.group && l.bbox) ?? undeclared.find((l) => l.bbox) ?? undeclared[0];
-        serverDraws3857 =
-          (await testTile(
-            this.app,
-            probeGetMapUrl(caps.getMapUrl, caps.version, sample.name, sample.bbox ?? record.bbox),
-            PROBE_TILE_SIZE,
-          )) === "tile";
-      }
-      // Without EPSG:3857, GeoLibre 3.2.0 asks the tiles in a system the
-      // layer lists and redraws them.
-      const hostTakesCrs = this.app.importLayerStyle !== undefined;
-      const crsOf = (layer: WmsLayer) =>
-        supportsWebMercator(layer) || serverDraws3857 ? "EPSG:3857" : hostTakesCrs ? pickWmsCrs(layer, caps.version) : null;
       // A group layer may answer every request with one fixed picture, which
       // would fill each tile of the map: one test tile per group tells.
       const fixedPicture = new Set<string>();
@@ -3392,20 +3635,8 @@ export class RndtPanel {
         const names = selected().filter((name) => !already.includes(name));
         const failed: string[] = [];
         for (const name of names) {
-          const layer = byName.get(name)!;
           try {
-            const id = this.app.addWmsLayer!(nameOf(name), {
-              url: caps.getMapUrl,
-              layers: name,
-              version: caps.version.startsWith("1.3") ? "1.3.0" : "1.1.1",
-              format: "image/png",
-              transparent: true,
-              bounds: wmsLayerBounds(layer.bbox, record.bbox, record.type),
-              ...(crsOf(layer) !== "EPSG:3857" && { crs: crsOf(layer)! }),
-              // Identify sends no GetFeatureInfo to a layer marked not queryable (GeoLibre 3.3.0).
-              ...(layer.queryable === false && { queryable: false }),
-              metadata: provenance(record),
-            });
+            const id = this.app.addWmsLayer!(nameOf(name), this.wmsOptions(record, wms, name));
             this.addedWms.set(`${caps.getMapUrl}|${name}`, id);
             setOnMap(name, true);
           } catch (error) {
@@ -3433,7 +3664,7 @@ export class RndtPanel {
         list,
         ...controls.filter((c) => c.tagName !== "INPUT"),
         ...(note ? [note] : []),
-        ...(endpoint.note ? [h("p", { className: "ordt-note" }, endpoint.note)] : []),
+        ...(wms.endpointNote ? [h("p", { className: "ordt-note" }, wms.endpointNote)] : []),
         h("div", { className: "ordt-row ordt-small ordt-add-row" }, add, h("span", { className: "ordt-muted" }, "added with their titles as layer names")),
         result,
       );
@@ -3592,24 +3823,32 @@ export class RndtPanel {
    * `export` request (GeoLibre's own ArcGIS layers do the same), and one
    * layer's features as GeoJSON from its `query`, page by page.
    */
-  private async openArcgis(record: RndtRecord, service: ServiceGroup, area: HTMLElement, countEl: HTMLElement): Promise<void> {
+  /** An ArcGIS REST service read for adding its layers: by Add to map, or by a link (#44). An ImageServer is one layer, "0". */
+  private async prepareArcgis(record: RndtRecord, service: ServiceGroup): Promise<PreparedArcgis> {
     const parsed = parseArcgisUrl(service.url)!;
+    const fetched = await fetchTextFrom(this.app, `${parsed.serviceUrl}?f=json`);
+    let json: unknown;
+    try {
+      json = JSON.parse(fetched.text);
+    } catch {
+      throw new Error("the service description is not JSON");
+    }
+    // The URL that answered: an http link upgraded to https stays so for the tiles.
+    const arcgis: ArcgisUrl = { ...parsed, serviceUrl: fetched.url.replace(/\?.*$/, "") };
+    const info = parseArcgisService(json, arcgis.type);
+    const image = arcgis.type === "ImageServer";
+    const layers = image
+      ? [{ name: "0", title: String((json as { name?: unknown }).name ?? "").split("/").pop() || record.title, minScale: 0, maxScale: 0, hasFeatures: false }]
+      : info.layers;
+    /** The tile template a layer is added with, also what a saved project keeps of it. */
+    const tileUrl = (name: string) => arcgisExportUrl(arcgis, image ? null : name, "{bbox-epsg-3857}", 256);
+    return { arcgis, info, image, layers, tileUrl };
+  }
+
+  private async openArcgis(record: RndtRecord, service: ServiceGroup, area: HTMLElement, countEl: HTMLElement): Promise<void> {
     this.note(area, "Reading the ArcGIS service…", "busy");
     try {
-      const fetched = await fetchTextFrom(this.app, `${parsed.serviceUrl}?f=json`);
-      let json: unknown;
-      try {
-        json = JSON.parse(fetched.text);
-      } catch {
-        throw new Error("the service description is not JSON");
-      }
-      // The URL that answered: an http link upgraded to https stays so for the tiles.
-      const arcgis: ArcgisUrl = { ...parsed, serviceUrl: fetched.url.replace(/\?.*$/, "") };
-      const info = parseArcgisService(json, arcgis.type);
-      const image = arcgis.type === "ImageServer";
-      const layers = image
-        ? [{ name: "0", title: String((json as { name?: unknown }).name ?? "").split("/").pop() || record.title, minScale: 0, maxScale: 0, hasFeatures: false }]
-        : info.layers;
+      const { arcgis, info, image, layers, tileUrl } = await this.prepareArcgis(record, service);
       if (!layers.length) {
         if (service.derivedFrom) this.note(area, "This ArcGIS service has no layers to add.", "info");
         else this.note(area, "The ArcGIS service lists no layers.", "error", { record, service });
@@ -3651,8 +3890,6 @@ export class RndtPanel {
         (name) => scaleNote(byName.get(name)!),
       );
       const add = h("button", { className: "ordt-button ordt-primary", type: "button" });
-      /** The tile template a layer is added with, also what a saved project keeps of it. */
-      const tileUrl = (name: string) => arcgisExportUrl(arcgis, image ? null : name, "{bbox-epsg-3857}", 256);
       const addFeatures = h("button", { className: "ordt-button", type: "button" }, "Add features");
       const inView = h("input", { type: "checkbox", checked: true });
       const result = h("p", { className: "ordt-note", hidden: true });
@@ -3674,7 +3911,7 @@ export class RndtPanel {
           try {
             const id = this.app.addTileLayer!(nameOf(name), tileUrl(name), {
               attribution: info.copyright || undefined,
-              metadata: provenance(record),
+              metadata: { ...provenance(record), ...layerSource("arcgis", name) },
             });
             this.addedWms.set(`${arcgis.serviceUrl}|${name}`, id);
             setOnMap(name, true);

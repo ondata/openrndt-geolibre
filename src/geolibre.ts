@@ -4,7 +4,7 @@ import type { RndtHost } from "./rndt/host";
 import { RndtPanel } from "./rndt/panel";
 import { parsePanelState, type PanelState } from "./rndt/project-state";
 import type { Bbox } from "./rndt/query";
-import { linkHasView, linkSearchFrom, URL_PARAMETER_NAMES } from "./rndt/url-params";
+import { linkHasView, linkLayersFrom, linkSearchFrom, URL_PARAMETER_NAMES } from "./rndt/url-params";
 import "./rndt/panel.css";
 
 /**
@@ -125,16 +125,17 @@ export const plugin: Plugin = {
   },
   handleUrlParameters(_app, params) {
     const link = linkSearchFrom(params);
-    if (!link || !activePanel) return;
+    const layers = linkLayersFrom(params);
+    if ((!link && !layers.length) || !activePanel) return;
     // A link opens the app on a search, once: a project opened later brings
     // its own search, or none.
-    const key = JSON.stringify(link);
+    const key = JSON.stringify([link, layers]);
     if (key === followedLink) return;
     followedLink = key;
     // The link's box replaces the move to Italy made at activation; a link
     // with its own map view keeps it (#44).
-    if (link.form.bbox && !linkHasView(params)) fitWhenSettled?.(link.form.bbox);
-    activePanel.searchFromLink(link);
+    if (link?.form.bbox && !linkHasView(params)) fitWhenSettled?.(link.form.bbox);
+    activePanel.searchFromLink(link, layers);
   },
   // The last search travels with the project (`plugins.settings`): saved in
   // the web version, it comes back in Desktop, where every service can be read.
