@@ -137,7 +137,9 @@ export const plugin: Plugin = {
     // at activation (#47); a link with GeoLibre's own map view keeps it (#44).
     const fitTo = view ?? link?.form.bbox;
     if (fitTo && !linkHasView(params)) fitWhenSettled?.(fitTo);
-    if (link || layers.length) activePanel.searchFromLink(link, layers);
+    // A link with no view of its own opens on the layers it adds (#49).
+    const fitLayers = fitTo || linkHasView(params) ? undefined : (bbox: Bbox) => fitWhenSettled?.(bbox);
+    if (link || layers.length) activePanel.searchFromLink(link, layers, fitLayers);
   },
   // The last search travels with the project (`plugins.settings`): saved in
   // the web version, it comes back in Desktop, where every service can be read.

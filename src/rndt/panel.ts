@@ -874,6 +874,7 @@ export class RndtPanel {
   /** A search asked by a link before the first mount. */
   private pendingLink: LinkSearch | null = null;
   private pendingLayers: LinkLayer[] = [];
+  private pendingFit: ((bbox: Bbox) => void) | undefined;
   /** Under the filters: how the layers of a link were added (#44). */
   private linkNoteEl!: HTMLElement;
   /** A state given by a project before the first mount. */
@@ -939,10 +940,11 @@ export class RndtPanel {
     }
     container.append(this.root);
     // A link is the newer request: it wins over the state of the project.
-    const [link, layers, state] = [this.pendingLink, this.pendingLayers, this.pendingState];
+    const [link, layers, fit, state] = [this.pendingLink, this.pendingLayers, this.pendingFit, this.pendingState];
     this.pendingLink = this.pendingState = null;
     this.pendingLayers = [];
-    if (link || layers.length) this.searchFromLink(link, layers);
+    this.pendingFit = undefined;
+    if (link || layers.length) this.searchFromLink(link, layers, fit);
     else if (state) this.restore(state);
     return () => this.root?.remove();
   }
@@ -952,19 +954,21 @@ export class RndtPanel {
    * url-params.ts): now, or at the first mount when GeoLibre has not rendered
    * the panel yet. The link's form replaces the whole form, every field it
    * leaves out at its default and the area Anywhere without a box, so the same
-   * link finds the same records for everyone. Its layers are added alongside.
+   * link finds the same records for everyone. Its layers are added alongside;
+   * `fit`, given when the link sets no view, moves the map to them (#49).
    */
-  searchFromLink(link: LinkSearch | null, layers: LinkLayer[] = []): void {
+  searchFromLink(link: LinkSearch | null, layers: LinkLayer[] = [], fit?: (bbox: Bbox) => void): void {
     if (!this.root) {
       this.pendingLink = link;
       this.pendingLayers = layers;
+      this.pendingFit = fit;
       return;
     }
     if (link) {
       this.writeForm(link.form);
       this.formEl.requestSubmit();
     }
-    void this.addLinkLayers(layers);
+    void this.addLinkLayers(layers, fit);
   }
 
   /** What a project saves of the panel: the last search, its page, the open record. Null before any search. */
@@ -2545,8 +2549,9 @@ export class RndtPanel {
    * so they stack as they did. Each record and each service is read once; a
    * layer comes from the first service of its kind in the record that lists
    * it. One that cannot be added is named in the note, the others still are.
+   * `fit` gets the box of the layers on the map, when they have one.
    */
-  private async addLinkLayers(layers: LinkLayer[]): Promise<void> {
+  private async addLinkLayers(layers: LinkLayer[], fit?: (bbox: Bbox) => void): Promise<void> {
     if (!layers.length) return;
     const note = (text: string, kind: "info" | "error" | "busy") => {
       this.linkNoteEl.hidden = false;
@@ -2561,8 +2566,8 @@ export class RndtPanel {
     const records = new Map<string, Promise<RndtRecord | null>>();
     const wmsServices = new Map<string, Promise<PreparedWms>>();
     const arcgisServices = new Map<string, Promise<PreparedArcgis>>();
-    /** How to add one layer, found before any is added so the order holds. */
-    const resolve = async (link: LinkLayer): Promise<() => void> => {
+    /** How to add one layer, found before any is added so the order holds; it returns the layer's box. */
+    const resolve = async (link: LinkLayer): Promise<() => Bbox | undefined> => {
       const record = await once(records, link.recordId, () => this.recordById(link.recordId));
       if (!record) throw new Error(`no record ${link.recordId} in the catalogue`);
       const kind = link.kind === "wms" ? "WMS" : ARCGIS_KIND;
@@ -2575,9 +2580,12 @@ export class RndtPanel {
             if (!layer) continue;
             if (!wms.crsOf(layer)) throw new Error("GeoLibre cannot display it (not offered in EPSG:3857)");
             return () => {
-              if (this.wmsOnMap(wms.caps.getMapUrl, link.name)) return;
-              const id = this.app.addWmsLayer!(shownTitle(layer) || link.name, this.wmsOptions(record, wms, link.name));
-              this.addedWms.set(`${wms.caps.getMapUrl}|${link.name}`, id);
+              const options = this.wmsOptions(record, wms, link.name);
+              if (!this.wmsOnMap(wms.caps.getMapUrl, link.name)) {
+                const id = this.app.addWmsLayer!(shownTitle(layer) || link.name, options);
+                this.addedWms.set(`${wms.caps.getMapUrl}|${link.name}`, id);
+              }
+              return options.bounds;
             };
           }
           if (!this.app.addTileLayer) break;
@@ -2585,12 +2593,15 @@ export class RndtPanel {
           const layer = arcgis.layers.find((l) => l.name === link.name);
           if (!layer || !arcgis.info.drawsImage) continue;
           return () => {
-            if (this.wmsOnMap(arcgis.arcgis.serviceUrl, link.name, arcgis.tileUrl(link.name))) return;
-            const id = this.app.addTileLayer!(shownTitle(layer) || link.name, arcgis.tileUrl(link.name), {
-              attribution: arcgis.info.copyright || undefined,
-              metadata: { ...provenance(record), ...layerSource("arcgis", link.name) },
-            });
-            this.addedWms.set(`${arcgis.arcgis.serviceUrl}|${link.name}`, id);
+            if (!this.wmsOnMap(arcgis.arcgis.serviceUrl, link.name, arcgis.tileUrl(link.name))) {
+              const id = this.app.addTileLayer!(shownTitle(layer) || link.name, arcgis.tileUrl(link.name), {
+                attribution: arcgis.info.copyright || undefined,
+                metadata: { ...provenance(record), ...layerSource("arcgis", link.name) },
+              });
+              this.addedWms.set(`${arcgis.arcgis.serviceUrl}|${link.name}`, id);
+            }
+            // The service's extent is not read: the record's box stands for it.
+            return record.bbox && !bboxError(record.bbox) ? record.bbox : undefined;
           };
         } catch (error) {
           if (error instanceof Error && error.message.startsWith("GeoLibre cannot")) throw error;
@@ -2601,14 +2612,24 @@ export class RndtPanel {
     };
     const found = await Promise.allSettled(layers.map(resolve));
     const failed: string[] = [];
+    const boxes: Bbox[] = [];
     found.forEach((result, i) => {
       try {
         if (result.status === "rejected") throw result.reason;
-        result.value();
+        const box = result.value();
+        if (box) boxes.push(box);
       } catch (error) {
         failed.push(`${layers[i].name}: ${errorMessage(error)}`);
       }
     });
+    if (fit && boxes.length) {
+      fit([
+        Math.min(...boxes.map((b) => b[0])),
+        Math.min(...boxes.map((b) => b[1])),
+        Math.max(...boxes.map((b) => b[2])),
+        Math.max(...boxes.map((b) => b[3])),
+      ]);
+    }
     const added = layers.length - failed.length;
     note(
       [`Added ${added} of ${layers.length} ${layers.length === 1 ? "layer" : "layers"} of the link.`, ...failed.map((f) => `Could not add ${f}.`)].join(" "),

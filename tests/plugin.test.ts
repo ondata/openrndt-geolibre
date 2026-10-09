@@ -2005,6 +2005,29 @@ describe("search from a link (?rndt=, ?rndtBbox=)", () => {
     plugin.deactivate(host);
   });
 
+  it("opens on the layers a link adds when it sets no view, and not when it does (#49)", async () => {
+    const id = "c_l219:4bfe0c85-3a26-4e3f-a6c8-88cf6f6e2dcf";
+    const answer = (url: string) => (url.includes("/rest/metadata/search") ? fixture("search-services.json") : fixture("wms-piemonte-111.xml"));
+
+    const ctx = await mountPanel(answer);
+    ctx.host.importLayerStyle = vi.fn();
+    await handle(ctx.host, `rndtLayer=${id}~wms~Microzone`);
+    await vi.waitFor(() => expect(ctx.host.fitBounds).toHaveBeenCalled(), { timeout: 3000 });
+    const bounds = vi.mocked(ctx.host.addWmsLayer!).mock.calls[0][1].bounds;
+    expect(bounds).toBeDefined();
+    expect(ctx.host.fitBounds).toHaveBeenLastCalledWith(bounds);
+    plugin.deactivate(ctx.host);
+
+    const withView = await mountPanel(answer);
+    withView.host.importLayerStyle = vi.fn();
+    // Another link: one already followed is not followed again.
+    await handle(withView.host, `rndtLayer=${id}~wms~Microzone&rndtLayer=${id}~wms~Nope&lat=45.1&lon=7.7&zoom=12`);
+    await vi.waitFor(() => expect(withView.host.addWmsLayer).toHaveBeenCalled(), { timeout: 3000 });
+    await new Promise((done) => setTimeout(done, 800));
+    expect(withView.host.fitBounds).not.toHaveBeenCalled();
+    plugin.deactivate(withView.host);
+  });
+
   it("opens the record when the text is a record id", async () => {
     const { host, container } = await mountPanel(() => fixture("search-services.json"));
     await handle(host, "rndt=c_l219:a883ab12-e713-41fe-b2a2-34c7756dc4e2");
