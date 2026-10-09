@@ -1926,6 +1926,17 @@ describe("search from a link (?rndt=, ?rndtBbox=)", () => {
     plugin.deactivate(ctx.host);
   });
 
+  it("keeps the map view a link sets, box or not (#44)", () => {
+    vi.useFakeTimers();
+    const ctx = createHost(() => "{}");
+    ctx.host.getViewBounds = () => [15.44, 38.03, 15.53, 38.1];
+    plugin.activate(ctx.host);
+    void handle(ctx.host, "rndtBbox=12.3,37.5,13.9,38.3&lat=38.07&lon=15.49&zoom=12");
+    vi.advanceTimersByTime(1000);
+    expect(ctx.host.fitBounds).not.toHaveBeenCalled();
+    plugin.deactivate(ctx.host);
+  });
+
   it("opens the record when the text is a record id", async () => {
     const { host, container } = await mountPanel(() => fixture("search-services.json"));
     await handle(host, "rndt=c_l219:a883ab12-e713-41fe-b2a2-34c7756dc4e2");
@@ -2540,6 +2551,21 @@ describe("Share (#31)", () => {
       ["rndt", id],
     ]);
     expect(share.textContent).toBe("Link copied");
+    plugin.deactivate(host);
+  });
+
+  it("puts the map view in the link (#44)", async () => {
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    const { entry, host } = await searched("alberi");
+    // A world copy east of the first one: the longitude is wrapped back.
+    const center = { lng: 375.49, lat: 38.07, wrap: () => ({ lng: 15.49, lat: 38.07 }) };
+    host.getMap = () => ({ getCenter: () => center, getZoom: () => 12 }) as never;
+    entry().click();
+    await flush();
+
+    const link = new URL((writeText.mock.calls[0] as unknown as [string])[0]);
+    expect([link.searchParams.get("lat"), link.searchParams.get("lon"), link.searchParams.get("zoom")]).toEqual(["38.07", "15.49", "12"]);
     plugin.deactivate(host);
   });
 });

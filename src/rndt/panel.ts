@@ -2460,15 +2460,18 @@ export class RndtPanel {
   }
 
   /**
-   * Share the search on screen, or the record open, as a GeoLibre web link
-   * (#31): through the system share sheet where the browser offers one, else
+   * Share the search on screen, or the record open, and the map view, as a
+   * GeoLibre web link (#31, #44): through the system share sheet where the browser offers one, else
    * copied to the clipboard. A share sheet closed without sharing is not an error.
    * `record`: the record of the detail view's own menu.
    */
   private async share(label: HTMLElement, record?: RndtRecord): Promise<void> {
     const state = this.projectState();
     if (!state && !record) return;
-    const url = shareUrl(state?.form ?? emptyForm(), record?.id ?? state?.recordId ?? null);
+    const map = this.app.getMap?.();
+    const center = map?.getCenter().wrap();
+    const view = map && center ? { lon: center.lng, lat: center.lat, zoom: map.getZoom() } : null;
+    const url = shareUrl(state?.form ?? emptyForm(), record?.id ?? state?.recordId ?? null, view);
     const title = record ? `RNDT: ${record.title}` : state?.form.text ? `RNDT: ${state.form.text}` : "RNDT search";
     const show = (text: string) => {
       label.textContent = text;

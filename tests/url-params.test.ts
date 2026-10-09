@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { INSPIRE_THEME_CODES, INSPIRE_THEMES } from "../src/rndt/constants";
 import { emptyForm, type SearchForm } from "../src/rndt/query";
-import { linkSearchFrom, paramsFromForm, shareUrl, URL_PARAMETER_NAMES } from "../src/rndt/url-params";
+import { linkHasView, linkSearchFrom, paramsFromForm, shareUrl, URL_PARAMETER_NAMES } from "../src/rndt/url-params";
 
 const read = (query: string) => linkSearchFrom(new URLSearchParams(query));
 const form = (fields: Partial<SearchForm>): SearchForm => ({ ...emptyForm(), ...fields });
@@ -187,5 +187,27 @@ describe("shareUrl", () => {
 
   it("is only the plugin for an empty search", () => {
     expect(shareUrl(emptyForm(), null)).toBe("https://web.geolibre.app/?plugin=openrndt-geolibre");
+  });
+
+  it("ends with the map view in GeoLibre's own parameters, rounded (#44)", () => {
+    const url = new URL(shareUrl(form({ text: "fiumi" }), null, { lon: 15.491234567, lat: 38.071234567, zoom: 12.3456 }));
+    expect([...url.searchParams]).toEqual([
+      ["plugin", "openrndt-geolibre"],
+      ["rndt", "fiumi"],
+      ["lat", "38.07123"],
+      ["lon", "15.49123"],
+      ["zoom", "12.35"],
+    ]);
+    expect(linkHasView(url.searchParams)).toBe(true);
+  });
+});
+
+describe("linkHasView", () => {
+  it("needs both lat and lon, within range", () => {
+    expect(linkHasView(new URLSearchParams("lat=38&lon=15"))).toBe(true);
+    expect(linkHasView(new URLSearchParams("lat=38"))).toBe(false);
+    expect(linkHasView(new URLSearchParams("lat=&lon=15"))).toBe(false);
+    expect(linkHasView(new URLSearchParams("lat=95&lon=15"))).toBe(false);
+    expect(linkHasView(new URLSearchParams("lat=abc&lon=15"))).toBe(false);
   });
 });

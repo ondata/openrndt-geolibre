@@ -4,7 +4,7 @@ import type { RndtHost } from "./rndt/host";
 import { RndtPanel } from "./rndt/panel";
 import { parsePanelState, type PanelState } from "./rndt/project-state";
 import type { Bbox } from "./rndt/query";
-import { linkSearchFrom, URL_PARAMETER_NAMES } from "./rndt/url-params";
+import { linkHasView, linkSearchFrom, URL_PARAMETER_NAMES } from "./rndt/url-params";
 import "./rndt/panel.css";
 
 /**
@@ -131,8 +131,9 @@ export const plugin: Plugin = {
     const key = JSON.stringify(link);
     if (key === followedLink) return;
     followedLink = key;
-    // The link's box replaces the move to Italy made at activation.
-    if (link.form.bbox) fitWhenSettled?.(link.form.bbox);
+    // The link's box replaces the move to Italy made at activation; a link
+    // with its own map view keeps it (#44).
+    if (link.form.bbox && !linkHasView(params)) fitWhenSettled?.(link.form.bbox);
     activePanel.searchFromLink(link);
   },
   // The last search travels with the project (`plugins.settings`): saved in

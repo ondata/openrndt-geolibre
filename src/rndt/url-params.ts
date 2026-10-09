@@ -244,11 +244,34 @@ const SHARE_PLUGIN_ID = "openrndt-geolibre";
  * The link that gives someone else this search (#31): GeoLibre web with
  * `?plugin=` (it installs the plugin where it is missing, after the trust
  * prompt, on GeoLibre after 3.2.0) and the search's parameters. With a record
- * open the link opens that record, as `?rndt=<id>` does.
+ * open the link opens that record, as `?rndt=<id>` does. `view`: the map view,
+ * which GeoLibre applies at startup (#44).
  */
-export function shareUrl(form: SearchForm, recordId: string | null): string {
+export function shareUrl(form: SearchForm, recordId: string | null, view: MapView | null = null): string {
   const params = recordId ? new URLSearchParams({ [TEXT_PARAM]: recordId }) : paramsFromForm(form);
   const query = new URLSearchParams({ plugin: SHARE_PLUGIN_ID });
   for (const [name, value] of params) query.set(name, value);
+  if (view) {
+    query.set("lat", String(Number(view.lat.toFixed(5))));
+    query.set("lon", String(Number(view.lon.toFixed(5))));
+    query.set("zoom", String(Number(view.zoom.toFixed(2))));
+  }
   return `${SHARE_BASE_URL}?${query}`;
+}
+
+/** The map view a link opens on, in GeoLibre's own startup parameters (`?lat=&lon=&zoom=`, GeoLibre 3.0). */
+export interface MapView {
+  lon: number;
+  lat: number;
+  zoom: number;
+}
+
+/**
+ * True when the link sets the map view through GeoLibre's `lat` and `lon`
+ * (#44): GeoLibre has opened the map there, and the plugin must not move it.
+ * Values GeoLibre would reject do not count.
+ */
+export function linkHasView(params: URLSearchParams): boolean {
+  const value = (name: string) => Number(params.get(name)?.trim() || NaN);
+  return Math.abs(value("lat")) <= 90 && Math.abs(value("lon")) <= 180;
 }
