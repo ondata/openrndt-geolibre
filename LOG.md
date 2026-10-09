@@ -1,5 +1,9 @@
 # LOG
 
+## 2026-10-10
+
+- **#49: a fit asked while the map moves is no longer lost**: with the ArcGIS image of Milan 1910 (`C_F205:SIT_CENTRALE_M191081001:20161013`, record box only) the layer was added but the map stayed on Italy in 3 of 4 headless runs and in a visible Chrome on X410, globe view; it worked in the user's Firefox, 2D view. Debug logs: the fit to the layers was asked while the move to Italy at activation was still running; that stop fires `moveend`, and GeoLibre's `clampViewToPreferences` (`map-controller.ts`, deferred while the camera moves) jumps to the view of that moment, which stops the new move. Waiting for `moveend` alone is not enough: the jump comes in the same `moveend`, after the plugin's handler. Now `fitWhenSettled` waits for the move to end and one more turn: in the visible Chrome the map goes to Milan, zoom 11.15 (end of the Italy move 65591, GeoLibre's jump 65619, Milan 66449). GeoLibre caches a plugin bundle by manifest URL: each build is served at a new path to be sure it is the one running. Test: a fit during a move waits for `moveend` and the next turn; 478 pass.
+
 ## 2026-10-09
 
 - **Date filter on the record's last change** (#48): a fifth date type, "Record modified" (`apiso_Modified_dt`), in the form, its help and links (`rndtDate=modified`). The field is spread over the years, no bulk-load day (before 2020 5,258; 2025 10,385; on 2026-04-25 0). Tried on web.geolibre.app with the development copy: `?rndtDate=modified&rndtFrom=2026-04-26` gives 762 records, as the API and `openrndt search --updated-from 2026-04-26`. 1 new test, failing before; 477 pass. Not released.

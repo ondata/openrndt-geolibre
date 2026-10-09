@@ -95,6 +95,23 @@ export const plugin: Plugin = {
       const map = host.getMap?.();
       const move = () => {
         cancelMove();
+        // A fit asked while the map is still moving (the move to Italy at
+        // activation, on a slow machine) is lost: GeoLibre, at the end of a
+        // move, jumps back to the view it ends on, which stops any camera
+        // move started meanwhile (`clampViewToPreferences`). Wait for the
+        // move to end, then one more turn, after that jump (#49).
+        if (map?.isMoving?.()) {
+          let timer: ReturnType<typeof setTimeout> | undefined;
+          const later = () => {
+            timer = setTimeout(() => host.fitBounds?.(bbox), 0);
+          };
+          map.once("moveend", later);
+          cancelMove = () => {
+            map.off("moveend", later);
+            clearTimeout(timer);
+          };
+          return;
+        }
         host.fitBounds?.(bbox);
       };
       let timer = setTimeout(move, 600);

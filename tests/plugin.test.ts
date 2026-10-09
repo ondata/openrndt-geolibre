@@ -751,6 +751,29 @@ describe("map view when the plugin is turned on", () => {
     plugin.deactivate(ctx.host);
   });
 
+  it("waits for a move under way to end before fitting, or the fit is lost (#49)", () => {
+    vi.useFakeTimers();
+    const ctx = createHost(() => "{}");
+    ctx.host.getViewBounds = () => [-203.3, -16.3, 3.3, 83.1];
+    let onMoveEnd = () => {};
+    const map = {
+      on: vi.fn(),
+      off: vi.fn(),
+      isMoving: () => true,
+      once: (_: string, f: () => void) => (onMoveEnd = f),
+    };
+    ctx.host.getMap = () => map as never;
+    plugin.activate(ctx.host);
+    vi.advanceTimersByTime(600);
+    expect(ctx.host.fitBounds).not.toHaveBeenCalled();
+    onMoveEnd();
+    // Not in the same moveend: GeoLibre's own jump at the end of a move would stop it.
+    expect(ctx.host.fitBounds).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(0);
+    expect(ctx.host.fitBounds).toHaveBeenCalledWith(ITALY_BBOX);
+    plugin.deactivate(ctx.host);
+  });
+
   it("does not move the map of a plugin turned off at once", () => {
     vi.useFakeTimers();
     const ctx = createHost(() => "{}");
