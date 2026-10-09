@@ -155,7 +155,10 @@ function textClause(form: SearchForm): string | null {
   const text = form.text.trim();
   if (!text) return null;
   if (form.textMode === "lucene") return `(${text})`;
-  const words = text.split(/\s+/).filter(Boolean).map(escapeTerm);
+  // A mark standing alone (the " - " of many titles) would be a term no
+  // record holds, and with AND it would find nothing (#46).
+  const words = text.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).map(escapeTerm);
+  if (!words.length) return null;
   const group = `(${words.join(form.textMode === "any" ? " OR " : " AND ")})`;
   return form.field ? `${form.field}:${group}` : group;
 }

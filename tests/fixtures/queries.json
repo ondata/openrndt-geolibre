@@ -30,6 +30,25 @@
       "liveTotal": 128
     },
     {
+      "name": "a lone dash or slash is not a word (#46)",
+      "form": {
+        "text": "DTM LiDAR con risoluzione a terra 1 metro - Regione Sicilia / –"
+      },
+      "expected": {
+        "q": "(DTM AND LiDAR AND con AND risoluzione AND a AND terra AND 1 AND metro AND Regione AND Sicilia)"
+      },
+      "liveTotal": 1
+    },
+    {
+      "name": "a dash inside a word stays (#46)",
+      "form": {
+        "text": "Emilia-Romagna agea"
+      },
+      "expected": {
+        "q": "(Emilia\\-Romagna AND agea)"
+      }
+    },
+    {
       "name": "all words in title",
       "form": {
         "text": "alberi monumentali",
