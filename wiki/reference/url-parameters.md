@@ -48,7 +48,7 @@ sources:
 - Without `rndtBbox` the area is **Anywhere**: see [the decision](../decisions/link-searches-anywhere.md).
 - `rndtTheme` and `rndtOpen` do nothing with `rndtKind=services`: the catalogue gives services no theme and no licence (0 of 3,163 services have `INSPIRETheme_s` or `isOpendata`, 2026-10-07), as in the form. The panel shows no chip for them and offers **Search datasets with a WMS**, which keeps them and searches datasets instead (#33).
 - `rndtWithin` without `rndtBbox`, and `rndtDate` without `rndtFrom` or `rndtTo`, change nothing.
-- With `rndtBbox` the map moves to the box instead of moving to Italy, unless the link sets the view with GeoLibre's `lat` and `lon` (GeoLibre 3.0, `?lat=38.07&lon=15.49&zoom=12`): then the map stays there (not released yet, #44). Share writes them.
+- With `rndtBbox` the map moves to the box instead of moving to Italy, unless the link sets the view with GeoLibre's `lat` and `lon` (GeoLibre 3.0, `?lat=38.07&lon=15.49&zoom=12`): then the map stays there (from 0.3.4, #44). Share writes them.
 - The numbers of the box can be separated by commas, semicolons or spaces. A box that is not valid (not four numbers, out of range, west not less than east) is ignored with a warning in the browser console, and so is any other value that is not valid; the rest is still searched.
 - `rndtTheme` with several codes uses the first known one: the form filters on one theme.
 - A parameter repeated takes its first value.

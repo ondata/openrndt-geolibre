@@ -34,7 +34,7 @@ The cadastral maps of Italian municipalities, published by the Agenzia delle Ent
 
 ### 6. Keep it, share it, hand it to an AI agent
 
-- **Share**, in the ⋯ menu of the results or of a record, builds a link like the ones above for the search on screen, and hands it to your system's share sheet (mail, WhatsApp, Teams…), or copies it.
+- **Share**, in the ⋯ menu of the results or of a record, builds a link like the ones above for the search on screen and the map view, and hands it to your system's share sheet (mail, WhatsApp, Teams…), or copies it.
 - **Save the project**: the search goes into it, with the record you had open. Whoever opens the file finds the same search, run again on today's catalogue.
 - **Copy for an agent**, in the ⋯ menu of the results, copies the search as Markdown, with the filters in words, the records as a table and a ready `curl` request: paste it into an AI assistant and go on from there with [openrndt](#openrndt-the-same-catalogue-from-the-command-line).
 

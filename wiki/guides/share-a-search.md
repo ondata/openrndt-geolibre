@@ -23,7 +23,7 @@ From version 0.2.0 (#31). **Share** is in the ⋯ menu of the results header and
 - from the results header: the search, with every filter that is not at its default (the parameters of [URL parameters](../reference/url-parameters.md)), or the record open, if one is;
 - from a detail view: that record, as `?rndt=<id>`.
 
-Both end with the map view in GeoLibre's own parameters, `lat`, `lon` and `zoom` (not released yet, #44): GeoLibre opens the map there, and the plugin does not move it, even with a box in the link.
+Both end with the map view in GeoLibre's own parameters, `lat`, `lon` and `zoom` (from 0.3.4, #44): GeoLibre opens the map there, and the plugin does not move it, even with a box in the link.
 
 The link always starts with `https://web.geolibre.app/?plugin=openrndt-geolibre`, also from GeoLibre Desktop, whose own address means nothing to whoever receives it. Where the browser offers the system share sheet, Share opens it; otherwise it copies the link and the entry reads "Link copied". Closing the share sheet without sharing does nothing.
 
