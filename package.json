@@ -1,6 +1,6 @@
 {
   "name": "openrndt-geolibre",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "private": true,
   "description": "GeoLibre plugin to search the RNDT catalogue and add its WMS/WFS services to the map",
   "type": "module",

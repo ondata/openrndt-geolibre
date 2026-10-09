@@ -39,7 +39,7 @@ sources:
 | `rndtDate` | `revision`, `publication`, `creation`, `catalogue` | date field |
 | `rndtFrom`, `rndtTo` | `yyyy-mm-dd` | date range |
 | `rndtSort` | `title`, `title-desc`, `newest`, `oldest` | sort |
-| `rndtLayer` | `<record id>~wms~<layer name>` or `<record id>~arcgis~<layer name>`, repeated once per layer, bottom to top | a layer to add (not released yet, #44) |
+| `rndtLayer` | `<record id>~wms~<layer name>` or `<record id>~arcgis~<layer name>`, repeated once per layer, bottom to top | a layer to add (from 0.3.5, #44) |
 
 `rndt` and `rndtBbox` from version 0.1.6, the others from version 0.2.0 (#30). The names are case-sensitive (`?Rndt=` is not read) and public once a link is shared: they are not to be renamed. The short values (`abstract`, `newest`, `publication`) stand for the field names the catalogue uses, so a link does not change if those do. The theme codes are the INSPIRE registry's, mapped to the Italian labels the catalogue stores; all 34 checked against `https://inspire.ec.europa.eu/theme/theme.it.json` on 2026-10-04.[^url-params]
 
