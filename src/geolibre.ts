@@ -4,7 +4,7 @@ import type { RndtHost } from "./rndt/host";
 import { RndtPanel } from "./rndt/panel";
 import { parsePanelState, type PanelState } from "./rndt/project-state";
 import type { Bbox } from "./rndt/query";
-import { linkHasView, linkLayersFrom, linkSearchFrom, URL_PARAMETER_NAMES } from "./rndt/url-params";
+import { linkHasView, linkLayersFrom, linkSearchFrom, linkViewFrom, URL_PARAMETER_NAMES } from "./rndt/url-params";
 import "./rndt/panel.css";
 
 /**
@@ -126,16 +126,18 @@ export const plugin: Plugin = {
   handleUrlParameters(_app, params) {
     const link = linkSearchFrom(params);
     const layers = linkLayersFrom(params);
-    if ((!link && !layers.length) || !activePanel) return;
+    const view = linkViewFrom(params);
+    if ((!link && !layers.length && !view) || !activePanel) return;
     // A link opens the app on a search, once: a project opened later brings
     // its own search, or none.
-    const key = JSON.stringify([link, layers]);
+    const key = JSON.stringify([link, layers, view]);
     if (key === followedLink) return;
     followedLink = key;
-    // The link's box replaces the move to Italy made at activation; a link
-    // with its own map view keeps it (#44).
-    if (link?.form.bbox && !linkHasView(params)) fitWhenSettled?.(link.form.bbox);
-    activePanel.searchFromLink(link, layers);
+    // The link's view, else its search box, replaces the move to Italy made
+    // at activation (#47); a link with GeoLibre's own map view keeps it (#44).
+    const fitTo = view ?? link?.form.bbox;
+    if (fitTo && !linkHasView(params)) fitWhenSettled?.(fitTo);
+    if (link || layers.length) activePanel.searchFromLink(link, layers);
   },
   // The last search travels with the project (`plugins.settings`): saved in
   // the web version, it comes back in Desktop, where every service can be read.

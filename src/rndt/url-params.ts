@@ -12,6 +12,8 @@ export const TEXT_PARAM = "rndt";
 export const BBOX_PARAM = "rndtBbox";
 /** A layer turned on, repeated once per layer (#44): `<record id>~<wms|arcgis>~<layer name>`. */
 export const LAYER_PARAM = "rndtLayer";
+/** A box the map fits once, not a search filter (#47): `west,south,east,north`. */
+export const VIEW_PARAM = "rndtView";
 
 /** Short, stable names for the values of a few fields, as a link writes them. */
 const FIELDS: Record<string, string> = {
@@ -51,6 +53,7 @@ const list = (raw: string) =>
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+const box = (raw: string) => raw.split(/[\s,;]+/).filter(Boolean).map(Number) as Bbox;
 const isTrue = (raw: string) => /^(1|true|yes)$/i.test(raw);
 const isFalse = (raw: string) => /^(0|false|no)$/i.test(raw);
 
@@ -107,10 +110,10 @@ const PARAMS: Param[] = [
   {
     name: BBOX_PARAM,
     read: (raw, form) => {
-      const box = raw.split(/[\s,;]+/).filter(Boolean).map(Number) as Bbox;
-      const error = bboxError(box);
+      const bbox = box(raw);
+      const error = bboxError(bbox);
       if (error) return error;
-      form.bbox = box;
+      form.bbox = bbox;
       return null;
     },
     write: (form) => (form.bbox ? form.bbox.join(",") : ""),
@@ -201,7 +204,7 @@ const PARAMS: Param[] = [
   mapped("rndtSort", SORTS, "sort"),
 ];
 
-export const URL_PARAMETER_NAMES = [...PARAMS.map((param) => param.name), LAYER_PARAM];
+export const URL_PARAMETER_NAMES = [...PARAMS.map((param) => param.name), LAYER_PARAM, VIEW_PARAM];
 
 /** A search asked by a link: the whole form, every field the link leaves out at its default. */
 export interface LinkSearch {
@@ -278,6 +281,20 @@ export interface MapView {
 export function linkHasView(params: URLSearchParams): boolean {
   const value = (name: string) => Number(params.get(name)?.trim() || NaN);
   return Math.abs(value("lat")) <= 90 && Math.abs(value("lon")) <= 180;
+}
+
+/**
+ * The box a link asks the map to fit (#47), or null. Unlike `rndtBbox` it
+ * filters nothing. A box that is not valid is left out with a warning.
+ */
+export function linkViewFrom(params: URLSearchParams): Bbox | null {
+  const raw = (params.get(VIEW_PARAM) ?? "").trim();
+  if (!raw) return null;
+  const bbox = box(raw);
+  const error = bboxError(bbox);
+  if (!error) return bbox;
+  console.warn(`[openrndt-geolibre] Ignoring ${VIEW_PARAM}=${raw} in the link: ${error}`);
+  return null;
 }
 
 /** A layer of a record a link asks to add (#44): the first service of that kind in the record that lists the name. */

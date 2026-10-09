@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { INSPIRE_THEME_CODES, INSPIRE_THEMES } from "../src/rndt/constants";
 import { emptyForm, type SearchForm } from "../src/rndt/query";
-import { linkHasView, linkLayersFrom, linkSearchFrom, paramsFromForm, shareUrl, URL_PARAMETER_NAMES } from "../src/rndt/url-params";
+import { linkHasView, linkLayersFrom, linkSearchFrom, linkViewFrom, paramsFromForm, shareUrl, URL_PARAMETER_NAMES } from "../src/rndt/url-params";
 
 const read = (query: string) => linkSearchFrom(new URLSearchParams(query));
 const form = (fields: Partial<SearchForm>): SearchForm => ({ ...emptyForm(), ...fields });
@@ -199,6 +199,28 @@ describe("shareUrl", () => {
       ["zoom", "12.35"],
     ]);
     expect(linkHasView(url.searchParams)).toBe(true);
+  });
+});
+
+describe("rndtView (#47)", () => {
+  afterEach(() => vi.restoreAllMocks());
+  const view = (query: string) => linkViewFrom(new URLSearchParams(query));
+
+  it("reads a box that is not a search filter", () => {
+    expect(URL_PARAMETER_NAMES).toContain("rndtView");
+    expect(view("rndtView=6.62,38.86,11.66,47")).toEqual([6.62, 38.86, 11.66, 47]);
+    expect(view("rndtView=6.62; 38.86 11.66,47")).toEqual([6.62, 38.86, 11.66, 47]);
+    expect(read("rndtView=6.62,38.86,11.66,47")).toBeNull();
+    expect(read("rndt=ortofoto&rndtView=6.62,38.86,11.66,47")).toEqual({ form: form({ text: "ortofoto" }) });
+    expect(view("rndt=ortofoto")).toBeNull();
+  });
+
+  it("drops a box that is not valid with a warning", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    expect(view("rndtView=11.66,38.86,6.62,47")).toBeNull();
+    expect(view("rndtView=6,38,11")).toBeNull();
+    expect(warn).toHaveBeenCalledTimes(2);
+    expect(warn.mock.calls[0][0]).toContain("rndtView=11.66,38.86,6.62,47");
   });
 });
 

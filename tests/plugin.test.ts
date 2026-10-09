@@ -1937,6 +1937,51 @@ describe("search from a link (?rndt=, ?rndtBbox=)", () => {
     plugin.deactivate(ctx.host);
   });
 
+  it("fits the link's view, not its search box, and searches the box (#47)", async () => {
+    vi.useFakeTimers();
+    const ctx = createHost(() => fixture("search-services.json"));
+    plugin.activate(ctx.host);
+    void handle(ctx.host, "rndt=ortofoto&rndtBbox=12.3,37.5,13.9,38.3&rndtView=6.62,38.86,11.66,47");
+    vi.advanceTimersByTime(1000);
+    const fit = vi.mocked(ctx.host.fitBounds!);
+    expect(fit).toHaveBeenCalledTimes(1);
+    expect(fit).toHaveBeenCalledWith([6.62, 38.86, 11.66, 47]);
+    const container = document.createElement("div");
+    document.body.append(container);
+    ctx.getPanel()!.render(container);
+    vi.useRealTimers();
+    await flush();
+    expect(new URL(ctx.requested[0]).searchParams.get("bbox")).toBe("12.3,37.5,13.9,38.3");
+    plugin.deactivate(ctx.host);
+  });
+
+  it("with only a view, fits it and searches nothing (#47)", async () => {
+    vi.useFakeTimers();
+    const ctx = createHost(() => fixture("search-services.json"));
+    plugin.activate(ctx.host);
+    void handle(ctx.host, "rndtView=6.62,38.86,11.66,47.01");
+    vi.advanceTimersByTime(1000);
+    expect(ctx.host.fitBounds).toHaveBeenCalledWith([6.62, 38.86, 11.66, 47.01]);
+    const container = document.createElement("div");
+    document.body.append(container);
+    ctx.getPanel()!.render(container);
+    vi.useRealTimers();
+    await flush();
+    expect(ctx.requested).toHaveLength(0);
+    plugin.deactivate(ctx.host);
+  });
+
+  it("keeps GeoLibre's lat and lon over the link's view (#47)", () => {
+    vi.useFakeTimers();
+    const ctx = createHost(() => "{}");
+    ctx.host.getViewBounds = () => [15.44, 38.03, 15.53, 38.1];
+    plugin.activate(ctx.host);
+    void handle(ctx.host, "rndtView=6.62,38.86,11.66,47.02&lat=38.07&lon=15.49&zoom=12");
+    vi.advanceTimersByTime(1000);
+    expect(ctx.host.fitBounds).not.toHaveBeenCalled();
+    plugin.deactivate(ctx.host);
+  });
+
   it("adds the layers of a link, each record and service read once, and says which could not be (#44)", async () => {
     const { host, requested, container } = await mountPanel((url) =>
       url.includes("/rest/metadata/search") ? fixture("search-services.json") : fixture("wms-piemonte-111.xml"),
