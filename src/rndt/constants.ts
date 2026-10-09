@@ -147,6 +147,7 @@ export const DATE_FIELDS: Option[] = [
   { value: "apiso_PublicationDate_dt", label: "Publication" },
   { value: "apiso_CreationDate_dt", label: "Creation" },
   { value: "sys_created_dt", label: "Added to catalogue" },
+  { value: "apiso_Modified_dt", label: "Record modified" },
 ];
 
 export const SORT_OPTIONS: Option[] = [

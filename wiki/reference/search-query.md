@@ -52,7 +52,7 @@ A date or a box that is not valid stops the search with a message: the catalogue
 | Type Data | `apiso_Type_s:(dataset OR series)` |
 | Type Services | `apiso_Type_s:service`, and `apiso_ServiceType_s:(…)` with service types |
 
-Date fields: `apiso_RevisionDate_dt`, `apiso_PublicationDate_dt`, `apiso_CreationDate_dt`, `sys_created_dt`.[^constants]
+Date fields: `apiso_RevisionDate_dt`, `apiso_PublicationDate_dt`, `apiso_CreationDate_dt`, `sys_created_dt`, `apiso_Modified_dt` (the record's last change, the only one besides `sys_created_dt` every record has: 23,883 of 23,883 on 2026-10-09; #48).[^constants]
 
 # Sort
 

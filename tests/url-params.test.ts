@@ -64,6 +64,12 @@ describe("linkSearchFrom", () => {
     );
   });
 
+  it("reads and writes the record's last change as a date field (#48)", () => {
+    const parsed = read("rndtDate=modified&rndtFrom=2026-01-01");
+    expect(parsed?.form).toEqual(form({ dateField: "apiso_Modified_dt", dateFrom: "2026-01-01" }));
+    expect(paramsFromForm(parsed!.form).get("rndtDate")).toBe("modified");
+  });
+
   it("asks for a search with a filter and no text", () => {
     expect(read("rndtTheme=cp&rndtKind=services")?.form).toEqual(
       form({ inspireThemes: ["Parcelle catastali"], kind: "services" }),

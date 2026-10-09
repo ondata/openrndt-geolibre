@@ -36,7 +36,7 @@ sources:
 | `rndtOrgNot` | `1` | hide the organisation |
 | `rndtTheme` | INSPIRE theme code (`hy`, `cp`, `au`, …) | INSPIRE theme |
 | `rndtOpen` | `1` | open data only |
-| `rndtDate` | `revision`, `publication`, `creation`, `catalogue` | date field |
+| `rndtDate` | `revision`, `publication`, `creation`, `catalogue`, `modified` (from 0.3.8, #48) | date field |
 | `rndtFrom`, `rndtTo` | `yyyy-mm-dd` | date range |
 | `rndtSort` | `title`, `title-desc`, `newest`, `oldest` | sort |
 | `rndtView` | `west,south,east,north` in WGS84 degrees; the map fits the box, no filter | none (from 0.3.7, #47) |

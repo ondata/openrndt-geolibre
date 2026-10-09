@@ -748,6 +748,10 @@ const DATE_HELP: [string, string][] = [
     "Added to catalogue",
     "when the record entered the RNDT catalogue, not a date of the resource. Every record has it, but 23,342 records carry 25 April 2026, when the catalogue was loaded in bulk: it tells new records only after that day",
   ],
+  [
+    "Record modified",
+    "when the record was last changed, not a date of the resource. Every record has it; Newest and Oldest sort by it",
+  ],
 ];
 
 /**

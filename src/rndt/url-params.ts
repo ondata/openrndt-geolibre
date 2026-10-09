@@ -27,6 +27,7 @@ const DATE_FIELDS: Record<string, string> = {
   publication: "apiso_PublicationDate_dt",
   creation: "apiso_CreationDate_dt",
   catalogue: "sys_created_dt",
+  modified: "apiso_Modified_dt",
 };
 const SORTS: Record<string, string> = {
   title: "title:asc",
