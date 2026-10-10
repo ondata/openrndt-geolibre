@@ -658,3 +658,12 @@ describe("organisation names with a comma (#51)", () => {
     expect(q).toContain("[pP][rR][eE][vV][eE][nN][zZ][iI][oO][nN][eE], [lL]'");
   });
 });
+
+describe("records with swapped box corners (#52)", () => {
+  it("puts west/east and south/north in order, as AVEPA's records need", () => {
+    const all = JSON.parse(fixture("search-alberi.json"));
+    all.results[0].bbox = { xmin: 12.2007230752971, ymin: 45.0963249286817, xmax: 11.3913398615318, ymax: 45.6868203449537 };
+    const page = parseSearchResponse(all, RNDT_BASE_URL);
+    expect(page.records[0].bbox).toEqual([11.3913398615318, 45.0963249286817, 12.2007230752971, 45.6868203449537]);
+  });
+});

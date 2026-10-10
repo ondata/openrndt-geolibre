@@ -200,8 +200,12 @@ function linkKey(url: string): string {
 
 function parseBbox(value: unknown): Bbox | null {
   const b = asObject(value);
-  const box = [b.xmin, b.ymin, b.xmax, b.ymax].map(Number) as Bbox;
-  return box.every((v) => Number.isFinite(v)) ? box : null;
+  const [x1, y1, x2, y2] = [b.xmin, b.ymin, b.xmax, b.ymax].map(Number);
+  if (![x1, y1, x2, y2].every((v) => Number.isFinite(v))) return null;
+  // Some records swap the corners (all of AVEPA's, west > east, #52): the
+  // rectangle is right, so put them in order. No Italian record crosses the
+  // antimeridian, where west > east would be meant.
+  return [Math.min(x1, x2), Math.min(y1, y2), Math.max(x1, x2), Math.max(y1, y2)];
 }
 
 export function parseRecord(result: Json, baseUrl: string): RndtRecord {
