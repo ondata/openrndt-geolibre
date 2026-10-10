@@ -2811,11 +2811,12 @@ describe("A menu with no room below (#24)", () => {
     const button = view.querySelector<HTMLButtonElement>(".ordt-detail-actions .ordt-menu-button")!;
     const menu = button.nextElementSibling as HTMLElement;
     const rect = (top: number, bottom: number) => () => ({ top, bottom, left: 0, right: 0, width: 0, height: bottom - top, x: 0, y: top, toJSON: () => ({}) });
-    container.querySelector<HTMLElement>(".ordt-footer")!.getBoundingClientRect = rect(600, 640);
+    // The footer sits at the bottom of the view (the window, 768 px in jsdom).
+    container.querySelector<HTMLElement>(".ordt-footer")!.getBoundingClientRect = rect(728, 768);
 
     // The button sits right above the footer: 80 px of menu do not fit below, and fit above.
-    button.getBoundingClientRect = rect(570, 590);
-    menu.getBoundingClientRect = rect(594, 674);
+    button.getBoundingClientRect = rect(698, 718);
+    menu.getBoundingClientRect = rect(722, 802);
     button.click();
     expect([menu.hidden, menu.classList.contains("ordt-menu-up")]).toEqual([false, true]);
     button.click();
@@ -2825,6 +2826,31 @@ describe("A menu with no room below (#24)", () => {
     menu.getBoundingClientRect = rect(224, 304);
     button.click();
     expect([menu.hidden, menu.classList.contains("ordt-menu-up")]).toEqual([false, false]);
+  });
+
+  it("opens downwards over a footer that is not at the bottom, never under the search bar", async () => {
+    const { container } = await mountPanel(() => fixture("search-alberi.json"));
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const button = container.querySelector<HTMLButtonElement>(".ordt-result .ordt-menu-button")!;
+    const menu = button.nextElementSibling as HTMLElement;
+    const rect = (top: number, bottom: number) => () => ({ top, bottom, left: 0, right: 0, width: 0, height: bottom - top, x: 0, y: top, toJSON: () => ({}) });
+    container.querySelector<HTMLElement>(".ordt-search-bar")!.getBoundingClientRect = rect(97, 140);
+
+    // One record: the footer follows it at 306, the view goes on to the window's bottom (768).
+    container.querySelector<HTMLElement>(".ordt-footer")!.getBoundingClientRect = rect(306, 340);
+    button.getBoundingClientRect = rect(226, 246);
+    menu.getBoundingClientRect = rect(250, 440);
+    button.click();
+    expect(menu.classList.contains("ordt-menu-up")).toBe(false);
+    button.click();
+
+    // No room below the view, and above it would go under the search bar: it stays downwards.
+    container.querySelector<HTMLElement>(".ordt-footer")!.getBoundingClientRect = rect(728, 768);
+    button.getBoundingClientRect = rect(300, 320);
+    menu.getBoundingClientRect = rect(324, 900);
+    button.click();
+    expect(menu.classList.contains("ordt-menu-up")).toBe(false);
   });
 });
 

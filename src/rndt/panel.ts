@@ -631,10 +631,27 @@ function menuWrap(menu: HTMLElement, label: string): HTMLElement {
         menu.hidden = !menu.hidden;
         menu.classList.remove("ordt-menu-up");
         if (menu.hidden) return;
-        const footer = button.closest(".ordt-panel")?.querySelector(".ordt-footer")?.getBoundingClientRect();
-        const floor = Math.min(window.innerHeight, footer && footer.top > 0 ? footer.top : Infinity);
+        // Open downwards unless that leaves the visible part of the panel and
+        // there is room above. The panel scrolls inside a GeoLibre container
+        // that clips the menu at its edges; the footer limits it only when it
+        // sits at the bottom of that view, and the search bar and the other
+        // bars stuck at the top cover it (a record alone in the results opened
+        // its menu under the search bar).
+        const panel = button.closest(".ordt-panel");
+        let scroller = panel?.parentElement ?? null;
+        while (scroller && !/(auto|scroll)/.test(getComputedStyle(scroller).overflowY)) scroller = scroller.parentElement;
+        const view = scroller?.getBoundingClientRect();
+        let floor = Math.min(window.innerHeight, view ? view.bottom : Infinity);
+        const footer = panel?.querySelector(".ordt-footer")?.getBoundingClientRect();
+        if (footer && footer.height && footer.bottom >= floor - 2) floor = footer.top;
+        const top = button.getBoundingClientRect().top;
+        let ceiling = Math.max(0, view ? view.top : 0);
+        for (const bar of panel?.querySelectorAll(".ordt-search-bar, .ordt-results-head, .ordt-detail-bar") ?? []) {
+          const rect = bar.getBoundingClientRect();
+          if (rect.height && rect.bottom <= top) ceiling = Math.max(ceiling, rect.bottom);
+        }
         const box = menu.getBoundingClientRect();
-        if (box.bottom > floor && button.getBoundingClientRect().top - box.height > 0) menu.classList.add("ordt-menu-up");
+        if (box.bottom > floor && top - box.height - 4 >= ceiling) menu.classList.add("ordt-menu-up");
       },
     },
     "⋯",
