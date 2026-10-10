@@ -122,6 +122,32 @@ function splitList(value: string): string[] {
     .filter(Boolean);
 }
 
+/**
+ * The organisation names of the Organisation field: comma-separated, as a
+ * CSV line, where a name in double quotes keeps its commas (#51): Arpae
+ * Emilia-Romagna is "Agenzia Regionale per la Prevenzione, l'Ambiente e
+ * l'Energia dell'Emilia Romagna".
+ */
+export function splitNames(value: string): string[] {
+  const names: string[] = [];
+  let current = "";
+  let quoted = false;
+  for (const c of value) {
+    if (c === '"') quoted = !quoted;
+    else if (c === "," && !quoted) {
+      names.push(current);
+      current = "";
+    } else current += c;
+  }
+  names.push(current);
+  return names.map((name) => name.trim()).filter(Boolean);
+}
+
+/** The Organisation field for these names: a name with a comma goes in double quotes. */
+export function joinNames(names: string[]): string {
+  return names.map((name) => (name.includes(",") ? `"${name}"` : name)).join(", ");
+}
+
 function quotedOr(values: string[]): string {
   return values.map((v) => `"${escapePhrase(v)}"`).join(" OR ");
 }
@@ -196,7 +222,7 @@ export function buildQuery(form: SearchForm): BuiltQuery {
   const keywords = splitList(form.keywords);
   if (keywords.length) clauses.push(`keywords_s:(${quotedOr(keywords)})`);
 
-  const organisations = splitList(form.organisation).map(containsIgnoreCase);
+  const organisations = splitNames(form.organisation).map(containsIgnoreCase);
   if (organisations.length) {
     const match = organisations.length === 1 ? organisations[0] : `(${organisations.join(" OR ")})`;
     clauses.push(`${form.invertOrganisation ? "NOT " : ""}EnteResponsabile_s:${match}`);

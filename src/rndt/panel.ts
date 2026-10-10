@@ -56,7 +56,7 @@ import { clearHistory, loadHistory, matchesEntry, saveHistory, whenLabel, withEn
 import type { PanelState } from "./project-state";
 import { shareUrl, type LinkLayer, type LinkSearch } from "./url-params";
 import { agentText } from "./agent-text";
-import { bboxError, buildCurlCommand, buildSearchUrl, clampBbox, emptyForm, idForm, recordIdIn, type Bbox, type ResourceKind, type LinkKind, type SearchForm, type SpatialRel, type TextMode } from "./query";
+import { bboxError, buildCurlCommand, buildSearchUrl, clampBbox, emptyForm, idForm, joinNames, recordIdIn, splitNames, type Bbox, type ResourceKind, type LinkKind, type SearchForm, type SpatialRel, type TextMode } from "./query";
 import { footprints, parseSearchResponse, provenance, type RndtRecord, type RndtService } from "./records";
 import {
   appendErrorLog,
@@ -731,7 +731,7 @@ const KEYWORDS_HELP = [
 const ORGANISATION_HELP = [
   "The owner of the resource, with its name as in the IPA index of public administrations, not the metadata contact. Part of the name is enough and case does not matter: piemonte finds Regione Piemonte.",
   "Data are listed under whoever published them: data commissioned by a municipality but published by its Region appear under the Region.",
-  "Separate several organisations with commas. Hide these hides them instead: entrate hides Agenzia delle Entrate, which alone publishes about a third of the catalogue (its municipal cadastral maps).",
+  "Separate several organisations with commas; put a name that holds a comma in double quotes. Hide these hides them instead: entrate hides Agenzia delle Entrate, which alone publishes about a third of the catalogue (its municipal cadastral maps).",
   "In the results, the ⋯ menu of a record keeps only its organisation or hides it.",
 ];
 
@@ -1109,7 +1109,7 @@ export class RndtPanel {
    * the other filters. "More filters" opens so the active filter is visible.
    */
   private filterByOrganisation(name: string): void {
-    this.field<HTMLInputElement>("organisation").value = name;
+    this.field<HTMLInputElement>("organisation").value = joinNames([name]);
     this.setOrgMode("only");
     this.syncClearButtons();
     this.formEl.querySelector<HTMLDetailsElement>(".ordt-more")!.open = true;
@@ -1125,9 +1125,9 @@ export class RndtPanel {
   private excludeOrganisation(name: string): void {
     const input = this.field<HTMLInputElement>("organisation");
     // Already hiding: add to the list. Keeping some: switch to hiding this one.
-    const names = checkedValue(this.formEl, "orgMode") === "hide" ? input.value.split(",").map((n) => n.trim()).filter(Boolean) : [];
+    const names = checkedValue(this.formEl, "orgMode") === "hide" ? splitNames(input.value) : [];
     if (!names.some((n) => n.toLowerCase() === name.toLowerCase())) names.push(name);
-    input.value = names.join(", ");
+    input.value = joinNames(names);
     this.setOrgMode("hide");
     this.syncClearButtons();
     this.formEl.querySelector<HTMLDetailsElement>(".ordt-more")!.open = true;
@@ -2155,13 +2155,13 @@ export class RndtPanel {
       chips.push({ label: `Keywords: ${keywords}`, clear: () => (this.field("keywords").value = "") });
     }
     const organisation = this.field<HTMLInputElement>("organisation");
-    const names = organisation.value.split(",").map((n) => n.trim()).filter(Boolean);
+    const names = splitNames(organisation.value);
     const hiding = checkedValue(this.formEl, "orgMode") === "hide";
     for (const name of names) {
       chips.push({
         label: `${hiding ? "Hiding" : "Only"}: ${name}`,
         clear: () => {
-          organisation.value = names.filter((n) => n !== name).join(", ");
+          organisation.value = joinNames(names.filter((n) => n !== name));
           this.syncClearButtons();
         },
       });

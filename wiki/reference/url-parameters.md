@@ -32,7 +32,7 @@ sources:
 | `rndtMode` | `any`, `lucene` | match mode |
 | `rndtField` | `title`, `abstract`, `lineage`, `limitation` | field |
 | `rndtKeywords` | comma separated | keywords |
-| `rndtOrg` | a part of the name | organisation |
+| `rndtOrg` | a part of the name; several, comma separated; a name that holds a comma in double quotes (from 0.3.9, #51) | organisation |
 | `rndtOrgNot` | `1` | hide the organisation |
 | `rndtTheme` | INSPIRE theme code (`hy`, `cp`, `au`, …) | INSPIRE theme |
 | `rndtOpen` | `1` | open data only |

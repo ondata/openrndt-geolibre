@@ -575,6 +575,22 @@ describe("RNDT panel", () => {
     expect(new URL(requested.at(-1)!).searchParams.get("q")).toMatch(/^EnteResponsabile_s:/);
   });
 
+  it("keeps an organisation whose name holds a comma as one name (#51)", async () => {
+    const arpae = "Agenzia Regionale per la Prevenzione, l'Ambiente e l'Energia dell'Emilia Romagna";
+    const all = JSON.parse(fixture("search-alberi.json"));
+    all.results.forEach((r: { _source: Record<string, unknown> }) => (r._source.EnteResponsabile_s = arpae));
+    const { requested, container } = await mountPanel(() => JSON.stringify(all));
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    container.querySelector<HTMLButtonElement>(".ordt-hide-org")!.click();
+    await flush();
+    expect(container.querySelector<HTMLInputElement>('input[name="organisation"]')!.value).toBe(`"${arpae}"`);
+    const q = new URL(requested.at(-1)!).searchParams.get("q")!;
+    expect(q.match(/EnteResponsabile_s:/g)).toHaveLength(1);
+    expect(q).not.toContain(" OR ");
+    expect(Array.from(container.querySelectorAll(".ordt-chip"), (c) => c.firstChild!.textContent)).toContain(`Hiding: ${arpae}`);
+  });
+
   it("opens a record from its id, whatever the filters", async () => {
     const all = JSON.parse(fixture("search-alberi.json"));
     const one = JSON.stringify({ ...all, total: 1, results: all.results.slice(0, 1) });

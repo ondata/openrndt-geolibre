@@ -15,7 +15,7 @@ import {
   preselectedName,
   supportsWebMercator,
 } from "../src/rndt/ogc";
-import { buildCurlCommand, buildQuery, buildSearchUrl, clampBbox, emptyForm, idForm, recordIdIn, type Bbox, type SearchForm } from "../src/rndt/query";
+import { buildCurlCommand, buildQuery, buildSearchUrl, clampBbox, emptyForm, idForm, joinNames, recordIdIn, splitNames, type Bbox, type SearchForm } from "../src/rndt/query";
 import { extractOtherLinks, extractServices, footprints, inferKind, parseSearchResponse, provenance } from "../src/rndt/records";
 
 const fixture = (name: string) => readFileSync(join(__dirname, "fixtures", name), "utf8");
@@ -632,5 +632,29 @@ describe("record ids in the search box", () => {
 
   it("finds the record by fileid, with no other filter", () => {
     expect(buildQuery(idForm("r_veneto:c11023040561_RovereVer"))).toEqual({ q: '(fileid:"r_veneto:c11023040561_RovereVer")' });
+  });
+});
+
+describe("organisation names with a comma (#51)", () => {
+  const arpae = "Agenzia Regionale per la Prevenzione, l'Ambiente e l'Energia dell'Emilia Romagna";
+
+  it("keeps a name in double quotes whole, commas included; a plain list splits as before", () => {
+    expect(splitNames(`"${arpae}"`)).toEqual([arpae]);
+    expect(splitNames(`"a, b", c`)).toEqual(["a, b", "c"]);
+    expect(splitNames("Regione Puglia, Comune di Bari")).toEqual(["Regione Puglia", "Comune di Bari"]);
+    expect(splitNames(" , ")).toEqual([]);
+  });
+
+  it("quotes only the names that hold a comma, and reads them back", () => {
+    const field = joinNames([arpae, "Regione Puglia"]);
+    expect(field).toBe(`"${arpae}", Regione Puglia`);
+    expect(splitNames(field)).toEqual([arpae, "Regione Puglia"]);
+  });
+
+  it("sends one organisation for a quoted name, not two in OR", () => {
+    const q = buildQuery({ ...emptyForm(), organisation: `"${arpae}"` }).q!;
+    expect(q.match(/EnteResponsabile_s:/g)).toHaveLength(1);
+    expect(q).not.toContain(" OR ");
+    expect(q).toContain("[pP][rR][eE][vV][eE][nN][zZ][iI][oO][nN][eE], [lL]'");
   });
 });
