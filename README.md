@@ -22,19 +22,23 @@ Nothing to install. Each link opens [GeoLibre web](https://web.geolibre.app/); t
 
 ### 3. A few filters
 
-[Landslides: data only, open data, ready to view as WMS](https://web.geolibre.app/?plugin=openrndt-geolibre&rndt=frane&rndtKind=data&rndtAs=WMS&rndtOpen=1): each filter is a chip above the results, and a click on its × removes it. There are more: INSPIRE theme, keywords, organisation, dates, sort order. **Search help** in the panel explains each one with examples you can click.
+[Landslides: data only, open data, ready to view as WMS](https://web.geolibre.app/?plugin=openrndt-geolibre&rndt=frane&rndtKind=data&rndtAs=WMS&rndtOpen=1): each filter is a chip above the results, and a click on its × removes it. There are more: INSPIRE theme, keywords, organisation, dates, sort order. One of the dates is when a record last changed, the one every record has: [what changed in the catalogue since 1 October](https://web.geolibre.app/?plugin=openrndt-geolibre&rndtDate=modified&rndtFrom=2026-10-01&rndtSort=newest), newest first. **Search help** in the panel explains each one with examples you can click.
 
 ### 4. One record, live data
 
 [Florence tramway, today's worksites](https://web.geolibre.app/?plugin=openrndt-geolibre&rndt=c_d612:tramvia-cantieri-321-odierna:1&rndtBbox=11.15,43.73,11.35,43.82): a link can open a single record, and move the map to a place. This one is a dataset the Comune di Firenze updates every day. Choose **Add to map** next to its download link: the worksites open today appear on the map, converted on the fly from the old Italian coordinate system (Gauss-Boaga) the file is in.
 
-### 5. In GeoLibre Desktop: the cadastral map of any municipality
+### 5. A map from 1910, already on the map
+
+[Milan in 1910, the city's technical map](https://web.geolibre.app/?plugin=openrndt-geolibre&rndt=C_F205%3ASIT_CENTRALE_M191081001%3A20161013&rndtLayer=C_F205%3ASIT_CENTRALE_M191081001%3A20161013~arcgis~0): a link can also carry layers. This one opens the record of the Comune di Milano, puts its historical map on the map and moves there: the city of 1910 over today's streets. Turn the layer's opacity down to compare them.
+
+### 6. In GeoLibre Desktop: the cadastral map of any municipality
 
 The cadastral maps of Italian municipalities, published by the Agenzia delle Entrate, are in the catalogue. In the panel search `Cartografia catastale Pollina` (or any other municipality), open the record, tick `Particelle` and add it. Turn on GeoLibre's **Identify** and click a parcel: you get its cadastral reference, such as `G797_001500.14`. This one needs GeoLibre Desktop: the service does not offer the projection web maps use, and only Desktop redraws its images in that projection.
 
-### 6. Keep it, share it, hand it to an AI agent
+### 7. Keep it, share it, hand it to an AI agent
 
-- **Share**, in the ⋯ menu of the results or of a record, builds a link like the ones above for the search on screen, the map view and the catalogue layers you have turned on, and hands it to your system's share sheet (mail, WhatsApp, Teams…), or copies it.
+- **Share**, in the ⋯ menu of the results or of a record, builds a link like the ones above and hands it to your system's share sheet (mail, WhatsApp, Teams…), or copies it. Whoever opens it finds the search on screen, the map where you were looking, and the catalogue layers you turned on, in the same order. Only layers the web version can show go in (https servers that let the browser read them): the panel names the ones left out.
 - **Save the project**: the search goes into it, with the record you had open. Whoever opens the file finds the same search, run again on today's catalogue.
 - **Copy for an agent**, in the ⋯ menu of the results, copies the search as Markdown, with the filters in words, the records as a table and a ready `curl` request: paste it into an AI assistant and go on from there with [openrndt](#openrndt-the-same-catalogue-from-the-command-line).
 
@@ -85,7 +89,11 @@ openrndt search --q "spiagge" --bbox 8.1,38.8,9.9,41.3 --num 10
 openrndt resources age:D_G797_POLLINA
 ```
 
-The two meet on the record id: **Copy id** in the panel gives the id that `openrndt get` and `openrndt resources` take, and an id typed in the panel's search box opens that record.
+The two meet on the record id: **Copy id** in the panel gives the id that `openrndt get` and `openrndt resources` take, and an id typed in the panel's search box opens that record. They also meet on links: in its JSON, CSV and compact output openrndt gives each record a `geolibre_url` that opens it in the panel, and `openrndt resources <id> --layers` (openrndt 3.6.0) gives one link per layer of the record's WMS services, which opens GeoLibre with that layer already on the map, like example 5:
+
+```bash
+openrndt resources r_emiro:2022-03-11T113115 --layers   # the 2020 aerial photos of Emilia-Romagna
+```
 
 ## Development
 

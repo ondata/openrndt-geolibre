@@ -50,6 +50,14 @@ https://web.geolibre.app/?plugin=openrndt-geolibre&rndt=idrografia
 
 Tried on web.geolibre.app on 2026-10-05 in a clean browser, with the registry copy (0.3.2): the search above gives 1,131 records, a record id opens that record. Not with `layout=viewer`: see [URL parameters](../reference/url-parameters.md).
 
+A link can do more than search, and anyone can write one, not only Share:
+
+- **layers** (`rndtLayer`, from 0.3.5): each layer named in the link is added from its record, in the link's order. A link with layers and no view of its own opens the map on them (from 0.3.8, #49): the 1910 map of Milan, `?plugin=openrndt-geolibre&rndt=C_F205%3ASIT_CENTRALE_M191081001%3A20161013&rndtLayer=C_F205%3ASIT_CENTRALE_M191081001%3A20161013~arcgis~0`, opens on Milan with the map on it (tried with 0.3.8 from the registry on 2026-10-10, zoom 10.25);
+- **a view that is not a filter** (`rndtView`, from 0.3.7, #47): the map fits a box, the search still covers all of Italy;
+- **the record's last change** (`rndtDate=modified`, from 0.3.8, #48): `?plugin=openrndt-geolibre&rndtDate=modified&rndtFrom=2026-10-01&rndtSort=newest` lists what changed in the catalogue since 1 October (74 records on 2026-10-10).
+
+The [openrndt](https://github.com/ondata/openrndt) command line tool writes such links: `geolibre_url` for each record (3.5.0), and with `resources <id> --layers` one link per WMS layer of a record (3.6.0).
+
 # With a project
 
 From version 0.1.7. When a GeoLibre project is saved, the last search of the panel goes into it: text and filters, the area as the box that was searched, the page, the open record. Whoever opens the project finds the plugin on, the search done and that record open. What is saved is in [Project state](../reference/project-state.md).
