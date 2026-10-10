@@ -15,7 +15,7 @@ import {
   preselectedName,
   supportsWebMercator,
 } from "../src/rndt/ogc";
-import { buildCurlCommand, buildQuery, buildSearchUrl, clampBbox, emptyForm, idForm, joinNames, recordIdIn, splitNames, type Bbox, type SearchForm } from "../src/rndt/query";
+import { buildCurlCommand, buildQuery, buildSearchUrl, clampBbox, emptyForm, idForm, ipaPrefix, joinNames, recordIdIn, splitNames, type Bbox, type SearchForm } from "../src/rndt/query";
 import { extractOtherLinks, extractServices, footprints, inferKind, parseSearchResponse, provenance } from "../src/rndt/records";
 
 const fixture = (name: string) => readFileSync(join(__dirname, "fixtures", name), "utf8");
@@ -665,5 +665,17 @@ describe("records with swapped box corners (#52)", () => {
     all.results[0].bbox = { xmin: 12.2007230752971, ymin: 45.0963249286817, xmax: 11.3913398615318, ymax: 45.6868203449537 };
     const page = parseSearchResponse(all, RNDT_BASE_URL);
     expect(page.records[0].bbox).toEqual([11.3913398615318, 45.0963249286817, 12.2007230752971, 45.6868203449537]);
+  });
+});
+
+describe("IPA code of the owner (#54)", () => {
+  it("matches the id prefix whatever its case, anchored on the colon", () => {
+    expect(ipaPrefix("r_sardeg")).toBe("/[rR]_[sS][aA][rR][dD][eE][gG]:.*/");
+    expect(ipaPrefix("PCM")).toBe("/[pP][cC][mM]:.*/");
+  });
+
+  it("filters on apiso_Identifier_s, several codes in OR", () => {
+    expect(buildQuery({ ...emptyForm(), ipa: "r_piemon" }).q).toBe("apiso_Identifier_s:/[rR]_[pP][iI][eE][mM][oO][nN]:.*/");
+    expect(buildQuery({ ...emptyForm(), ipa: "cmto, PCM" }).q).toBe("apiso_Identifier_s:(/[cC][mM][tT][oO]:.*/ OR /[pP][cC][mM]:.*/)");
   });
 });

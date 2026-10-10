@@ -591,6 +591,20 @@ describe("RNDT panel", () => {
     expect(Array.from(container.querySelectorAll(".ordt-chip"), (c) => c.firstChild!.textContent)).toContain(`Hiding: ${arpae}`);
   });
 
+  it("keeps only the records of a record's owner, by the IPA code of its id (#54)", async () => {
+    const { requested, container } = await mountPanel(() => fixture("search-alberi.json"));
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const button = container.querySelector<HTMLButtonElement>(".ordt-ipa")!;
+    const code = button.querySelector("strong")!.textContent!;
+    expect(container.querySelector(".ordt-result")!.getAttribute("data-id")!.startsWith(`${code}:`)).toBe(true);
+    button.click();
+    await flush();
+    expect(container.querySelector<HTMLInputElement>('input[name="ipa"]')!.value).toBe(code);
+    expect(new URL(requested.at(-1)!).searchParams.get("q")).toContain("apiso_Identifier_s:/");
+    expect(Array.from(container.querySelectorAll(".ordt-chip"), (c) => c.firstChild!.textContent)).toContain(`IPA: ${code}`);
+  });
+
   it("opens a record from its id, whatever the filters", async () => {
     const all = JSON.parse(fixture("search-alberi.json"));
     const one = JSON.stringify({ ...all, total: 1, results: all.results.slice(0, 1) });

@@ -70,6 +70,12 @@ describe("linkSearchFrom", () => {
     expect(paramsFromForm(parsed!.form).get("rndtDate")).toBe("modified");
   });
 
+  it("reads and writes the owner's IPA code (#54)", () => {
+    const parsed = read("rndtIpa=r_piemon");
+    expect(parsed?.form).toEqual(form({ ipa: "r_piemon" }));
+    expect(paramsFromForm(parsed!.form).get("rndtIpa")).toBe("r_piemon");
+  });
+
   it("asks for a search with a filter and no text", () => {
     expect(read("rndtTheme=cp&rndtKind=services")?.form).toEqual(
       form({ inspireThemes: ["Parcelle catastali"], kind: "services" }),

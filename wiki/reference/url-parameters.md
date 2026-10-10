@@ -34,6 +34,7 @@ sources:
 | `rndtKeywords` | comma separated | keywords |
 | `rndtOrg` | a part of the name; several, comma separated; a name that holds a comma in double quotes (from 0.3.9, #51) | organisation |
 | `rndtOrgNot` | `1` | hide the organisation |
+| `rndtIpa` | the IPA code of the owner, the prefix of the record id before the colon (`r_piemon`, `PCM`), case ignored; several, comma separated (from 0.3.11, #54) | IPA code of the owner |
 | `rndtTheme` | INSPIRE theme code (`hy`, `cp`, `au`, …) | INSPIRE theme |
 | `rndtOpen` | `1` | open data only |
 | `rndtDate` | `revision`, `publication`, `creation`, `catalogue`, `modified` (from 0.3.8, #48) | date field |

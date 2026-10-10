@@ -35,7 +35,7 @@ export function parsePanelState(raw: unknown): PanelState | null {
   const saved = raw.form;
   const form = emptyForm();
   const target = form as unknown as Record<string, unknown>;
-  for (const key of ["text", "field", "keywords", "organisation", "dateField", "dateFrom", "dateTo", "sort"]) {
+  for (const key of ["text", "field", "keywords", "organisation", "ipa", "dateField", "dateFrom", "dateTo", "sort"]) {
     if (typeof saved[key] === "string") target[key] = saved[key];
   }
   for (const key of ["invertOrganisation", "openDataOnly"]) {

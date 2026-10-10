@@ -732,7 +732,7 @@ const ORGANISATION_HELP = [
   "The owner of the resource, with its name as in the IPA index of public administrations, not the metadata contact. Part of the name is enough and case does not matter: piemonte finds Regione Piemonte.",
   "Data are listed under whoever published them: data commissioned by a municipality but published by its Region appear under the Region.",
   "Separate several organisations with commas; put a name that holds a comma in double quotes. Hide these hides them instead: entrate hides Agenzia delle Entrate, which alone publishes about a third of the catalogue (its municipal cadastral maps).",
-  "In the results, the ⋯ menu of a record keeps only its organisation or hides it.",
+  "In the results, the ⋯ menu of a record keeps only its organisation or hides it, or keeps only the records of its owner by the IPA code at the start of its id (r_piemon), which also finds other spellings of the name and records that name no organisation.",
 ];
 
 const OPEN_DATA_HELP = [
@@ -1039,6 +1039,7 @@ export class RndtPanel {
     setChecks("serviceType", form.serviceTypes);
     this.field<HTMLSelectElement>("theme").value = form.inspireThemes[0] ?? "";
     this.field<HTMLInputElement>("keywords").value = form.keywords;
+    this.field<HTMLInputElement>("ipa").value = form.ipa;
     this.field<HTMLInputElement>("organisation").value = form.organisation;
     this.setOrgMode(form.invertOrganisation ? "hide" : "only");
     this.field<HTMLInputElement>("openData").checked = form.openDataOnly;
@@ -1112,6 +1113,13 @@ export class RndtPanel {
     this.field<HTMLInputElement>("organisation").value = joinNames([name]);
     this.setOrgMode("only");
     this.syncClearButtons();
+    this.formEl.querySelector<HTMLDetailsElement>(".ordt-more")!.open = true;
+    this.formEl.requestSubmit();
+  }
+
+  /** Put an owner's IPA code in its filter and search again, keeping the other filters (#54). */
+  private filterByIpa(code: string): void {
+    this.field<HTMLInputElement>("ipa").value = code;
     this.formEl.querySelector<HTMLDetailsElement>(".ordt-more")!.open = true;
     this.formEl.requestSubmit();
   }
@@ -1466,6 +1474,22 @@ export class RndtPanel {
             this.clearButton("organisation", "organisation"),
           ),
           radioGroup("orgMode", ORG_MODES, "only", () => undefined, "ordt-segmented"),
+        ),
+        h(
+          "div",
+          { className: "ordt-label" },
+          h("span", { className: "ordt-label-head" }, "IPA code of the owner ", h("span", { className: "ordt-hint" }, "· comma-separated")),
+          h("input", {
+            className: "ordt-input",
+            name: "ipa",
+            placeholder: "r_piemon",
+            "aria-label": "IPA code of the owner",
+          }),
+          h(
+            "span",
+            { className: "ordt-hint" },
+            "The prefix of the record id, before the colon: it keeps together the spellings of one owner, and finds records with no organisation.",
+          ),
         ),
         h(
           "div",
@@ -2084,6 +2108,7 @@ export class RndtPanel {
       !services && this.field("theme").value,
       this.field("keywords").value.trim(),
       this.field("organisation").value.trim(),
+      this.field("ipa").value.trim(),
       !services && this.field<HTMLInputElement>("openData").checked,
       this.field("dateFrom").value || this.field("dateTo").value,
       this.field("sort").value,
@@ -2165,6 +2190,10 @@ export class RndtPanel {
           this.syncClearButtons();
         },
       });
+    }
+    const ipa = this.field("ipa").value.trim();
+    if (ipa) {
+      chips.push({ label: `IPA: ${ipa}`, clear: () => (this.field("ipa").value = "") });
     }
     if (this.field<HTMLInputElement>("openData").checked && kind !== "services") {
       chips.push({ label: "Open data only", clear: () => (this.field<HTMLInputElement>("openData").checked = false) });
@@ -2359,6 +2388,7 @@ export class RndtPanel {
     const theme = this.field<HTMLSelectElement>("theme").value;
     form.inspireThemes = theme ? [theme] : [];
     form.keywords = this.field<HTMLInputElement>("keywords").value;
+    form.ipa = this.field<HTMLInputElement>("ipa").value;
     form.organisation = this.field<HTMLInputElement>("organisation").value;
     form.invertOrganisation = checkedValue(this.formEl, "orgMode") === "hide";
     form.openDataOnly = this.field<HTMLInputElement>("openData").checked;
@@ -2983,6 +3013,20 @@ export class RndtPanel {
           "button",
           { className: "ordt-menu-item ordt-org", type: "button", onclick: () => this.filterByOrganisation(record.organisation) },
           "Show only this organisation",
+        ),
+      );
+    }
+    // The owner's IPA code, the prefix of the id (#54): it also covers other
+    // spellings of the organisation, and records that name none.
+    const ipa = /^([^:]+):/.exec(record.id)?.[1];
+    if (ipa) {
+      items.push(
+        h(
+          "button",
+          { className: "ordt-menu-item ordt-ipa", type: "button", onclick: () => this.filterByIpa(ipa) },
+          "Show only records of this owner (IPA ",
+          h("strong", {}, ipa),
+          ")",
         ),
       );
     }

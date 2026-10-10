@@ -41,6 +41,8 @@ export interface SearchForm {
   organisation: string;
   /** Leave the organisations out instead of keeping only them. */
   invertOrganisation: boolean;
+  /** Comma-separated IPA codes of the owner, the prefix of the record id before ":" (#54). */
+  ipa: string;
   /** Italian INSPIRE theme labels, as stored in `INSPIRETheme_s`. */
   inspireThemes: string[];
   openDataOnly: boolean;
@@ -72,6 +74,7 @@ export function emptyForm(): SearchForm {
     keywords: "",
     organisation: "",
     invertOrganisation: false,
+    ipa: "",
     inspireThemes: [],
     openDataOnly: false,
     dateField: "apiso_RevisionDate_dt",
@@ -141,6 +144,15 @@ export function splitNames(value: string): string[] {
   }
   names.push(current);
   return names.map((name) => name.trim()).filter(Boolean);
+}
+
+/**
+ * Lucene regular expression for record ids starting with an IPA code (#54):
+ * the prefix before ":" is the owner's code in the IPA index, written in upper
+ * or lower case depending on the record (`PCM`, `r_sardeg` and `R_SARDEG`).
+ */
+export function ipaPrefix(code: string): string {
+  return containsIgnoreCase(code).replace(/^\/\.\*/, "/").replace(/\.\*\/$/, ":.*/");
 }
 
 /** The Organisation field for these names: a name with a comma goes in double quotes. */
@@ -218,6 +230,9 @@ export function buildQuery(form: SearchForm): BuiltQuery {
 
   const text = textClause(form);
   if (text) clauses.push(text);
+
+  const ipa = splitList(form.ipa).map(ipaPrefix);
+  if (ipa.length) clauses.push(`apiso_Identifier_s:${ipa.length === 1 ? ipa[0] : `(${ipa.join(" OR ")})`}`);
 
   const keywords = splitList(form.keywords);
   if (keywords.length) clauses.push(`keywords_s:(${quotedOr(keywords)})`);

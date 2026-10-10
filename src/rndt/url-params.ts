@@ -83,7 +83,7 @@ function flag(name: string, field: "invertOrganisation" | "openDataOnly"): Param
   };
 }
 
-function text(name: string, field: "text" | "keywords" | "organisation"): Param {
+function text(name: string, field: "text" | "keywords" | "organisation" | "ipa"): Param {
   return {
     name,
     read: (raw, form) => {
@@ -173,6 +173,7 @@ const PARAMS: Param[] = [
   },
   mapped("rndtField", FIELDS, "field"),
   text("rndtKeywords", "keywords"),
+  text("rndtIpa", "ipa"),
   text("rndtOrg", "organisation"),
   flag("rndtOrgNot", "invertOrganisation"),
   {

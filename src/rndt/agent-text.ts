@@ -51,6 +51,7 @@ function filterRows(form: SearchForm): string[] {
     if (form.openDataOnly) rows.push("Open data only: records whose publisher filled in the open data field");
   }
   if (form.keywords.trim()) rows.push(`Keywords (exact): ${form.keywords.trim()}`);
+  if (form.ipa.trim()) rows.push(`IPA code of the owner (record id prefix): ${form.ipa.trim()}`);
   if (form.organisation.trim()) {
     rows.push(`Organisation ${form.invertOrganisation ? "left out" : "kept"} (name contains): ${form.organisation.trim()}`);
   }
