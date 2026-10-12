@@ -1114,6 +1114,7 @@ export class RndtPanel {
           map,
           (id) => this.openDetail(id),
           (id) => this.markHovered(id),
+          this.app,
         );
       }
     }

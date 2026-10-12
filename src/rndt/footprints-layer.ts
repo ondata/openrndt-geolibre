@@ -7,6 +7,10 @@ import type {
   MapLayerMouseEvent,
 } from "maplibre-gl";
 import { PLUGIN_ID } from "./constants";
+import type { RndtHostExtras } from "./host";
+
+/** The host calls that tell which map tool owns clicks (GeoLibre 3.4.0). */
+export type MapTools = Pick<RndtHostExtras, "getActiveMapTool" | "onActiveMapToolChange">;
 
 export const SOURCE_ID = `${PLUGIN_ID}-footprints`;
 const FILL_ID = `${SOURCE_ID}-fill`;
@@ -36,6 +40,7 @@ export class FootprintsLayer {
   /** Records whose footprint is hidden one by one; reset by `setData`. */
   private readonly hiddenIds = new Set<string>();
   private lastMove = 0;
+  private readonly unsubscribeTools: () => void;
   private readonly onStyleData = () => this.ensure();
   private readonly onClick = (event: MapLayerMouseEvent) => {
     if (this.clickToolActive()) return;
@@ -84,7 +89,17 @@ export class FootprintsLayer {
     private readonly onSelect: (recordId: string) => void,
     /** A footprint is hovered on the map (null: none), to mark its result. */
     private readonly onHover: (recordId: string | null) => void = () => undefined,
+    private readonly tools: MapTools = {},
   ) {
+    // A tool turning on takes the map at once: an open menu or tooltip goes
+    // without waiting for the next pointer event.
+    this.unsubscribeTools =
+      tools.onActiveMapToolChange?.((tool) => {
+        if (tool === null) return;
+        this.closeMenu();
+        this.setHover(null);
+        this.hideTooltip();
+      }) ?? (() => undefined);
     map.on("styledata", this.onStyleData);
     map.on("click", FILL_ID, this.onClick);
     map.on("mousemove", FILL_ID, this.onMove);
@@ -92,21 +107,12 @@ export class FootprintsLayer {
   }
 
   /**
-   * A GeoLibre map tool is on: Identify, where a click queries a layer, or
-   * GeoEditor; the footprints then answer neither click nor hover, as
-   * GeoLibre's own handlers do.
-   * The plugin API does not say which map tool is active
-   * (opengeos/GeoLibre#2949); Identify sets an inline `cursor: crosshair` on the
-   * canvas container (`setMapLibreIdentifyCursor`, GeoLibre 3.3.0), which this
-   * layer never writes. GeoEditor, whose clicks draw and edit geometry, is on
-   * while its map control (`geo-editor-control`, maplibre-gl-geo-editor 0.11.1)
-   * is on the map (opengeos/GeoLibre#3020).
+   * A GeoLibre map tool owns the clicks: Identify, feature selection or
+   * GeoEditor. The footprints then answer neither click nor hover, as
+   * GeoLibre's own handlers do (opengeos/GeoLibre#2966, #3029).
    */
   private clickToolActive(): boolean {
-    return (
-      this.map.getCanvasContainer().style.cursor === "crosshair" ||
-      this.map.getContainer().querySelector(".geo-editor-control") !== null
-    );
+    return (this.tools.getActiveMapTool?.() ?? null) !== null;
   }
 
   /**
@@ -386,6 +392,7 @@ export class FootprintsLayer {
 
   remove(): void {
     const map = this.map;
+    this.unsubscribeTools();
     this.closeMenu();
     this.hideTooltip();
     map.off("styledata", this.onStyleData);

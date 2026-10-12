@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import { FootprintsLayer } from "../src/rndt/footprints-layer";
+import type { ActiveMapTool } from "../src/rndt/host";
 
 /** Tiny stand-in for a MapLibre map: layer order, sources, events. */
 function fakeMap() {
@@ -226,55 +227,64 @@ describe("FootprintsLayer", () => {
       }
     });
 
-    it("answers neither click nor hover while GeoLibre's Identify is on, and leaves its crosshair alone", () => {
-      const map = fakeMap();
-      const onSelect = vi.fn();
-      const onHover = vi.fn();
-      new FootprintsLayer(map as unknown as MapLibreMap, onSelect, onHover).setData(data);
-      // What GeoLibre 3.3.0's Identify writes (setMapLibreIdentifyCursor).
-      map.canvasContainer.style.cursor = "crosshair";
-      map.canvas.style.cursor = "crosshair";
-      map.fire("mousemove", hit("italy", "palermo"));
-      expect(onHover).not.toHaveBeenCalled();
-      expect(map.container.querySelector(".ordt-footprint-tooltip")).toBeNull();
-      map.fire("click", hit("italy"));
-      map.fire("click", hit("italy", "sicily"));
-      expect(onSelect).not.toHaveBeenCalled();
-      expect(map.container.querySelector(".ordt-footprint-menu")).toBeNull();
-      map.fire("mouseleave");
-      expect(map.canvas.style.cursor).toBe("crosshair");
+    it.each(["identify", "feature-selection", "geo-editor"] as const)(
+      "answers neither click nor hover while GeoLibre's %s owns the map, and leaves its cursor alone",
+      (active) => {
+        const map = fakeMap();
+        const onSelect = vi.fn();
+        const onHover = vi.fn();
+        let tool: ActiveMapTool = active;
+        new FootprintsLayer(map as unknown as MapLibreMap, onSelect, onHover, { getActiveMapTool: () => tool }).setData(data);
+        map.canvas.style.cursor = "crosshair";
+        map.fire("mousemove", hit("italy", "palermo"));
+        expect(onHover).not.toHaveBeenCalled();
+        expect(map.container.querySelector(".ordt-footprint-tooltip")).toBeNull();
+        map.fire("click", hit("italy"));
+        map.fire("click", hit("italy", "sicily"));
+        expect(onSelect).not.toHaveBeenCalled();
+        expect(map.container.querySelector(".ordt-footprint-menu")).toBeNull();
+        map.fire("mouseleave");
+        expect(map.canvas.style.cursor).toBe("crosshair");
 
-      // Identify off: footprints answer again.
-      map.canvasContainer.style.cursor = "";
-      map.canvas.style.cursor = "";
+        // Tool off: footprints answer again.
+        tool = null;
+        map.fire("mousemove", hit("palermo"));
+        expect(map.canvas.style.cursor).toBe("pointer");
+        map.fire("click", hit("italy"));
+        expect(onSelect).toHaveBeenCalledWith("italy");
+      },
+    );
+
+    it("closes its menu and tooltip as soon as a map tool turns on, and unsubscribes on remove", () => {
+      const map = fakeMap();
+      let notify: (tool: ActiveMapTool) => void = () => undefined;
+      const unsubscribe = vi.fn();
+      const layer = new FootprintsLayer(map as unknown as MapLibreMap, () => undefined, () => undefined, {
+        getActiveMapTool: () => null,
+        onActiveMapToolChange: (callback) => {
+          notify = callback;
+          return unsubscribe;
+        },
+      });
+      layer.setData(data);
+      map.fire("click", hit("italy", "sicily"));
+      expect(map.container.querySelector(".ordt-footprint-menu")).not.toBeNull();
+      notify(null);
+      expect(map.container.querySelector(".ordt-footprint-menu")).not.toBeNull();
+      notify("identify");
+      expect(map.container.querySelector(".ordt-footprint-menu")).toBeNull();
       map.fire("mousemove", hit("palermo"));
-      expect(map.canvas.style.cursor).toBe("pointer");
-      map.fire("click", hit("italy"));
-      expect(onSelect).toHaveBeenCalledWith("italy");
+      expect(map.container.querySelector(".ordt-footprint-tooltip")).not.toBeNull();
+      notify("geo-editor");
+      expect(map.container.querySelector(".ordt-footprint-tooltip")).toBeNull();
+      layer.remove();
+      expect(unsubscribe).toHaveBeenCalledTimes(1);
     });
 
-    it("answers neither click nor hover while GeoLibre's GeoEditor is on", () => {
+    it("answers clicks on a host that says nothing about map tools", () => {
       const map = fakeMap();
       const onSelect = vi.fn();
-      const onHover = vi.fn();
-      new FootprintsLayer(map as unknown as MapLibreMap, onSelect, onHover).setData(data);
-      // The map control maplibre-gl-geo-editor 0.11.1 adds while GeoEditor is on.
-      const editor = document.createElement("div");
-      editor.className = "maplibregl-ctrl maplibregl-ctrl-group geo-editor-control";
-      map.container.append(editor);
-      map.fire("mousemove", hit("italy", "palermo"));
-      expect(onHover).not.toHaveBeenCalled();
-      expect(map.container.querySelector(".ordt-footprint-tooltip")).toBeNull();
-      expect(map.canvas.style.cursor).toBe("");
-      map.fire("click", hit("italy"));
-      map.fire("click", hit("italy", "sicily"));
-      expect(onSelect).not.toHaveBeenCalled();
-      expect(map.container.querySelector(".ordt-footprint-menu")).toBeNull();
-
-      // GeoEditor off: footprints answer again.
-      editor.remove();
-      map.fire("mousemove", hit("palermo"));
-      expect(map.canvas.style.cursor).toBe("pointer");
+      new FootprintsLayer(map as unknown as MapLibreMap, onSelect).setData(data);
       map.fire("click", hit("italy"));
       expect(onSelect).toHaveBeenCalledWith("italy");
     });
