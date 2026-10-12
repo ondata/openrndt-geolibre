@@ -53,7 +53,7 @@ The details are in the [wiki](wiki/index.md): [search](wiki/guides/search.md), [
 
 ## Install it in GeoLibre
 
-You need [GeoLibre](https://github.com/opengeos/GeoLibre/releases) 3.3.0 or later.
+You need [GeoLibre](https://github.com/opengeos/GeoLibre/releases) 3.4.0 or later.
 
 1. In GeoLibre open **Settings > Manage Plugins**.
 2. Find **RNDT catalogue** and choose **Install**.

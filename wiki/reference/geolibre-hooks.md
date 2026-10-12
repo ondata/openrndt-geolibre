@@ -15,13 +15,13 @@ sources:
     resource: ../../src/lib/geolibre/host-api.ts
     title: Plugin API types from the template
   - id: geolibre-types
-    resource: https://github.com/opengeos/GeoLibre/blob/v3.3.0/packages/plugins/src/types.ts
-    title: GeoLibre 3.3.0, plugin types
+    resource: https://github.com/opengeos/GeoLibre/blob/v3.4.0/packages/plugins/src/types.ts
+    title: GeoLibre 3.4.0, plugin types
 ---
 
 # Minimum version
 
-GeoLibre 3.3.0, to be declared as `minGeoLibreVersion` in the registry entry with the next registry update; the entry still says 3.2.0 ([#35](https://github.com/ondata/openrndt-geolibre/issues/35)). Every hook below is in GeoLibre's plugin types at tag `v3.3.0` (checked on 2026-10-05).[^geolibre-types]
+GeoLibre 3.4.0, to be declared as `minGeoLibreVersion` in the registry entry with the next registry update; the entry still says 3.3.0 ([#57](https://github.com/ondata/openrndt-geolibre/issues/57)). Every hook below is in GeoLibre's plugin types at tag `v3.4.0` (checked on 2026-10-12).[^geolibre-types] 3.4.0 also stops a camera move no longer when the map reports its view (opengeos/GeoLibre#3084), so a fit asked while the map moves lands at once ([#53](https://github.com/ondata/openrndt-geolibre/issues/53)).
 
 # Declared by the plugin
 
@@ -44,6 +44,7 @@ GeoLibre 3.3.0, to be declared as `minGeoLibreVersion` in the registry entry wit
 | `registerToolbarMenu` | the RNDT menu in the toolbar | no |
 | `getViewBounds`, `fitBounds` | search in the map view, move the map | no |
 | `getMap` | footprints | no |
+| `getActiveMapTool`, `onActiveMapToolChange` | footprints answer no click or hover while Identify, feature selection or GeoEditor owns the map, and close their menu when one turns on (GeoLibre 3.4.0, [#43](https://github.com/ondata/openrndt-geolibre/issues/43)) | no: without them the footprints always answer |
 | `getDrawnFeatures`, `activatePlugin` | search in shapes drawn with GeoEditor | no |
 | `fetchArrayBuffer`, `fetchVectorUrl` | read the catalogue and the services through the native client in Desktop | no: in the web version the browser reads them |
 | `addWmsLayer`, `addTileLayer`, `addGeoJsonLayer` | add layers | per kind of service |
@@ -58,23 +59,24 @@ GeoLibre 3.3.0, to be declared as `minGeoLibreVersion` in the registry entry wit
 
 Every method except `registerRightPanel` is called only if present.[^host]
 
-# In GeoLibre 3.3.0, not used yet
+# In GeoLibre 3.3.0 and 3.4.0, not used yet
 
-Asked upstream from this plugin and released in 3.3.0 (see [Requests to GeoLibre](../upstream/geolibre-requests.md)), or added by the maintainers:
+Asked upstream from this plugin and released in 3.3.0 or 3.4.0 (see [Requests to GeoLibre](../upstream/geolibre-requests.md)), or added by the maintainers:
 
 | Method | What it gives | Here |
 |---|---|---|
-| `addWfsLayer` | GeoLibre's own WFS layer, GML included | [#28](https://github.com/ondata/openrndt-geolibre/issues/28) |
+| `addWfsLayer` | GeoLibre's own WFS layer, GML included; `maxFeatures` since 3.4.0 | [#28](https://github.com/ondata/openrndt-geolibre/issues/28): it always sends `srsName=EPSG:4326`, which the cadastral WFS refuses (2026-10-12) |
 | `registerTranslations` | the plugin's own strings per language | [#3](https://github.com/ondata/openrndt-geolibre/issues/3) |
 | `registerMenuContribution` | items in Add Data, Processing or Controls | not planned yet |
 | `nativeFetch` | Desktop only: any method, no CORS, a cookie jar | no use found |
 
 `?plugin=` for registry plugins and `publishableSettings` in the registry entry need nothing in the plugin's code.
 
-# What GeoLibre 3.3.0 does not give a plugin
+# What GeoLibre 3.4.0 does not give a plugin
 
 - `metadata` on `addGeoJsonLayer`, and `descriptiveMetadata` (title, abstract, keywords, contact, links: the form of the Metadata dialog, exported as STAC) on the add calls, which only the user or Python can set: to ask, [#37](https://github.com/ondata/openrndt-geolibre/issues/37).
-- A call to mark the project as modified: none in the plugin types at `v3.3.0` (see [A search is not a project change](../limits/unsaved-search.md)).
+- A WFS request without `srsName`, or with the system the server wants, on `addWfsLayer` ([#28](https://github.com/ondata/openrndt-geolibre/issues/28)).
+- A call to mark the project as modified: none in the plugin types at `v3.4.0` (see [A search is not a project change](../limits/unsaved-search.md)).
 
-[^geolibre-types]: GeoLibre 3.3.0, plugin types
+[^geolibre-types]: GeoLibre 3.4.0, plugin types
 [^host]: Host methods beyond the template's API

@@ -15,7 +15,7 @@ sources:
 
 # Requirements
 
-[GeoLibre](https://github.com/opengeos/GeoLibre/releases) 3.3.0 or later, Desktop or web (`https://web.geolibre.app`).
+[GeoLibre](https://github.com/opengeos/GeoLibre/releases) 3.4.0 or later, Desktop or web (`https://web.geolibre.app`).
 
 # From Manage Plugins
 

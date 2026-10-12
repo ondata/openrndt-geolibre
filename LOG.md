@@ -1,5 +1,14 @@
 # LOG
 
+## 2026-10-12
+
+- **GeoLibre 3.4.0 released** (2026-10-11 23:31 UTC): it ships opengeos/GeoLibre#3084, #2966 + #3029, #2963 (merge commits behind `v3.4.0`, ahead of `v3.3.0`; `types.ts` diffed). #57 opened: minimum GeoLibre 3.4.0. The openrndt CLI session told.
+- **A fit during a move lands at once** (#53): `fitWhenSettled` no longer waits for `moveend` and one more turn; the 600 ms / resize wait for the panel stays. Test rewritten (fit while `isMoving`, no `once`).
+- **Footprints ask GeoLibre which map tool owns the clicks** (#43): `getActiveMapTool()` (identify, feature-selection, geo-editor) replaces the crosshair and `.geo-editor-control` checks; `onActiveMapToolChange` closes an open menu and tooltip when a tool turns on, unsubscribed on remove. 4 new tests, failing before; 491 pass.
+- **#28 still waits**: GeoLibre 3.4.0's `addWfsLayer` always sends `srsName=EPSG:4326`. The cadastral WFS (`wfs.cartografia.agenziaentrate.gov.it/inspire/wfs/owfs01.php`, GML only) answers "Richiesta non valida" with it on every format, 187 parcels without it (Palermo, 200 m box, 06:02 UTC). Commented on #28.
+- **proj4 WFS test** waited four turns for the first dynamic import of proj4, too few now (failed before any change): it waits for `addGeoJsonLayer`.
+- Docs: minimum 3.4.0 in README, install, overview, GeoLibre hooks (at `v3.4.0`), footprints, requests to GeoLibre.
+
 ## 2026-10-10
 
 - **source-map-js 1.2.2** (#56, Dependabot alert 42, GHSA-68fv-2mgg-jv7q): event-loop denial of service in 1.2.1, a transitive development dependency (`jsdom` → `css-tree` for tests, `vite` → `postcss` for the build), not in the released bundle. Lockfile-only update, `package.json` unchanged; 488 tests pass, build fine. No release needed.

@@ -1,5 +1,10 @@
 # Update Log
 
+## 2026-10-12
+* **Update**: [GeoLibre hooks used](reference/geolibre-hooks.md), [overview](overview.md), [Install the plugin](guides/install.md): minimum GeoLibre 3.4.0 (#57), hooks checked at `v3.4.0`; `getActiveMapTool` (#43); a fit during a move lands at once (#53).
+* **Update**: [Footprints](reference/footprints.md): they ask GeoLibre which map tool owns the clicks (#43).
+* **Update**: [Requests to GeoLibre](upstream/geolibre-requests.md): #2949 and #2951 released in 3.4.0; #28 still waits on `srsName`.
+
 ## 2026-10-05
 * **Update**: 12 pages: sources that cited README sections removed on 2026-10-05 now point to the README at f9c631c (#40).
 * **Update**: [Share a search](guides/share-a-search.md): the gist project is gone, `?plugin=openrndt-geolibre` installs the plugin and searches (#40).

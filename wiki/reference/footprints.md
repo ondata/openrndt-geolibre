@@ -26,7 +26,7 @@ After a search, the extent each record declares is drawn on the map as an orange
 - Hidden footprints stay hidden when a layer of the project is hidden and shown again (from 0.1.7).
 - **Zoom to results** fits the map to the footprints of the page.
 - The tooltip stays inside the map near its right and bottom edges.
-- While GeoLibre's **Identify** is on, footprints answer neither click nor hover, and Identify's crosshair stays: the click queries the layer, nothing else opens ([#38](https://github.com/ondata/openrndt-geolibre/issues/38), from 0.3.2). The plugin knows Identify is on from the crosshair GeoLibre puts on the map; a plugin API for it is asked in [opengeos/GeoLibre#2949](https://github.com/opengeos/GeoLibre/issues/2949).
+- While GeoLibre's **Identify** is on, footprints answer neither click nor hover, and Identify's crosshair stays: the click queries the layer, nothing else opens ([#38](https://github.com/ondata/openrndt-geolibre/issues/38), from 0.3.2). The same holds for feature selection and GeoEditor, and an open menu or tooltip closes as soon as one of them turns on: the plugin asks GeoLibre which tool owns the map (`getActiveMapTool`, GeoLibre 3.4.0, [#43](https://github.com/ondata/openrndt-geolibre/issues/43)); until 0.3.12 it read Identify's crosshair and GeoEditor's control on the map.
 
 # Limits
 
