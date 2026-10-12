@@ -474,7 +474,8 @@ describe("RNDT panel", () => {
     const item = openDetail(card);
     await flush();
     Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent === "Add features")!.click();
-    for (let i = 0; i < 4; i++) await flush();
+    // The first dynamic import of proj4 can take longer than a few turns.
+    await vi.waitFor(() => expect(host.addGeoJsonLayer).toHaveBeenCalled());
 
     expect(host.getProj4).toHaveBeenCalledTimes(1);
     const data = vi.mocked(host.addGeoJsonLayer!).mock.calls[0][1] as FeatureCollection;
@@ -781,26 +782,16 @@ describe("map view when the plugin is turned on", () => {
     plugin.deactivate(ctx.host);
   });
 
-  it("waits for a move under way to end before fitting, or the fit is lost (#49)", () => {
+  it("fits while the map is still moving: GeoLibre 3.4.0 no longer stops the move (#53)", () => {
     vi.useFakeTimers();
     const ctx = createHost(() => "{}");
     ctx.host.getViewBounds = () => [-203.3, -16.3, 3.3, 83.1];
-    let onMoveEnd = () => {};
-    const map = {
-      on: vi.fn(),
-      off: vi.fn(),
-      isMoving: () => true,
-      once: (_: string, f: () => void) => (onMoveEnd = f),
-    };
+    const map = { on: vi.fn(), off: vi.fn(), isMoving: () => true, once: vi.fn() };
     ctx.host.getMap = () => map as never;
     plugin.activate(ctx.host);
     vi.advanceTimersByTime(600);
-    expect(ctx.host.fitBounds).not.toHaveBeenCalled();
-    onMoveEnd();
-    // Not in the same moveend: GeoLibre's own jump at the end of a move would stop it.
-    expect(ctx.host.fitBounds).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(0);
     expect(ctx.host.fitBounds).toHaveBeenCalledWith(ITALY_BBOX);
+    expect(map.once).not.toHaveBeenCalled();
     plugin.deactivate(ctx.host);
   });
 

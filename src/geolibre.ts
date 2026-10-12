@@ -95,23 +95,6 @@ export const plugin: Plugin = {
       const map = host.getMap?.();
       const move = () => {
         cancelMove();
-        // A fit asked while the map is still moving (the move to Italy at
-        // activation, on a slow machine) is lost: at each moveend GeoLibre
-        // stores the view and, a render later, jumps the map back to it
-        // (MapCanvas's applyView effect), which stops any camera move started
-        // meanwhile. Wait for the move to end, then one more turn (#49).
-        if (map?.isMoving?.()) {
-          let timer: ReturnType<typeof setTimeout> | undefined;
-          const later = () => {
-            timer = setTimeout(() => host.fitBounds?.(bbox), 0);
-          };
-          map.once("moveend", later);
-          cancelMove = () => {
-            map.off("moveend", later);
-            clearTimeout(timer);
-          };
-          return;
-        }
         host.fitBounds?.(bbox);
       };
       let timer = setTimeout(move, 600);

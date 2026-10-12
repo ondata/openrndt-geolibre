@@ -26,10 +26,35 @@ export interface WmsLayerOptions {
   metadata?: Record<string, string>;
 }
 
+/** Options of `addWfsLayer` (GeoLibre 3.3.0; `maxFeatures` 3.4.0). */
+export interface WfsLayerOptions {
+  url: string;
+  typeName: string;
+  /** WFS protocol version, "2.0.0" when omitted. */
+  version?: string;
+  /** WGS84 extent of the request; west greater than east throws. */
+  bbox?: Bbox;
+  /** Sent as `count` (WFS 2.x) or `maxFeatures`; 1000 when omitted. */
+  maxFeatures?: number;
+  metadata?: Record<string, string>;
+}
+
+/** The host tool that owns map clicks, or null (GeoLibre 3.4.0). */
+export type ActiveMapTool = "identify" | "feature-selection" | "geo-editor" | null;
+
 export interface RndtHostExtras {
   /** Leave `sourcePath` unset for remote data: GeoLibre treats it as a local file to watch and restore. */
   addGeoJsonLayer?: (name: string, data: FeatureCollection, sourcePath?: string) => string;
   addWmsLayer?: (name: string, options: WmsLayerOptions) => string;
+  /**
+   * A WFS layer read by GeoLibre's own loader: GeoJSON, else GML, reprojected;
+   * kept in a saved project by its request URL.
+   */
+  addWfsLayer?: (name: string, options: WfsLayerOptions) => Promise<string>;
+  /** The map tool that owns clicks: Identify, feature selection or GeoEditor (GeoLibre 3.4.0). */
+  getActiveMapTool?: () => ActiveMapTool;
+  /** Called when the tool changes, not at once; returns the unsubscribe call (GeoLibre 3.4.0). */
+  onActiveMapToolChange?: (callback: (tool: ActiveMapTool) => void) => () => void;
   /**
    * A raster layer from a tile URL template, handed to MapLibre as it is:
    * `{z}/{x}/{y}` or `{bbox-epsg-3857}`. The webview fetches the tiles, so
