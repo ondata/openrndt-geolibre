@@ -1,4 +1,5 @@
 import type { GeoLibrePlugin, GeoLibreRightPanelRegistration } from "./lib/geolibre/host-api";
+import { registerAssistantTools } from "./rndt/assistant";
 import { ITALY_BBOX, PANEL_ID, PLUGIN_ID, PLUGIN_LABEL, PLUGIN_NAME, PLUGIN_VERSION } from "./rndt/constants";
 import type { RndtHost } from "./rndt/host";
 import { RndtPanel } from "./rndt/panel";
@@ -72,6 +73,8 @@ export const plugin: Plugin = {
       ],
     });
     host.openRightPanel?.(PANEL_ID);
+    // GeoLibre's AI Assistant drives the panel through these tools while the plugin is on (#58).
+    const unregisterAssistant = registerAssistantTools(host, panel);
     // The catalogue is Italian and the search starts on the current map view:
     // a view that is not on Italy (GeoLibre opens on North America) moves
     // there. One that is on it is the user's own and stays: its centre falls
@@ -115,6 +118,7 @@ export const plugin: Plugin = {
     savedState = null;
     disposePanel = () => {
       cancelMove();
+      unregisterAssistant();
       unregisterMenu?.();
       host.closeRightPanel?.(PANEL_ID);
       unregister();

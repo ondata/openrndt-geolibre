@@ -29,7 +29,7 @@ function labelOf(options: { value: string; label: string }[], value: string): st
 }
 
 /** The filters of a form, one row each, in words: what the chips of the panel say, with the numbers. */
-function filterRows(form: SearchForm): string[] {
+export function filterRows(form: SearchForm): string[] {
   const rows: string[] = [];
   const text = form.text.trim();
   if (text) {

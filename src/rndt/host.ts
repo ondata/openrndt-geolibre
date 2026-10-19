@@ -42,6 +42,18 @@ export interface WfsLayerOptions {
 /** The host tool that owns map clicks, or null (GeoLibre 3.4.0). */
 export type ActiveMapTool = "identify" | "feature-selection" | "geo-editor" | null;
 
+/**
+ * A tool for GeoLibre's AI Assistant (GeoLibre 3.0). The JSON Schema describes
+ * the input to the model and is not checked: the callback validates it. The
+ * result must be JSON; a thrown error becomes the tool's error result.
+ */
+export interface AssistantToolSpec {
+  name: string;
+  description: string;
+  inputSchema?: Record<string, unknown>;
+  callback: (input: unknown) => unknown | Promise<unknown>;
+}
+
 export interface RndtHostExtras {
   /** Leave `sourcePath` unset for remote data: GeoLibre treats it as a local file to watch and restore. */
   addGeoJsonLayer?: (name: string, data: FeatureCollection, sourcePath?: string) => string;
@@ -74,6 +86,10 @@ export interface RndtHostExtras {
   getDrawnFeatures?: () => Feature<Geometry | null>[];
   getMap?: () => MapLibreMap | null;
   activatePlugin?: (pluginId: string, state?: unknown) => Promise<boolean>;
+  /** Registers a tool for the AI Assistant while the plugin is on (GeoLibre 3.0); returns the disposer. */
+  registerAssistantToolSpec?: (spec: AssistantToolSpec, ownerPluginId?: string) => () => void;
+  /** Adds text to the assistant's system prompt while the plugin is on (GeoLibre 3.1); returns the disposer. */
+  registerAssistantGuidance?: (text: string, ownerPluginId?: string) => () => void;
   /**
    * Open an http(s) URL in the system browser. The desktop webview keeps
    * target="_blank" links in an in-app window, and accepts no other scheme

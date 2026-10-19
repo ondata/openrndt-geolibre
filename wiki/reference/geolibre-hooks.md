@@ -56,6 +56,7 @@ GeoLibre 3.4.0, to be declared as `minGeoLibreVersion` in the registry entry wit
 | `getProj4` | convert GeoJSON in a projected system (GeoLibre 3.3.0, [#29](https://github.com/ondata/openrndt-geolibre/issues/29)) | no: without it such a file gives an error |
 | `exportTextFile` | export the error log (GeoLibre 3.1.0) | no |
 | `openExternalUrl` | open links in the system browser | no |
+| `registerAssistantToolSpec`, `registerAssistantGuidance` | the tools and the guidance of the [AI Assistant](../guides/ai-assistant.md) (GeoLibre 3.0 and 3.1, [#58](https://github.com/ondata/openrndt-geolibre/issues/58), development copy) | no: without them the assistant does not know the panel |
 
 Every method except `registerRightPanel` is called only if present.[^host]
 
@@ -76,6 +77,8 @@ Asked upstream from this plugin and released in 3.3.0 or 3.4.0 (see [Requests to
 
 - `metadata` on `addGeoJsonLayer`, and `descriptiveMetadata` (title, abstract, keywords, contact, links: the form of the Metadata dialog, exported as STAC) on the add calls, which only the user or Python can set: to ask, [#37](https://github.com/ondata/openrndt-geolibre/issues/37).
 - A WFS request without `srsName`, or with the system the server wants, on `addWfsLayer` ([#28](https://github.com/ondata/openrndt-geolibre/issues/28)).
+- A cancel signal to the callback of `registerAssistantToolSpec`: the assistant's Stop waits for a running plugin tool to finish ([AI Assistant](../guides/ai-assistant.md)).
+- A way for the assistant to turn a plugin on: its tools exist only once the user has turned it on.
 - A call to mark the project as modified: none in the plugin types at `v3.4.0` (see [A search is not a project change](../limits/unsaved-search.md)).
 
 [^geolibre-types]: GeoLibre 3.4.0, plugin types

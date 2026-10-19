@@ -6,3 +6,4 @@
 * [Write to the organisation](contact-the-organisation.md) - From the detail view of a record, copy a ready email to who publishes the data, for any request; and what happens when the record gives no address.
 * [Share a search](share-a-search.md) - Ways to pass a search on - Share, a link that opens GeoLibre on a search, a project that carries the search, and a text for an AI agent.
 * [From the web version to Desktop](web-to-desktop.md) - Pick a record in GeoLibre web, save the project, open it in GeoLibre Desktop where every service can be read.
+* [Drive the panel with GeoLibre's AI Assistant](ai-assistant.md) - Ask GeoLibre's AI Assistant, in the chat or by voice, what you would do in the panel - search, open a record, add a layer as an image or as data, answer the panel's question - and watch the panel do it.

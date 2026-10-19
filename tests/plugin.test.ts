@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import plugin from "../src/geolibre";
 import type { GeoLibreRightPanelRegistration } from "../src/lib/geolibre/host-api";
 import { ITALY_BBOX, PANEL_ID } from "../src/rndt/constants";
-import type { RndtHost } from "../src/rndt/host";
+import type { AssistantToolSpec, RndtHost } from "../src/rndt/host";
 import { URL_PARAMETER_NAMES } from "../src/rndt/url-params";
 
 const fixture = (name: string) => readFileSync(join(__dirname, "fixtures", name), "utf8");
@@ -3078,5 +3078,59 @@ describe("Recent searches (#25)", () => {
     expect(stored().map((e) => e.form.text)).toEqual(["ortofoto"]);
     container.querySelector<HTMLButtonElement>(".ordt-clear-history")!.click();
     expect([size(), localStorage.getItem(KEY)]).toEqual(["0 searches", null]);
+  });
+});
+
+describe("GeoLibre's AI Assistant (#58)", () => {
+  function withAssistant() {
+    const tools = new Map<string, AssistantToolSpec>();
+    const disposed: string[] = [];
+    const guidance: string[] = [];
+    const ctx = createHost(() => fixture("search-services.json"));
+    ctx.host.registerAssistantToolSpec = vi.fn((spec: AssistantToolSpec) => {
+      tools.set(spec.name, spec);
+      return () => disposed.push(spec.name);
+    });
+    ctx.host.registerAssistantGuidance = vi.fn((text: string) => {
+      guidance.push(text);
+      return () => disposed.push("guidance");
+    });
+    return { ...ctx, tools, disposed, guidance };
+  }
+
+  it("registers search, open_record, add_layers, choose and the guidance, and removes them when turned off", () => {
+    const { host, tools, guidance, disposed } = withAssistant();
+    plugin.activate(host);
+    expect([...tools.keys()]).toEqual(["search", "open_record", "add_layers", "choose"]);
+    for (const spec of tools.values()) {
+      expect(spec.description.length).toBeGreaterThan(50);
+      expect(spec.inputSchema).toMatchObject({ type: "object" });
+    }
+    expect(guidance).toHaveLength(1);
+    expect(guidance[0].length).toBeLessThanOrEqual(4000);
+    plugin.deactivate(host);
+    expect(disposed.sort()).toEqual(["add_layers", "choose", "guidance", "open_record", "search"]);
+  });
+
+  it("works as before on a host without the assistant API", () => {
+    const { host, getPanel } = createHost(() => "{}");
+    expect(plugin.activate(host)).not.toBe(false);
+    expect(getPanel()?.id).toBe(PANEL_ID);
+    plugin.deactivate(host);
+  });
+
+  it("runs the search tool in the panel and returns the page with next and notes", async () => {
+    const { host, tools, getPanel, requested } = withAssistant();
+    plugin.activate(host);
+    const container = document.createElement("div");
+    document.body.append(container);
+    getPanel()!.render(container);
+
+    const result = (await tools.get("search")!.callback({ text: "catasto", area: "anywhere" })) as { total: number; records: { id: string }[]; next: string[]; notes: string[] };
+    expect(new URL(requested.at(-1)!).searchParams.get("q")).toBe("(catasto)");
+    expect(result.records.map((r) => r.id)).toEqual(Array.from(container.querySelectorAll<HTMLElement>(".ordt-result"), (li) => li.dataset.id));
+    expect(result.next.length).toBeGreaterThan(0);
+    await expect(tools.get("search")!.callback({ theme: "zz" })).rejects.toThrow(/^theme:/);
+    plugin.deactivate(host);
   });
 });

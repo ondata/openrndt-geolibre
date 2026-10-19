@@ -3,6 +3,7 @@ import {
   DATE_FIELDS,
   INSPIRE_THEMES,
   PAGE_SIZE,
+  PANEL_ID,
   RNDT_BASE_URL,
   SEARCH_FIELDS,
   SERVICE_TYPES,
@@ -56,6 +57,7 @@ import { clearHistory, loadHistory, matchesEntry, saveHistory, whenLabel, withEn
 import type { PanelState } from "./project-state";
 import { shareUrl, type LinkLayer, type LinkSearch } from "./url-params";
 import { agentText } from "./agent-text";
+import { detailLoading, TOOL_WAIT_MS, type AssistantAdd, type AssistantSearch } from "./assistant";
 import { bboxError, buildCurlCommand, buildSearchUrl, clampBbox, emptyForm, idForm, joinNames, recordIdIn, splitNames, type Bbox, type ResourceKind, type LinkKind, type SearchForm, type SpatialRel, type TextMode } from "./query";
 import { footprints, parseSearchResponse, provenance, type RndtRecord, type RndtService } from "./records";
 import {
@@ -81,6 +83,10 @@ type Child = Node | string | null | undefined | false;
 type Where = "anywhere" | "view" | "drawn" | "box";
 /** Where a search comes from, for the history: see `remember`. */
 type SearchOrigin = "new" | "refine" | "page" | "none";
+/** What a search ended with: the page shown, an error, or null when a newer search took its place. */
+/** What pressing a control of the panel ended with. */
+export type PressOutcome = { status: "done" | "error" | "waiting" | "running"; message: string; choices?: string[] };
+export type SearchOutcome = { form: SearchForm; total: number; start: number; records: RndtRecord[] } | { error: string } | null;
 
 /** Minimal DOM builder: `on*` props become listeners, the rest are properties or attributes. */
 function h<K extends keyof HTMLElementTagNameMap>(
@@ -150,6 +156,32 @@ function askChoice(container: HTMLElement, message: string, choices: Option[]): 
         ),
       ),
     );
+  });
+}
+
+/** What `within` gives when the time is up. */
+const SLOW = Symbol("slow");
+
+const SLOW_CATALOGUE =
+  "The catalogue is slow to answer: the search goes on in the panel. Tell the user; call search again in a while to read the page.";
+
+/** The promise's value, or SLOW when it takes more than `ms`: the work itself goes on. */
+function within<T>(promise: Promise<T>, ms: number): Promise<T | typeof SLOW> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => resolve(SLOW), ms);
+    promise.then(
+      (value) => (clearTimeout(timer), resolve(value)),
+      (error) => (clearTimeout(timer), reject(error)),
+    );
+  });
+}
+
+/** Resolves when `done` holds or after `timeoutMs`, checking every 100 ms. */
+function waitUntil(done: () => boolean, timeoutMs: number): Promise<void> {
+  return new Promise((resolve) => {
+    const end = Date.now() + timeoutMs;
+    const check = () => (done() || Date.now() >= end ? resolve() : setTimeout(check, 100));
+    check();
   });
 }
 
@@ -2445,7 +2477,7 @@ export class RndtPanel {
     this.statusEl.dataset.kind = kind;
   }
 
-  private async search(start: number, form?: SearchForm, openId: string | null = null, origin: SearchOrigin = "new"): Promise<void> {
+  private async search(start: number, form?: SearchForm, openId: string | null = null, origin: SearchOrigin = "new"): Promise<SearchOutcome> {
     // A record id typed or pasted in the search box (as "Copy id" gives it)
     // opens that record, whatever the filters: "Where" starts from the map view.
     const id = form ? null : recordIdIn(this.field<HTMLInputElement>("text").value);
@@ -2457,7 +2489,7 @@ export class RndtPanel {
     } catch (error) {
       if (!id) {
         this.setStatus(errorMessage(error), "error");
-        return;
+        return { error: errorMessage(error) };
       }
       current = emptyForm();
     }
@@ -2482,7 +2514,7 @@ export class RndtPanel {
         if (!url) throw new Error(`No record with id ${id}, and the form cannot be searched.`);
         page = await fetchPage(url);
       }
-      if (seq !== this.requestSeq) return; // a newer search is running
+      if (seq !== this.requestSeq) return null; // a newer search is running
       this.lastForm = current;
       this.lastId = byId ? id : null;
       if (byId) {
@@ -2511,10 +2543,135 @@ export class RndtPanel {
       if (byId) this.openDetail(page.records[0].id);
       // A record saved as open that the catalogue no longer gives in this page: the list stays.
       else if (openId) this.openDetail(openId);
+      return { form: current, total: page.total, start, records: page.records };
     } catch (error) {
-      if (seq !== this.requestSeq) return;
+      if (seq !== this.requestSeq) return null;
       this.setStatus(`Search failed: ${errorMessage(error)}`, "error");
+      return { error: `Search failed: ${errorMessage(error)}` };
     }
+  }
+
+  /**
+   * Open a record for GeoLibre's AI Assistant (#58), as a click on its title:
+   * one of the page shown, else found by its id as when the id is typed in the
+   * search box. Waits for its services to load, up to `timeoutMs`. Gives back
+   * the detail view to read.
+   */
+  async openRecord(recordId: string, timeoutMs = TOOL_WAIT_MS): Promise<{ detail: HTMLElement; record: RndtRecord } | { error: string }> {
+    if (!this.root) return { error: "The RNDT panel is not open: open it from the Plugins menu." };
+    this.app.openRightPanel?.(PANEL_ID);
+    if (this.detailId !== recordId) {
+      if (this.records.some((r) => r.id === recordId)) this.openDetail(recordId);
+      else {
+        this.writeForm({ ...emptyForm(), text: recordId });
+        const outcome = await within(this.search(1), timeoutMs);
+        if (outcome === SLOW) return { error: SLOW_CATALOGUE };
+        if (outcome && "error" in outcome) return outcome;
+        if (this.detailId !== recordId) return { error: `No record ${recordId} in the catalogue.` };
+      }
+    }
+    await waitUntil(() => !detailLoading(this.detailEl), timeoutMs);
+    const record = this.records.find((r) => r.id === recordId);
+    if (this.detailId !== recordId || !record) return { error: "The record was closed while it loaded." };
+    return { detail: this.detailEl, record };
+  }
+
+  /**
+   * Add layers for GeoLibre's AI Assistant (#58), as by hand: in the open
+   * record, tick the given rows of one service (the others unticked) and press
+   * its Add to map or Add features. Gives back the panel's message, or the
+   * question it asks the user (above 10,000 features), or that it still runs.
+   */
+  async addFromRecord(input: AssistantAdd, timeoutMs = 2 * TOOL_WAIT_MS): Promise<PressOutcome | { error: string }> {
+    const opened = await this.openRecord(input.recordId, timeoutMs);
+    if ("error" in opened) return opened;
+    const items = opened.detail.querySelectorAll<HTMLElement>("li.ordt-service");
+    const item = items[input.service - 1];
+    if (!item) return { error: `service: the record shows ${items.length} ${items.length === 1 ? "service" : "services"}.` };
+    const area = item.querySelector<HTMLElement>(".ordt-service-area")!;
+    const inputs = Array.from(area.querySelectorAll<HTMLInputElement>("label.ordt-layer input"));
+    for (const name of input.layers) {
+      const box = inputs.find((i) => i.value === name);
+      if (!box) return { error: `No layer named ${name} in service ${input.service}: use the names open_record gives.` };
+      if (box.disabled) return { error: `${name} cannot be ticked: ${box.closest("label")?.title || "the panel disables it"}.` };
+    }
+    const label = input.as === "features" ? /^Add features/ : /^(Add to map|Select a layer)/;
+    const button = Array.from(area.querySelectorAll<HTMLButtonElement>("button.ordt-button")).find((b) => label.test(b.textContent ?? ""));
+    if (!button) return { error: `Service ${input.service} has no ${input.as === "features" ? "Add features" : "Add to map"} button.` };
+    for (const box of inputs) {
+      const wanted = input.layers.includes(box.value);
+      if (box.checked !== wanted && (wanted || box.type === "checkbox")) {
+        box.checked = wanted;
+        box.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    }
+    if (button.disabled) return { error: button.title || `${button.textContent} is disabled in the panel.` };
+    return this.pressAndRead(area, () => button.click(), timeoutMs);
+  }
+
+  /**
+   * Answer the question the panel asks the user (above 10,000 features) for
+   * GeoLibre's AI Assistant (#58), when the user answers in the chat: press
+   * the choice's button, as a click on it. Gives back what follows.
+   */
+  async choose(choice: string, timeoutMs = 2 * TOOL_WAIT_MS): Promise<PressOutcome | { error: string }> {
+    const question = this.detailEl?.querySelector<HTMLElement>(".ordt-choices");
+    if (!question) return { error: "No question is waiting in the panel." };
+    const buttons = Array.from(question.querySelectorAll<HTMLButtonElement>("button"));
+    const wanted = choice.trim().toLowerCase();
+    const button = buttons.find((b) => (b.textContent ?? "").trim().toLowerCase() === wanted);
+    if (!button) return { error: `choice: one of ${buttons.map((b) => `"${b.textContent}"`).join(", ")}.` };
+    return this.pressAndRead(question.closest<HTMLElement>(".ordt-service-area")!, () => button.click(), timeoutMs);
+  }
+
+  /**
+   * Press a control of a service box and read what the panel says next: its
+   * message, the question it asks the user, or that it still runs past the wait.
+   */
+  private async pressAndRead(area: HTMLElement, press: () => void, timeoutMs: number): Promise<PressOutcome> {
+    const notes = () => Array.from(area.querySelectorAll<HTMLElement>("p.ordt-note:not([hidden])"));
+    const before = new Map(notes().map((p) => [p, p.textContent]));
+    const earlierQuestion = area.querySelector(".ordt-choices");
+    press();
+    const answer = () =>
+      notes().find((p) => p.dataset.kind !== "busy" && !p.querySelector(".ordt-choices") && (before.get(p) !== p.textContent || !before.has(p)));
+    const asking = () => {
+      const question = area.querySelector<HTMLElement>(".ordt-choices");
+      return question && question !== earlierQuestion ? question : null;
+    };
+    await waitUntil(() => !!answer() || !!asking(), timeoutMs);
+    const words = (el: Element) => (el.textContent ?? "").replace(/\s+/g, " ").trim();
+    const question = asking();
+    if (question) {
+      // The question is the user's to answer: bring it in sight, as a click on Add features leaves it.
+      question.scrollIntoView?.({ block: "nearest" });
+      // askChoice writes the question as text before its buttons.
+      const message = Array.from(question.parentElement!.childNodes, (n) => (n.nodeType === Node.TEXT_NODE ? n.textContent : "")).join("").trim();
+      return { status: "waiting", message, choices: Array.from(question.querySelectorAll("button"), words) };
+    }
+    const done = answer();
+    if (!done) return { status: "running", message: notes().map(words).join(" ") };
+    return { status: done.dataset.kind === "error" ? "error" : "done", message: words(done) };
+  }
+
+  /**
+   * A search from GeoLibre's AI Assistant (#58): written in the form and run
+   * as one typed by hand (chips, list, footprints, history), the panel brought
+   * to the front. Gives back the page it shows.
+   */
+  async runSearch(search: AssistantSearch, timeoutMs = TOOL_WAIT_MS): Promise<SearchOutcome> {
+    if (!this.root) return { error: "The RNDT panel is not open: open it from the Plugins menu." };
+    this.app.openRightPanel?.(PANEL_ID);
+    this.writeForm(search.form);
+    if (search.area === "view") {
+      const where = this.field<HTMLSelectElement>("where");
+      where.value = "view";
+      where.dispatchEvent(new Event("change"));
+    }
+    // The assistant cannot stop a tool (GeoLibre gives it no cancel signal):
+    // past the wait the search goes on in the panel, and the tool returns.
+    const outcome = await within(this.search(search.start, undefined, null, search.start > 1 ? "page" : "new"), timeoutMs);
+    return outcome === SLOW ? { error: SLOW_CATALOGUE } : outcome;
   }
 
   clearResults(): void {

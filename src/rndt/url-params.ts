@@ -220,16 +220,30 @@ export interface LinkSearch {
  * not valid is left out with a warning, the rest is still searched.
  */
 export function linkSearchFrom(params: URLSearchParams): LinkSearch | null {
+  const { form, asked, errors } = readSearchParams(params);
+  for (const { name, raw, error } of errors) {
+    console.warn(`[openrndt-geolibre] Ignoring ${name}=${raw} in the link: ${error}`);
+  }
+  return asked ? { form } : null;
+}
+
+/** A search's parameters into an empty form, with the values that are not valid (left out). */
+export function readSearchParams(params: URLSearchParams): {
+  form: SearchForm;
+  asked: boolean;
+  errors: { name: string; raw: string; error: string }[];
+} {
   const form = emptyForm();
+  const errors: { name: string; raw: string; error: string }[] = [];
   let asked = false;
   for (const param of PARAMS) {
     const raw = (params.get(param.name) ?? "").trim();
     if (!raw) continue;
     asked = true;
     const error = param.read(raw, form);
-    if (error) console.warn(`[openrndt-geolibre] Ignoring ${param.name}=${raw} in the link: ${error}`);
+    if (error) errors.push({ name: param.name, raw, error });
   }
-  return asked ? { form } : null;
+  return { form, asked, errors };
 }
 
 /** The link parameters of a search: one per field that is not at its default, in a fixed order. */

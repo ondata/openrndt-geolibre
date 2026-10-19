@@ -1,5 +1,9 @@
 # Update Log
 
+## 2026-10-19
+* **New**: [Drive the panel with GeoLibre's AI Assistant](guides/ai-assistant.md): four tools that repeat the panel's gestures, their results, the guidance and its measured rules, the limits (#58, development copy).
+* **Update**: [GeoLibre hooks used](reference/geolibre-hooks.md): `registerAssistantToolSpec`, `registerAssistantGuidance`; no cancel signal for plugin tools, no plugin activation from the assistant.
+
 ## 2026-10-12
 * **Update**: [GeoLibre hooks used](reference/geolibre-hooks.md), [overview](overview.md), [Install the plugin](guides/install.md): minimum GeoLibre 3.4.0 (#57), hooks checked at `v3.4.0`; `getActiveMapTool` (#43); a fit during a move lands at once (#53).
 * **Update**: [Footprints](reference/footprints.md): they ask GeoLibre which map tool owns the clicks (#43).
