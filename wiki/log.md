@@ -1,7 +1,7 @@
 # Update Log
 
 ## 2026-10-19
-* **New**: [Drive the panel with GeoLibre's AI Assistant](guides/ai-assistant.md): four tools that repeat the panel's gestures, their results, the guidance and its measured rules, the limits (#58, development copy).
+* **New**: [Drive the panel with GeoLibre's AI Assistant](guides/ai-assistant.md): four tools that repeat the panel's gestures, their results, the guidance and its measured rules, the limits (#58, from 0.3.13).
 * **Update**: [GeoLibre hooks used](reference/geolibre-hooks.md): `registerAssistantToolSpec`, `registerAssistantGuidance`; no cancel signal for plugin tools, no plugin activation from the assistant.
 
 ## 2026-10-12

@@ -56,7 +56,7 @@ GeoLibre 3.4.0, to be declared as `minGeoLibreVersion` in the registry entry wit
 | `getProj4` | convert GeoJSON in a projected system (GeoLibre 3.3.0, [#29](https://github.com/ondata/openrndt-geolibre/issues/29)) | no: without it such a file gives an error |
 | `exportTextFile` | export the error log (GeoLibre 3.1.0) | no |
 | `openExternalUrl` | open links in the system browser | no |
-| `registerAssistantToolSpec`, `registerAssistantGuidance` | the tools and the guidance of the [AI Assistant](../guides/ai-assistant.md) (GeoLibre 3.0 and 3.1, [#58](https://github.com/ondata/openrndt-geolibre/issues/58), development copy) | no: without them the assistant does not know the panel |
+| `registerAssistantToolSpec`, `registerAssistantGuidance` | the tools and the guidance of the [AI Assistant](../guides/ai-assistant.md) (GeoLibre 3.0 and 3.1, [#58](https://github.com/ondata/openrndt-geolibre/issues/58), from 0.3.13) | no: without them the assistant does not know the panel |
 
 Every method except `registerRightPanel` is called only if present.[^host]
 

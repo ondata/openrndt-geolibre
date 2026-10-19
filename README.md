@@ -42,6 +42,16 @@ The cadastral maps of Italian municipalities, published by the Agenzia delle Ent
 - **Save the project**: the search goes into it, with the record you had open. Whoever opens the file finds the same search, run again on today's catalogue.
 - **Copy for an agent**, in the ⋯ menu of the results, copies the search as Markdown, with the filters in words, the records as a table and a ready `curl` request: paste it into an AI assistant and go on from there with [openrndt](#openrndt-the-same-catalogue-from-the-command-line).
 
+### 8. Just ask: GeoLibre's AI Assistant drives the panel
+
+With the plugin turned on, GeoLibre's **AI Assistant** can do in the panel what you would do by hand. Write, or say, what you are looking for:
+
+- `trovami gli alberi monumentali in Lombardia`, then `mettine uno in mappa`
+- `che dati geografici pubblica il Comune di Padova?`
+- `scarica come dati il Catasto 1810 di Genova`, and when the panel asks, `i primi 10.000`
+
+The assistant fills the search form, opens a record, ticks a layer and adds it, and you watch each step in the panel. Only the catalogue's records and the panel's messages reach the AI model, never the data you download. Tried in GeoLibre Desktop with Gemini 3.5 Flash; the assistant needs the key of an AI provider in GeoLibre's **Settings > Environment Variables**. How it works: [Drive the panel with the AI Assistant](wiki/guides/ai-assistant.md).
+
 ## What else it does
 
 - **Any kind of service**: WMS layers are added as images, named with their titles; WFS and ArcGIS REST layers can also be downloaded as features (GeoJSON); WFS features are drawn with the style the server gives, when it has one. A layer from a regional or municipal record is limited to that area, even when the service covers all of Italy.
