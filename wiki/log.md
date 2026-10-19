@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-10-19
+* **Update**: [Registry status](upstream/registry-status.md): 0.3.13 is in the registry (opengeos/geolibre-plugins#110); history from 0.3.7 to 0.3.13 added.
 * **Update**: [Requests to GeoLibre](upstream/geolibre-requests.md), [GeoLibre hooks used](reference/geolibre-hooks.md): #3155, #3156, #3157 opened from the AI Assistant work.
 * **Update**: [Drive the panel with GeoLibre's AI Assistant](guides/ai-assistant.md): link to a short video of the assistant at work.
 * **New**: [Drive the panel with GeoLibre's AI Assistant](guides/ai-assistant.md): four tools that repeat the panel's gestures, their results, the guidance and its measured rules, the limits (#58, from 0.3.13).
