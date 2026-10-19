@@ -50,7 +50,7 @@ With the plugin turned on, GeoLibre's **AI Assistant** can do in the panel what 
 - `che dati geografici pubblica il Comune di Padova?`
 - `scarica come dati il Catasto 1810 di Genova`, and when the panel asks, `i primi 10.000`
 
-The assistant fills the search form, opens a record, ticks a layer and adds it, and you watch each step in the panel. Only the catalogue's records and the panel's messages reach the AI model, never the data you download. Tried in GeoLibre Desktop with Gemini 3.5 Flash; the assistant needs the key of an AI provider in GeoLibre's **Settings > Environment Variables**. How it works: [Drive the panel with the AI Assistant](wiki/guides/ai-assistant.md).
+The assistant fills the search form, opens a record, ticks a layer and adds it, and you watch each step in the panel. [Watch it in a short video](https://youtu.be/ItC7oZDJCMA). Only the catalogue's records and the panel's messages reach the AI model, never the data you download. Tried in GeoLibre Desktop with Gemini 3.5 Flash; the assistant needs the key of an AI provider in GeoLibre's **Settings > Environment Variables**. How it works: [Drive the panel with the AI Assistant](wiki/guides/ai-assistant.md).
 
 ## What else it does
 

@@ -23,7 +23,7 @@ sources:
 
 From version 0.3.13 ([#58](https://github.com/ondata/openrndt-geolibre/issues/58)).
 
-GeoLibre's AI Assistant can drive the RNDT panel. You say what you would do on screen, in your own words, and the assistant does it through the panel's own controls: it fills the search form and runs it, opens a record, ticks a layer and presses Add to map or Add features, answers the question the panel asks. You see each step happen in the panel.
+GeoLibre's AI Assistant can drive the RNDT panel. You say what you would do on screen, in your own words, and the assistant does it through the panel's own controls: it fills the search form and runs it, opens a record, ticks a layer and presses Add to map or Add features, answers the question the panel asks. You see each step happen in the panel: [a short video](https://youtu.be/ItC7oZDJCMA) shows it.
 
 The AI's job is only to turn what you say into the form and the gestures of the panel. Everything else is the panel's: the same checks, the same messages, the same errors as by hand. A record opened by the assistant is read as when you click its title.
 
