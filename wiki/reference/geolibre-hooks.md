@@ -77,8 +77,8 @@ Asked upstream from this plugin and released in 3.3.0 or 3.4.0 (see [Requests to
 
 - `metadata` on `addGeoJsonLayer`, and `descriptiveMetadata` (title, abstract, keywords, contact, links: the form of the Metadata dialog, exported as STAC) on the add calls, which only the user or Python can set: to ask, [#37](https://github.com/ondata/openrndt-geolibre/issues/37).
 - A WFS request without `srsName`, or with the system the server wants, on `addWfsLayer` ([#28](https://github.com/ondata/openrndt-geolibre/issues/28)).
-- A cancel signal to the callback of `registerAssistantToolSpec`: the assistant's Stop waits for a running plugin tool to finish ([AI Assistant](../guides/ai-assistant.md)).
-- A way for the assistant to turn a plugin on: its tools exist only once the user has turned it on.
+- A cancel signal to the callback of `registerAssistantToolSpec`: the assistant's Stop waits for a running plugin tool to finish ([AI Assistant](../guides/ai-assistant.md)); asked in [opengeos/GeoLibre#3155](https://github.com/opengeos/GeoLibre/issues/3155).
+- A way for the assistant to turn a plugin on: its tools exist only once the user has turned it on; asked in [opengeos/GeoLibre#3156](https://github.com/opengeos/GeoLibre/issues/3156).
 - A call to mark the project as modified: none in the plugin types at `v3.4.0` (see [A search is not a project change](../limits/unsaved-search.md)).
 
 [^geolibre-types]: GeoLibre 3.4.0, plugin types

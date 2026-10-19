@@ -67,6 +67,18 @@ sources:
     resource: https://github.com/opengeos/GeoLibre/issues/2958
     title: opengeos/GeoLibre#2958
     last_modified: 2026-10-05T00:00:00Z
+  - id: i3155
+    resource: https://github.com/opengeos/GeoLibre/issues/3155
+    title: opengeos/GeoLibre#3155
+    last_modified: 2026-10-19T00:00:00Z
+  - id: i3156
+    resource: https://github.com/opengeos/GeoLibre/issues/3156
+    title: opengeos/GeoLibre#3156
+    last_modified: 2026-10-19T00:00:00Z
+  - id: i3157
+    resource: https://github.com/opengeos/GeoLibre/issues/3157
+    title: opengeos/GeoLibre#3157
+    last_modified: 2026-10-19T00:00:00Z
   - id: releases
     resource: https://github.com/opengeos/GeoLibre/releases
     title: GeoLibre releases
@@ -116,6 +128,16 @@ Found on the Agenzia delle Entrate cadastral WMS (layer `fabbricati`, drawn in E
 | [#2958](https://github.com/opengeos/GeoLibre/issues/2958) | bug | the warning logged when a registry plugin's bundle changed says to uninstall and reinstall, while Manage Plugins offers Update | open; seen at 0.3.1 and 0.3.2: [An update needs a reinstall](../limits/update-needs-reinstall.md) |
 | [#2951](https://github.com/opengeos/GeoLibre/issues/2951) | feature | an optional `maxFeatures` on `addWfsLayer`, which sends 1,000 written in the code, as the WFS dialog already lets the user choose | closed by [#2963](https://github.com/opengeos/GeoLibre/pull/2963), released in 3.4.0; [#28](https://github.com/ondata/openrndt-geolibre/issues/28) still waits: `addWfsLayer` always sends `srsName=EPSG:4326`, which the cadastral WFS refuses |
 | [#2949](https://github.com/opengeos/GeoLibre/issues/2949) | feature | a way for plugins to know when Identify or another map click tool is active (a getter and a change event) | closed by [#2966](https://github.com/opengeos/GeoLibre/pull/2966) and, for GeoEditor, [#3029](https://github.com/opengeos/GeoLibre/pull/3029), released in 3.4.0: `getActiveMapTool` used by the footprints ([#43](https://github.com/ondata/openrndt-geolibre/issues/43)) |
+
+# Opened on 2026-10-19
+
+From the work on the [AI Assistant tools](../guides/ai-assistant.md) ([#58](https://github.com/ondata/openrndt-geolibre/issues/58)), after trying them in Desktop.
+
+| Issue | Kind | Asks | Here |
+|---|---|---|---|
+| [#3155](https://github.com/opengeos/GeoLibre/issues/3155) | feature | pass the run's cancel signal to the callback of `registerAssistantToolSpec`, which today gets only the input | the assistant's Stop waits for a running tool; the plugin caps its waits at 10 s instead |
+| [#3156](https://github.com/opengeos/GeoLibre/issues/3156) | feature | a host tool to turn an installed plugin on from the assistant, its tools added to the live agent in the same turn | the tools exist only once the user has turned the plugin on |
+| [#3157](https://github.com/opengeos/GeoLibre/issues/3157) | feature | an option for the bottom panels (AI Assistant, Python console, SQL workspace) to take only the map's width, side docks at full height | with the assistant open, the panel's record and its questions fall below the fold |
 
 # Why they exist
 
