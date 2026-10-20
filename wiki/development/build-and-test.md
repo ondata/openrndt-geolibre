@@ -22,7 +22,7 @@ sources:
 | `npm run package:geolibre` | build, then write `geolibre-plugin/openrndt-geolibre-<version>.zip` |
 | `npm run build:geolibre:dev` | build the development copy in `geolibre-plugin-dev/`, see [The two copies of the plugin](two-copies.md) |
 | `npm test` | unit tests, no network |
-| `RUN_LIVE_TESTS=1 npx vitest --run tests/live.test.ts` | compare query totals with the live catalogue |
+| `RUN_LIVE_TESTS=1 npx vitest --run tests/live.test.ts` | compare query totals with the live catalogue, and re-check the [reference services](reference-services.md) |
 | `npm run lint` | ESLint, no warnings allowed |
 | `npx tsc --noEmit -p .` | type check |
 

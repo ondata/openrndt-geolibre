@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-10-20
+* **New**: [Reference services for tests](development/reference-services.md): two services per kind of try, measured, with GeoLibre web links (#60). **Update**: [Build and test](development/build-and-test.md): the live run re-checks them.
 * **Update**: [Drive the panel with GeoLibre's AI Assistant](guides/ai-assistant.md): Stop and turning the plugin on from the assistant, with the next GeoLibre (#59, from 0.3.14), tried on GeoLibre `main`.
 * **Update**: [GeoLibre hooks used](reference/geolibre-hooks.md): the cancel signal and `assistant.description`. [Requests to GeoLibre](upstream/geolibre-requests.md): #3155, #3156, #3157 closed by #3159-#3161.
 

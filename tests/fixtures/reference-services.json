@@ -1,0 +1,221 @@
+{
+  "description": "Services and failures to try the plugin against (#60): two per kind of try where found. Each was checked with the request the web version makes (Origin: https://web.geolibre.app) on the date given: what came back, and the Access-Control-Allow-Origin header. Re-check with RUN_LIVE_TESTS=1 npx vitest --run tests/live.test.ts.",
+  "origin": "https://web.geolibre.app",
+  "services": [
+    {
+      "id": "lombardia-trees-wms",
+      "kind": "wms",
+      "recordId": "r_lombar:ec6587b6-3ff4-481a-94bf-ec9ffdd3224d",
+      "title": "Alberi monumentali - WMS (Regione Lombardia)",
+      "url": "https://www.cartografia.servizirl.it/expo/services/gpt/alberi_monumentali/MapServer/WMSServer",
+      "layer": "Alberi_monumentali9931",
+      "bbox3857": [1000000, 5670000, 1050000, 5720000],
+      "cors": true,
+      "uses": ["wms"],
+      "checked": "2026-10-20"
+    },
+    {
+      "id": "genova-1810-wms",
+      "kind": "wms",
+      "recordId": "c_d969:ae919f85-9d02-4337-ae33-85376c905d5e",
+      "title": "Genova - Catasto 1810",
+      "url": "https://mappe.comune.genova.it/geoserver/SITGEO/V_CATASTO_1810/wms",
+      "layer": "V_CATASTO_1810",
+      "bbox3857": [990000, 5523000, 998000, 5531000],
+      "cors": true,
+      "uses": ["wms"],
+      "checked": "2026-10-20"
+    },
+    {
+      "id": "agea-2020-rgb-wms",
+      "kind": "wms",
+      "recordId": "r_emiro:2022-03-11T113115",
+      "title": "AGEA 2020 RGB (Regione Emilia-Romagna)",
+      "url": "https://servizigis.regione.emilia-romagna.it/wms/agea2020_rgb",
+      "layer": "Agea2020_RGB",
+      "bbox3857": [1250000, 5530000, 1275000, 5555000],
+      "cors": true,
+      "uses": ["wms"],
+      "checked": "2026-10-20",
+      "note": "A link with this layer and no view lands at zoom 6.28 on Emilia-Romagna (#53)."
+    },
+    {
+      "id": "genova-unesco-wfs",
+      "kind": "wfs",
+      "recordId": "c_d969:6dcfeade-8c22-4f6f-beba-3140c7d982be",
+      "title": "Palazzi inclusi nel riconoscimento UNESCO di Genova",
+      "url": "https://mappe.comune.genova.it/geoserver/SITGEO/V_UNESCO_GEOPORT/wfs",
+      "layer": "SITGEO:V_UNESCO_GEOPORT",
+      "features": 140,
+      "cors": true,
+      "uses": ["wfs-small"],
+      "checked": "2026-10-20"
+    },
+    {
+      "id": "bolzano-gauging-wfs",
+      "kind": "wfs",
+      "recordId": "assapcbz:Hydrology:GaugingStations",
+      "title": "Stazioni idrometriche (Agenzia per la Protezione civile, Bolzano)",
+      "url": "https://geoservices1.civis.bz.it/geoserver/p_bz-Hydrology/ows",
+      "layer": "p_bz-Hydrology:GaugingStations",
+      "features": 55,
+      "cors": true,
+      "uses": ["wfs-small"],
+      "checked": "2026-10-20"
+    },
+    {
+      "id": "genova-1810-wfs",
+      "kind": "wfs",
+      "recordId": "c_d969:ae919f85-9d02-4337-ae33-85376c905d5e",
+      "title": "Genova - Catasto 1810",
+      "url": "https://mappe.comune.genova.it/geoserver/SITGEO/V_CATASTO_1810/wfs",
+      "layer": "SITGEO:V_CATASTO_1810",
+      "features": 23979,
+      "cors": true,
+      "uses": ["wfs-large"],
+      "checked": "2026-10-20",
+      "note": "Add features in the record's area asks Download all / First 10,000 only / Cancel."
+    },
+    {
+      "id": "bolzano-fixpoints-wfs",
+      "kind": "wfs",
+      "recordId": "p_bz:Cadastre:FixPoints",
+      "title": "Catasto: punti fiduciali (Bolzano)",
+      "url": "https://geoservices5.civis.bz.it/geoserver/p_bz-Cadastre/ows",
+      "layer": "p_bz-Cadastre:FixPoints",
+      "features": 13020,
+      "cors": true,
+      "uses": ["wfs-large"],
+      "checked": "2026-10-20"
+    },
+    {
+      "id": "milano-1910-arcgis",
+      "kind": "arcgis",
+      "recordId": "C_F205:SIT_CENTRALE_M191081001:20161013",
+      "title": "Milano 1910, carta tecnica (Comune di Milano)",
+      "url": "https://gisportal.comune.milano.it/image/rest/services/Cartografie_Raster/Milano_1910_CTC_GB/ImageServer",
+      "bbox3857": [1018000, 5690000, 1028000, 5700000],
+      "cors": true,
+      "uses": ["arcgis-image"],
+      "checked": "2026-10-20",
+      "note": "An ImageServer: images only. README example 5."
+    },
+    {
+      "id": "piemonte-basins-arcgis",
+      "kind": "arcgis",
+      "recordId": "arlpa_to:12.01.01-D_2011-06-21-11:30",
+      "title": "Bacini idrografici (ARPA Piemonte)",
+      "url": "https://webgis.arpa.piemonte.it/server/rest/services/acqua/Bacini_idrografici/MapServer",
+      "layer": "0",
+      "features": 27,
+      "bbox3857": [800000, 5550000, 1000000, 5750000],
+      "cors": true,
+      "uses": ["arcgis-image", "arcgis-features"],
+      "checked": "2026-10-20"
+    },
+    {
+      "id": "arpae-pressures-arcgis",
+      "kind": "arcgis",
+      "recordId": "arpa:2026-06-09T102216",
+      "title": "Depuratori della Regione Emilia-Romagna - edizione 2025 (ARPAE)",
+      "url": "https://servizi-gis.arpae.it/server/rest/services/Geoportal/ACQUEPressioni/MapServer",
+      "layer": "0",
+      "bbox3857": [1250000, 5530000, 1275000, 5555000],
+      "cors": true,
+      "uses": ["arcgis-image", "arcgis-features"],
+      "checked": "2026-10-20",
+      "note": "Also tests/fixtures/arcgis-arpae-mapserver.json."
+    },
+    {
+      "id": "fvg-ppr-wfs",
+      "kind": "wfs",
+      "recordId": "r_friuve:m10718-cc-i10973",
+      "title": "PPR - Zone di interesse archeologico (Regione FVG)",
+      "url": "https://serviziogc.regione.fvg.it/geoserver/PPR/wfs",
+      "layer": "PPR:v_beni_culturali",
+      "features": 3279,
+      "cors": false,
+      "uses": ["no-cors"],
+      "checked": "2026-10-20",
+      "note": "GeoJSON, but no CORS header: works in Desktop, not in the web version. The layer is one of the service's, measured; the record's own is another layer of the same service."
+    },
+    {
+      "id": "ade-cadastre-wms",
+      "kind": "wms",
+      "recordId": "age:D_F205_MILANO",
+      "title": "Cartografia catastale - Comune di MILANO (Agenzia delle Entrate)",
+      "url": "https://wms.cartografia.agenziaentrate.gov.it/inspire/wms/ows01.php",
+      "layer": "Cartografia_Catastale",
+      "bbox3857": [1458000, 4580000, 1460000, 4582000],
+      "cors": false,
+      "uses": ["no-cors", "not-3857"],
+      "checked": "2026-10-20",
+      "note": "Declares EPSG:6706, 4258, 25832-25834, 3044-3046, not 3857; asked a GetMap in EPSG:3857 it answers with a fixed 500x500 picture of Italy's provinces. Desktop redraws it from another system."
+    },
+    {
+      "id": "ade-cadastre-wfs",
+      "kind": "wfs",
+      "recordId": "age:D_F205_MILANO",
+      "title": "Cartografia catastale - Comune di MILANO (Agenzia delle Entrate)",
+      "url": "https://wfs.cartografia.agenziaentrate.gov.it/inspire/wfs/owfs01.php",
+      "cors": false,
+      "uses": ["no-cors", "gml-only"],
+      "checked": "2026-10-20",
+      "note": "GML only, and it refuses any srsName (#28)."
+    },
+    {
+      "id": "torino-microzones-wfs",
+      "kind": "wfs",
+      "recordId": "c_l219:cbd02575-de8e-4a76-a35d-c0ae48cbfc9a",
+      "title": "Microzone Censuarie (Comune di Torino)",
+      "url": "https://geomap.reteunitaria.piemonte.it/ws/siccms/coto-01/wfsg01/wfs_sicc18_microzone_censuarie",
+      "layer": "Microzone",
+      "cors": true,
+      "uses": ["gml-only"],
+      "checked": "2026-10-20",
+      "note": "WFS 1.0, text/xml; subtype=gml/2.1.2 and gml/3.1.1 only. With CORS: the no-GeoJSON message alone."
+    },
+    {
+      "id": "pcn-corine-wms",
+      "kind": "wms",
+      "recordId": "m_amte:299FN3:79cbfd04-955b-4f8c-9de1-65a44ff0bdd9",
+      "title": "Corine Land Cover 2006 (Geoportale Nazionale)",
+      "url": "http://wms.pcn.minambiente.it/ogc?map=/ms_ogc/WMS_v1.3/Vettoriali/Corine_Land_Cover2006.map",
+      "layer": "CS.CLC2006",
+      "cors": true,
+      "uses": ["http-only"],
+      "checked": "2026-10-20",
+      "note": "https redirects (301) to http: an https page cannot load it. Its GetMap answered with an empty 96-byte PNG."
+    }
+  ],
+  "failures": [
+    {
+      "id": "milano-geoportal-dns",
+      "url": "https://geoportale.comune.milano.it/",
+      "uses": ["host-missing"],
+      "checked": "2026-10-20",
+      "note": "No DNS address since 2026-09-27; 228 records point to it."
+    },
+    {
+      "id": "invalid-tld",
+      "url": "https://rndt-test.invalid/",
+      "uses": ["host-missing"],
+      "checked": "2026-10-20",
+      "note": ".invalid never resolves (RFC 6761); a browser fails in about 1 s."
+    },
+    {
+      "id": "unrouted-private",
+      "url": "https://10.255.255.1/",
+      "uses": ["no-answer"],
+      "checked": "2026-10-20",
+      "note": "Still pending at 20 s in a browser on web.geolibre.app."
+    },
+    {
+      "id": "test-net-1",
+      "url": "https://192.0.2.1/",
+      "uses": ["no-answer"],
+      "checked": "2026-10-20",
+      "note": "TEST-NET-1 (RFC 5737); still pending at 20 s in a browser on web.geolibre.app."
+    }
+  ]
+}

@@ -6,3 +6,4 @@
 * [Testing in GeoLibre web](testing-in-geolibre-web.md) - How to try a local build of the plugin on web.geolibre.app, by hand or with a driven browser, and the traps that look like defects.
 * [Installing in GeoLibre Desktop](installing-in-desktop.md) - How to put a local build of the plugin in GeoLibre Desktop to try it there.
 * [The two copies of the plugin](two-copies.md) - How the plugin from the registry and the development copy live together in one GeoLibre, which one to use for which test, and the cycle from a change to a release.
+* [Reference services for tests](reference-services.md) - Which service to try each case of the plugin against - WMS, small and large WFS, ArcGIS, no CORS, GML only, failures - with ready GeoLibre web links, and how to re-check them.
