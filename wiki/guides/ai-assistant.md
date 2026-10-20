@@ -29,7 +29,7 @@ The AI's job is only to turn what you say into the form and the gestures of the 
 
 # How to use it
 
-1. Turn the plugin on from the Plugins menu, **before** writing to the assistant: GeoLibre reads the tools of the plugins between one message and the next.
+1. With GeoLibre 3.4.0, turn the plugin on from the Plugins menu **before** writing to the assistant: GeoLibre reads the tools of the plugins between one message and the next. With the next GeoLibre (opengeos/GeoLibre#3160, from plugin 0.3.14) the assistant can turn it on by itself: "apri il plugin RNDT e cerca…" works in one message.
 2. Open the AI Assistant and ask, for example:
    - "trovami gli alberi monumentali in Lombardia", then "mettine uno in mappa";
    - "mettimi in mappa il reticolo idrografico della Toscana";
@@ -67,7 +67,7 @@ While the plugin is on, a text of under 4,000 characters is added to the assista
 
 # Limits
 
-- **A tool cannot be stopped.** GeoLibre lets a running plugin tool finish: it gives `registerAssistantToolSpec` callbacks no cancel signal. So no tool waits for the panel more than 10 seconds (20 for adding): past that it returns what the panel shows, and the panel goes on by itself. A server that does not answer takes about 20 seconds in the panel (8 over https, 8 over http).
+- **Stop.** GeoLibre 3.4.0 lets a running plugin tool finish: it gives `registerAssistantToolSpec` callbacks no cancel signal. So no tool waits for the panel more than 10 seconds (20 for adding): past that it returns what the panel shows, and the panel goes on by itself. A server that does not answer takes about 20 seconds in the panel (8 over https, 8 over http). The next GeoLibre passes the signal (opengeos/GeoLibre#3161), and from 0.3.14 the tools end their wait at once: tried on GeoLibre `main` on 2026-10-20, the turn ended 6 ms after Stop while the panel was still reading a server that did not answer.
 - **One model turn per step**: search, open, add are each a round trip of the model, a few seconds each.
 - **Only what the panel can do**: a gesture without a tool (chips, footprints, Share) is not available by voice.
-- **The plugin must be on** before the conversation needs it: the assistant cannot turn a plugin on.
+- **The plugin must be on** before the conversation needs it, with GeoLibre 3.4.0. From 0.3.14 the plugin declares `assistant.description` in `plugin.json`, and the next GeoLibre's `activate_plugin` (opengeos/GeoLibre#3160) lists it while it is off: tried on GeoLibre `main` on 2026-10-20, "apri il plugin RNDT e cerca gli alberi monumentali in Lombardia" turned the plugin on, searched, opened a record and added its layer in one turn.

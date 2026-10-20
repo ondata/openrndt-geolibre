@@ -135,9 +135,9 @@ From the work on the [AI Assistant tools](../guides/ai-assistant.md) ([#58](http
 
 | Issue | Kind | Asks | Here |
 |---|---|---|---|
-| [#3155](https://github.com/opengeos/GeoLibre/issues/3155) | feature | pass the run's cancel signal to the callback of `registerAssistantToolSpec`, which today gets only the input | the assistant's Stop waits for a running tool; the plugin caps its waits at 10 s instead |
-| [#3156](https://github.com/opengeos/GeoLibre/issues/3156) | feature | a host tool to turn an installed plugin on from the assistant, its tools added to the live agent in the same turn | the tools exist only once the user has turned the plugin on |
-| [#3157](https://github.com/opengeos/GeoLibre/issues/3157) | feature | an option for the bottom panels (AI Assistant, Python console, SQL workspace) to take only the map's width, side docks at full height | with the assistant open, the panel's record and its questions fall below the fold |
+| [#3155](https://github.com/opengeos/GeoLibre/issues/3155) | feature | pass the run's cancel signal to the callback of `registerAssistantToolSpec`, which today gets only the input | closed by [#3161](https://github.com/opengeos/GeoLibre/pull/3161), merged 2026-10-20, not released: `callback(input, { signal })`, used from 0.3.14 ([#59](https://github.com/ondata/openrndt-geolibre/issues/59)) |
+| [#3156](https://github.com/opengeos/GeoLibre/issues/3156) | feature | a host tool to turn an installed plugin on from the assistant, its tools added to the live agent in the same turn | closed by [#3160](https://github.com/opengeos/GeoLibre/pull/3160), merged 2026-10-20, not released: `activate_plugin`, for plugins that declare `assistant.description`, declared from 0.3.14 |
+| [#3157](https://github.com/opengeos/GeoLibre/issues/3157) | feature | an option for the bottom panels (AI Assistant, Python console, SQL workspace) to take only the map's width, side docks at full height | closed by [#3159](https://github.com/opengeos/GeoLibre/pull/3159), merged 2026-10-20, not released; nothing to do in the plugin |
 
 # Why they exist
 

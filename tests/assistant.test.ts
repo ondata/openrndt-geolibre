@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { openResult, parseAddInput, parseOpenInput, parseSearchInput, readDetail, searchResult } from "../src/rndt/assistant";
+import { openResult, parseAddInput, parseOpenInput, parseSearchInput, readDetail, registerAssistantTools, searchResult, type AssistantPanel } from "../src/rndt/assistant";
+import type { AssistantToolSpec } from "../src/rndt/host";
 import { PAGE_SIZE, RNDT_BASE_URL } from "../src/rndt/constants";
 import type { RndtHost } from "../src/rndt/host";
 import { RndtPanel } from "../src/rndt/panel";
@@ -386,6 +387,91 @@ describe("tools never hold the assistant long (#58)", () => {
     panel.mount(container);
     expect(await panel.runSearch(parseSearchInput({ text: "fiumi" }), 300)).toEqual({ error: expect.stringMatching(/^The catalogue is slow/) });
     expect(container.querySelector(".ordt-status")!.textContent).toMatch(/Searching/);
+    panel.destroy();
+  });
+});
+
+describe("Stop and activation from the assistant (#59)", () => {
+  const never = () => new Promise<ArrayBuffer>(() => {});
+  const searchHost = (): RndtHost => ({
+    addMapControl: () => true,
+    removeMapControl: () => undefined,
+    getViewBounds: () => [12, 41, 13, 42],
+    fetchArrayBuffer: vi.fn(async (url: string) => (url.includes("/rest/metadata/search") ? encode(fixture("search-services.json")) : never())),
+    addWmsLayer: vi.fn(() => "wms-1"),
+  });
+  const mountPanel = (host: RndtHost) => {
+    const panel = new RndtPanel(host);
+    const container = document.createElement("div");
+    document.body.append(container);
+    panel.mount(container);
+    return { panel, container };
+  };
+
+  it("ends open_record's wait at once when the user presses Stop", async () => {
+    vi.stubGlobal("fetch", async () => Promise.reject(new TypeError("Failed to fetch")));
+    const { panel, container } = mountPanel(searchHost());
+    await panel.runSearch(parseSearchInput({ text: "catasto" }));
+    const id = container.querySelector<HTMLElement>(".ordt-result")!.dataset.id!;
+    const stop = new AbortController();
+    setTimeout(() => stop.abort(), 50);
+    const started = Date.now();
+    const opened = await panel.openRecord(id, 10_000, stop.signal);
+    vi.unstubAllGlobals();
+    expect(opened).toEqual({ error: "Stopped by the user." });
+    expect(Date.now() - started).toBeLessThan(1000);
+    panel.destroy();
+  });
+
+  it("ends a slow search at once when the user presses Stop, the search going on in the panel", async () => {
+    const { panel, container } = mountPanel({ addMapControl: () => true, removeMapControl: () => undefined, getViewBounds: () => [12, 41, 13, 42], fetchArrayBuffer: vi.fn(never) });
+    const stop = new AbortController();
+    setTimeout(() => stop.abort(), 50);
+    const started = Date.now();
+    expect(await panel.runSearch(parseSearchInput({ text: "fiumi" }), 10_000, stop.signal)).toEqual({ error: "Stopped by the user." });
+    expect(Date.now() - started).toBeLessThan(1000);
+    expect(container.querySelector(".ordt-status")!.textContent).toMatch(/Searching/);
+    panel.destroy();
+  });
+
+  it("hands each tool's signal to the panel, and reports a stop as a tool error", async () => {
+    const tools = new Map<string, AssistantToolSpec>();
+    const seen: (AbortSignal | undefined)[] = [];
+    const stopped = { error: "Stopped by the user." };
+    const panel: AssistantPanel = {
+      runSearch: async (_s, _t, signal) => (seen.push(signal), stopped),
+      openRecord: async (_id, _t, signal) => (seen.push(signal), stopped),
+      addFromRecord: async (_i, _t, signal) => (seen.push(signal), stopped),
+      choose: async (_c, _t, signal) => (seen.push(signal), stopped),
+    };
+    registerAssistantTools({ registerAssistantToolSpec: (spec) => (tools.set(spec.name, spec), () => {}) }, panel);
+    const { signal } = new AbortController();
+    const inputs: Record<string, unknown> = {
+      search: { text: "fiumi" },
+      open_record: { recordId: "r:1" },
+      add_layers: { recordId: "r:1", service: 1, layers: ["a"] },
+      choose: { choice: "Cancel" },
+    };
+    for (const [name, input] of Object.entries(inputs)) {
+      await expect(tools.get(name)!.callback(input, { signal })).rejects.toThrow("Stopped by the user.");
+    }
+    expect(seen).toEqual([signal, signal, signal, signal]);
+  });
+
+  it("waits for the panel to render when a tool comes right after the plugin was turned on", async () => {
+    const host = searchHost();
+    const panel = new RndtPanel(host);
+    host.openRightPanel = vi.fn(() => {
+      // GeoLibre renders the panel a moment after it is asked to open it.
+      setTimeout(() => {
+        const container = document.createElement("div");
+        document.body.append(container);
+        panel.mount(container);
+      }, 50);
+      return true;
+    });
+    const outcome = await panel.runSearch(parseSearchInput({ text: "catasto" }));
+    expect(outcome && "records" in outcome ? outcome.records.length : outcome).toBeGreaterThan(0);
     panel.destroy();
   });
 });

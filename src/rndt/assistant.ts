@@ -221,10 +221,12 @@ export interface ShownService {
 }
 
 /**
- * Longest a tool waits for the panel. GeoLibre gives plugin tools no cancel
- * signal, so the assistant's Stop waits for a running tool: past this, a tool
- * returns what the panel shows, and the panel goes on by itself. A server that
- * does not answer takes about 20 s in the panel (8 s over https, 8 s over http).
+ * Longest a tool waits for the panel. GeoLibre 3.4.0 gives plugin tools no
+ * cancel signal, so the assistant's Stop waits for a running tool: past this, a
+ * tool returns what the panel shows, and the panel goes on by itself. Later
+ * GeoLibre passes one (opengeos/GeoLibre#3161), and Stop ends the wait at once.
+ * A server that does not answer takes about 20 s in the panel (8 s over https,
+ * 8 s over http).
  */
 export const TOOL_WAIT_MS = 10_000;
 
@@ -440,10 +442,10 @@ The data never reach you: only records, layer names, counts and messages. Name r
 
 /** The panel's side of the tools: what each gesture does on screen. */
 export interface AssistantPanel {
-  runSearch(search: AssistantSearch): Promise<SearchOutcome>;
-  openRecord(recordId: string): Promise<{ detail: HTMLElement; record: RndtRecord } | { error: string }>;
-  addFromRecord(input: AssistantAdd): Promise<PressOutcome | { error: string }>;
-  choose(choice: string): Promise<PressOutcome | { error: string }>;
+  runSearch(search: AssistantSearch, timeoutMs?: number, signal?: AbortSignal): Promise<SearchOutcome>;
+  openRecord(recordId: string, timeoutMs?: number, signal?: AbortSignal): Promise<{ detail: HTMLElement; record: RndtRecord } | { error: string }>;
+  addFromRecord(input: AssistantAdd, timeoutMs?: number, signal?: AbortSignal): Promise<PressOutcome | { error: string }>;
+  choose(choice: string, timeoutMs?: number, signal?: AbortSignal): Promise<PressOutcome | { error: string }>;
 }
 
 /** The host's registration calls (GeoLibre 3.0 and 3.1), as the activation scope gives them. */
@@ -468,9 +470,9 @@ export function registerAssistantTools(host: AssistantHost, panel: AssistantPane
       name: SEARCH_TOOL_NAME,
       description: SEARCH_TOOL_DESCRIPTION,
       inputSchema: SEARCH_TOOL_SCHEMA,
-      callback: async (input) => {
+      callback: async (input, context) => {
         const search = parseSearchInput(input);
-        const outcome = await panel.runSearch(search);
+        const outcome = await panel.runSearch(search, TOOL_WAIT_MS, context?.signal);
         if (!outcome || "error" in outcome) return fail(outcome);
         return searchResult(outcome, PAGE_SIZE, search.area);
       },
@@ -479,9 +481,9 @@ export function registerAssistantTools(host: AssistantHost, panel: AssistantPane
       name: OPEN_TOOL_NAME,
       description: OPEN_TOOL_DESCRIPTION,
       inputSchema: OPEN_TOOL_SCHEMA,
-      callback: async (input) => {
+      callback: async (input, context) => {
         const { recordId, filter } = parseOpenInput(input);
-        const opened = await panel.openRecord(recordId);
+        const opened = await panel.openRecord(recordId, TOOL_WAIT_MS, context?.signal);
         if ("error" in opened) return fail(opened);
         return openResult(opened.record.id, opened.record.title, readDetail(opened.detail, filter));
       },
@@ -490,8 +492,8 @@ export function registerAssistantTools(host: AssistantHost, panel: AssistantPane
       name: ADD_TOOL_NAME,
       description: ADD_TOOL_DESCRIPTION,
       inputSchema: ADD_TOOL_SCHEMA,
-      callback: async (input) => {
-        const outcome = await panel.addFromRecord(parseAddInput(input));
+      callback: async (input, context) => {
+        const outcome = await panel.addFromRecord(parseAddInput(input), 2 * TOOL_WAIT_MS, context?.signal);
         if ("error" in outcome) return fail(outcome);
         return addResult(outcome);
       },
@@ -500,8 +502,8 @@ export function registerAssistantTools(host: AssistantHost, panel: AssistantPane
       name: CHOOSE_TOOL_NAME,
       description: CHOOSE_TOOL_DESCRIPTION,
       inputSchema: CHOOSE_TOOL_SCHEMA,
-      callback: async (input) => {
-        const outcome = await panel.choose(parseChooseInput(input));
+      callback: async (input, context) => {
+        const outcome = await panel.choose(parseChooseInput(input), 2 * TOOL_WAIT_MS, context?.signal);
         if ("error" in outcome) return fail(outcome);
         return addResult(outcome);
       },

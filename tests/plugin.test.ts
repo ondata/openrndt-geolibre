@@ -79,6 +79,14 @@ describe("plugin manifest", () => {
     });
   });
 
+  it("declares what its assistant tools do, for GeoLibre's activate_plugin (#59)", () => {
+    const manifest = JSON.parse(readFileSync(join(__dirname, "..", "geolibre-plugin", "plugin.json"), "utf8"));
+    const description: unknown = manifest.assistant?.description;
+    expect(typeof description).toBe("string");
+    expect((description as string).trim().length).toBeGreaterThan(0);
+    expect((description as string).length).toBeLessThanOrEqual(300);
+  });
+
   it("refuses to activate without a right panel", () => {
     expect(plugin.activate({ addMapControl: () => true, removeMapControl: () => undefined })).toBe(false);
   });

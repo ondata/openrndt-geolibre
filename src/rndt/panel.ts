@@ -165,10 +165,25 @@ const SLOW = Symbol("slow");
 const SLOW_CATALOGUE =
   "The catalogue is slow to answer: the search goes on in the panel. Tell the user; call search again in a while to read the page.";
 
-/** The promise's value, or SLOW when it takes more than `ms`: the work itself goes on. */
-function within<T>(promise: Promise<T>, ms: number): Promise<T | typeof SLOW> {
+const NOT_OPEN = "The RNDT panel is not open: open it from the Plugins menu.";
+
+/** A tool's answer when the user pressed the assistant's Stop: the panel's own work goes on. */
+const STOPPED = "Stopped by the user.";
+
+/** How long a tool waits for the panel to render after asking GeoLibre to open it. */
+const MOUNT_WAIT_MS = 2000;
+
+/**
+ * The promise's value, or SLOW when it takes more than `ms` or `signal`
+ * aborts (the user's Stop, GeoLibre after opengeos/GeoLibre#3161): the work
+ * itself goes on.
+ */
+function within<T>(promise: Promise<T>, ms: number, signal?: AbortSignal): Promise<T | typeof SLOW> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => resolve(SLOW), ms);
+    const stop = () => (clearTimeout(timer), resolve(SLOW));
+    const timer = setTimeout(stop, ms);
+    signal?.addEventListener("abort", stop, { once: true });
+    if (signal?.aborted) stop();
     promise.then(
       (value) => (clearTimeout(timer), resolve(value)),
       (error) => (clearTimeout(timer), reject(error)),
@@ -176,11 +191,11 @@ function within<T>(promise: Promise<T>, ms: number): Promise<T | typeof SLOW> {
   });
 }
 
-/** Resolves when `done` holds or after `timeoutMs`, checking every 100 ms. */
-function waitUntil(done: () => boolean, timeoutMs: number): Promise<void> {
+/** Resolves when `done` holds, after `timeoutMs` or when `signal` aborts, checking every 100 ms. */
+function waitUntil(done: () => boolean, timeoutMs: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve) => {
     const end = Date.now() + timeoutMs;
-    const check = () => (done() || Date.now() >= end ? resolve() : setTimeout(check, 100));
+    const check = () => (done() || signal?.aborted || Date.now() >= end ? resolve() : setTimeout(check, 100));
     check();
   });
 }
@@ -2557,20 +2572,20 @@ export class RndtPanel {
    * search box. Waits for its services to load, up to `timeoutMs`. Gives back
    * the detail view to read.
    */
-  async openRecord(recordId: string, timeoutMs = TOOL_WAIT_MS): Promise<{ detail: HTMLElement; record: RndtRecord } | { error: string }> {
-    if (!this.root) return { error: "The RNDT panel is not open: open it from the Plugins menu." };
-    this.app.openRightPanel?.(PANEL_ID);
+  async openRecord(recordId: string, timeoutMs = TOOL_WAIT_MS, signal?: AbortSignal): Promise<{ detail: HTMLElement; record: RndtRecord } | { error: string }> {
+    if (!(await this.mounted(signal))) return { error: signal?.aborted ? STOPPED : NOT_OPEN };
     if (this.detailId !== recordId) {
       if (this.records.some((r) => r.id === recordId)) this.openDetail(recordId);
       else {
         this.writeForm({ ...emptyForm(), text: recordId });
-        const outcome = await within(this.search(1), timeoutMs);
-        if (outcome === SLOW) return { error: SLOW_CATALOGUE };
+        const outcome = await within(this.search(1), timeoutMs, signal);
+        if (outcome === SLOW) return { error: signal?.aborted ? STOPPED : SLOW_CATALOGUE };
         if (outcome && "error" in outcome) return outcome;
         if (this.detailId !== recordId) return { error: `No record ${recordId} in the catalogue.` };
       }
     }
-    await waitUntil(() => !detailLoading(this.detailEl), timeoutMs);
+    await waitUntil(() => !detailLoading(this.detailEl), timeoutMs, signal);
+    if (signal?.aborted) return { error: STOPPED };
     const record = this.records.find((r) => r.id === recordId);
     if (this.detailId !== recordId || !record) return { error: "The record was closed while it loaded." };
     return { detail: this.detailEl, record };
@@ -2582,8 +2597,8 @@ export class RndtPanel {
    * its Add to map or Add features. Gives back the panel's message, or the
    * question it asks the user (above 10,000 features), or that it still runs.
    */
-  async addFromRecord(input: AssistantAdd, timeoutMs = 2 * TOOL_WAIT_MS): Promise<PressOutcome | { error: string }> {
-    const opened = await this.openRecord(input.recordId, timeoutMs);
+  async addFromRecord(input: AssistantAdd, timeoutMs = 2 * TOOL_WAIT_MS, signal?: AbortSignal): Promise<PressOutcome | { error: string }> {
+    const opened = await this.openRecord(input.recordId, timeoutMs, signal);
     if ("error" in opened) return opened;
     const items = opened.detail.querySelectorAll<HTMLElement>("li.ordt-service");
     const item = items[input.service - 1];
@@ -2606,7 +2621,7 @@ export class RndtPanel {
       }
     }
     if (button.disabled) return { error: button.title || `${button.textContent} is disabled in the panel.` };
-    return this.pressAndRead(area, () => button.click(), timeoutMs);
+    return this.pressAndRead(area, () => button.click(), timeoutMs, signal);
   }
 
   /**
@@ -2614,21 +2629,21 @@ export class RndtPanel {
    * GeoLibre's AI Assistant (#58), when the user answers in the chat: press
    * the choice's button, as a click on it. Gives back what follows.
    */
-  async choose(choice: string, timeoutMs = 2 * TOOL_WAIT_MS): Promise<PressOutcome | { error: string }> {
+  async choose(choice: string, timeoutMs = 2 * TOOL_WAIT_MS, signal?: AbortSignal): Promise<PressOutcome | { error: string }> {
     const question = this.detailEl?.querySelector<HTMLElement>(".ordt-choices");
     if (!question) return { error: "No question is waiting in the panel." };
     const buttons = Array.from(question.querySelectorAll<HTMLButtonElement>("button"));
     const wanted = choice.trim().toLowerCase();
     const button = buttons.find((b) => (b.textContent ?? "").trim().toLowerCase() === wanted);
     if (!button) return { error: `choice: one of ${buttons.map((b) => `"${b.textContent}"`).join(", ")}.` };
-    return this.pressAndRead(question.closest<HTMLElement>(".ordt-service-area")!, () => button.click(), timeoutMs);
+    return this.pressAndRead(question.closest<HTMLElement>(".ordt-service-area")!, () => button.click(), timeoutMs, signal);
   }
 
   /**
    * Press a control of a service box and read what the panel says next: its
    * message, the question it asks the user, or that it still runs past the wait.
    */
-  private async pressAndRead(area: HTMLElement, press: () => void, timeoutMs: number): Promise<PressOutcome> {
+  private async pressAndRead(area: HTMLElement, press: () => void, timeoutMs: number, signal?: AbortSignal): Promise<PressOutcome | { error: string }> {
     const notes = () => Array.from(area.querySelectorAll<HTMLElement>("p.ordt-note:not([hidden])"));
     const before = new Map(notes().map((p) => [p, p.textContent]));
     const earlierQuestion = area.querySelector(".ordt-choices");
@@ -2639,7 +2654,8 @@ export class RndtPanel {
       const question = area.querySelector<HTMLElement>(".ordt-choices");
       return question && question !== earlierQuestion ? question : null;
     };
-    await waitUntil(() => !!answer() || !!asking(), timeoutMs);
+    await waitUntil(() => !!answer() || !!asking(), timeoutMs, signal);
+    if (signal?.aborted && !answer() && !asking()) return { error: STOPPED };
     const words = (el: Element) => (el.textContent ?? "").replace(/\s+/g, " ").trim();
     const question = asking();
     if (question) {
@@ -2659,19 +2675,28 @@ export class RndtPanel {
    * as one typed by hand (chips, list, footprints, history), the panel brought
    * to the front. Gives back the page it shows.
    */
-  async runSearch(search: AssistantSearch, timeoutMs = TOOL_WAIT_MS): Promise<SearchOutcome> {
-    if (!this.root) return { error: "The RNDT panel is not open: open it from the Plugins menu." };
-    this.app.openRightPanel?.(PANEL_ID);
+  async runSearch(search: AssistantSearch, timeoutMs = TOOL_WAIT_MS, signal?: AbortSignal): Promise<SearchOutcome> {
+    if (!(await this.mounted(signal))) return { error: signal?.aborted ? STOPPED : NOT_OPEN };
     this.writeForm(search.form);
     if (search.area === "view") {
       const where = this.field<HTMLSelectElement>("where");
       where.value = "view";
       where.dispatchEvent(new Event("change"));
     }
-    // The assistant cannot stop a tool (GeoLibre gives it no cancel signal):
-    // past the wait the search goes on in the panel, and the tool returns.
-    const outcome = await within(this.search(search.start, undefined, null, search.start > 1 ? "page" : "new"), timeoutMs);
-    return outcome === SLOW ? { error: SLOW_CATALOGUE } : outcome;
+    // Past the wait, or at the user's Stop, the search goes on in the panel and the tool returns.
+    const outcome = await within(this.search(search.start, undefined, null, search.start > 1 ? "page" : "new"), timeoutMs, signal);
+    return outcome === SLOW ? { error: signal?.aborted ? STOPPED : SLOW_CATALOGUE } : outcome;
+  }
+
+  /**
+   * Bring the panel to the front and wait, briefly, for GeoLibre to render it:
+   * a tool called right after the assistant turned the plugin on
+   * (opengeos/GeoLibre#3160) may come before the first render.
+   */
+  private async mounted(signal?: AbortSignal): Promise<boolean> {
+    this.app.openRightPanel?.(PANEL_ID);
+    if (!this.root) await waitUntil(() => !!this.root, MOUNT_WAIT_MS, signal);
+    return !!this.root;
   }
 
   clearResults(): void {

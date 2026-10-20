@@ -51,7 +51,12 @@ export interface AssistantToolSpec {
   name: string;
   description: string;
   inputSchema?: Record<string, unknown>;
-  callback: (input: unknown) => unknown | Promise<unknown>;
+  callback: (input: unknown, context?: AssistantToolCallContext) => unknown | Promise<unknown>;
+}
+
+/** Per-call context of a tool (opengeos/GeoLibre#3161, after 3.4.0): `signal` aborts when the user presses Stop. */
+export interface AssistantToolCallContext {
+  signal: AbortSignal;
 }
 
 export interface RndtHostExtras {
