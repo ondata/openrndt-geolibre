@@ -2,6 +2,7 @@
 
 ## 2026-10-20
 
+- **Registry PR for 0.3.14**: [opengeos/geolibre-plugins#111](https://github.com/opengeos/geolibre-plugins/pull/111) from `ondata:update-openrndt-geolibre-0.3.14`, `version` and `source` (sha256 `c91c24b5…`). `validate_plugins.mjs --changed-since origin/main` (1 bundle imported) and pre-commit pass. All checks green, approved. Preview (06:39 UTC): plugin.json 0.3.14 with `assistant.description`, a link search for Lombardy's monumental trees 17 records, Diagnostics 0; said on the PR.
 - **Release 0.3.14**: the AI Assistant tools take GeoLibre's two additions (#59). Zip 1,123,377 bytes, sha256 `c91c24b5fec691832bb32703dcb53db1a643bbaf730aa58f17bcf1a19c0ed6aa`. Harmless on GeoLibre 3.4.0, which passes no signal and ignores the declaration; minimum unchanged.
 - **GeoLibre merged the three requests overnight**, on `main`, not released: opengeos/GeoLibre#3159 (bottom panels under the map), #3160 (`activate_plugin` for plugins declaring `assistant.description`), #3161 (`{ signal }` for tool callbacks), by giswqs.
 - **#59**: `assistant.description` in `plugin.json` (248 chars); the four tools pass the callback's `signal` to the panel, whose waits end at once on Stop with "Stopped by the user."; the 10 s / 20 s caps stay without a signal; `runSearch` and `openRecord` wait up to 2 s for the panel to render when called right after the plugin was turned on. 6 tests; suite 540 pass; the manifest validates against the registry's schema.
