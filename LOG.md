@@ -1,5 +1,12 @@
 # LOG
 
+## 2026-10-20
+
+- **Release 0.3.14**: the AI Assistant tools take GeoLibre's two additions (#59). Zip 1,123,377 bytes, sha256 `c91c24b5fec691832bb32703dcb53db1a643bbaf730aa58f17bcf1a19c0ed6aa`. Harmless on GeoLibre 3.4.0, which passes no signal and ignores the declaration; minimum unchanged.
+- **GeoLibre merged the three requests overnight**, on `main`, not released: opengeos/GeoLibre#3159 (bottom panels under the map), #3160 (`activate_plugin` for plugins declaring `assistant.description`), #3161 (`{ signal }` for tool callbacks), by giswqs.
+- **#59**: `assistant.description` in `plugin.json` (248 chars); the four tools pass the callback's `signal` to the panel, whose waits end at once on Stop with "Stopped by the user."; the 10 s / 20 s caps stay without a signal; `runSearch` and `openRecord` wait up to 2 s for the panel to render when called right after the plugin was turned on. 6 tests; suite 540 pass; the manifest validates against the registry's schema.
+- **Tried on a local GeoLibre web at `main` `f8cf4a4a`** (worktree, dev server, dev copy dropped into `public/plugins/`, OpenRouter `google/gemini-3.5-flash`, headless): with the plugin off, "apri il plugin RNDT e cerca gli alberi monumentali in Lombardia" → `activate_plugin`, `search` (17 records), `open_record`, `add_layers`, `zoom_to` in one turn, layer on the map, Diagnostics 0. Stop on `ispra_rm:04IdroHazard2015_SVD` (its server on sdi.isprambiente.it still not answering) at 5 s → turn over 6 ms after the click, the panel still reading. On `main` the assistant panel takes only the map's width (#3159).
+
 ## 2026-10-19
 
 - **#43, #53, #57, #58 closed** after the release: #53 tried on web.geolibre.app with the registry's 0.3.13, four fresh headless sessions, the AGEA link lands at zoom 6.28 on Emilia-Romagna each time; #43 tried by the user in Desktop with 0.3.13, footprints quiet while Identify is on and answering again after.
