@@ -56,6 +56,7 @@ import {
 import { clearHistory, loadHistory, matchesEntry, saveHistory, whenLabel, withEntry, withTopUpdated, withoutEntry, type HistoryEntry } from "./history";
 import type { PanelState } from "./project-state";
 import { shareUrl, type LinkLayer, type LinkSearch } from "./url-params";
+import { tr } from "./i18n";
 import { agentText } from "./agent-text";
 import { detailLoading, TOOL_WAIT_MS, type AssistantAdd, type AssistantSearch } from "./assistant";
 import { bboxError, buildCurlCommand, buildSearchUrl, clampBbox, emptyForm, idForm, joinNames, recordIdIn, splitNames, type Bbox, type ResourceKind, type LinkKind, type SearchForm, type SpatialRel, type TextMode } from "./query";
@@ -1006,7 +1007,7 @@ export class RndtPanel {
         }
       });
       this.trackStickyHeights();
-      this.setStatus("Search the Italian national catalogue of spatial data (RNDT).");
+      this.setStatus(tr("status.start", "Search the Italian national catalogue of spatial data (RNDT)."));
     }
     container.append(this.root);
     // A link is the newer request: it wins over the state of the project.
@@ -1083,7 +1084,7 @@ export class RndtPanel {
     this.clearResults();
     this.chipsEl.replaceChildren();
     this.lastId = null;
-    this.setStatus("Search the Italian national catalogue of spatial data (RNDT).");
+    this.setStatus(tr("status.start", "Search the Italian national catalogue of spatial data (RNDT)."));
   }
 
   /** Put a search into the form's fields, the inverse of `readForm`. The area becomes a box, or Anywhere. */
@@ -1135,6 +1136,31 @@ export class RndtPanel {
     this.field<HTMLInputElement>("openData").disabled = services;
     for (const note of this.formEl.querySelectorAll<HTMLElement>(".ordt-services-note")) note.hidden = !services;
     this.updateAdvancedCount();
+  }
+
+  /**
+   * Build the panel again after GeoLibre switches language (#3): its labels
+   * are set once, as DOM. The search shown comes back, run again, with the
+   * record that was open; what was typed and not searched is lost. A panel not
+   * on screen is built at its next mount.
+   */
+  relabel(): void {
+    if (!this.root) return;
+    const container = this.root.parentElement;
+    const state = this.projectState();
+    this.requestSeq++;
+    this.stickyObserver?.disconnect();
+    this.stickyObserver = null;
+    document.removeEventListener("mousedown", this.onPressOutsideBar, true);
+    this.root.remove();
+    this.root = undefined;
+    this.lastForm = null;
+    this.lastId = null;
+    this.detailId = null;
+    this.records = [];
+    this.detailRows = [];
+    this.pendingState = state;
+    if (container) this.mount(container);
   }
 
   /** Remove the panel DOM and the footprints (plugin deactivation). */

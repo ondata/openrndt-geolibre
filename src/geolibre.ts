@@ -1,6 +1,7 @@
 import type { GeoLibrePlugin, GeoLibreRightPanelRegistration } from "./lib/geolibre/host-api";
 import { syncAddress } from "./rndt/address";
 import { registerAssistantTools } from "./rndt/assistant";
+import { bindLanguage, onLanguageChange, tr } from "./rndt/i18n";
 import { ITALY_BBOX, PANEL_ID, PLUGIN_ID, PLUGIN_LABEL, PLUGIN_NAME, PLUGIN_VERSION } from "./rndt/constants";
 import type { RndtHost } from "./rndt/host";
 import { RndtPanel } from "./rndt/panel";
@@ -53,6 +54,7 @@ export const plugin: Plugin = {
   activate(app) {
     const host = app as RndtHost;
     if (!host.registerRightPanel) return false;
+    bindLanguage(host);
     const panel = new RndtPanel(host);
     const registration: GeoLibreRightPanelRegistration & { deactivatePluginOnClose?: boolean } = {
       id: PANEL_ID,
@@ -70,12 +72,14 @@ export const plugin: Plugin = {
       id: `${PLUGIN_ID}-menu`,
       label: PLUGIN_LABEL,
       items: [
-        { id: "open", label: "Open search panel", onSelect: () => host.openRightPanel?.(PANEL_ID) },
-        { id: "footprints", label: "Hide or show footprints", onSelect: () => panel.toggleFootprints() },
-        { id: "clear", label: "Clear results and footprints", onSelect: () => panel.clearResults() },
+        { id: "open", label: () => tr("menu.open", "Open search panel"), onSelect: () => host.openRightPanel?.(PANEL_ID) },
+        { id: "footprints", label: () => tr("menu.footprints", "Hide or show footprints"), onSelect: () => panel.toggleFootprints() },
+        { id: "clear", label: () => tr("menu.clear", "Clear results and footprints"), onSelect: () => panel.clearResults() },
       ],
     });
     host.openRightPanel?.(PANEL_ID);
+    // The panel's labels are DOM set once: a language switch builds it again (#3).
+    const stopLanguage = onLanguageChange(() => panel.relabel());
     // GeoLibre's AI Assistant drives the panel through these tools while the plugin is on (#58).
     const unregisterAssistant = registerAssistantTools(host, panel);
     // The catalogue is Italian and the search starts on the current map view:
@@ -127,6 +131,7 @@ export const plugin: Plugin = {
     savedState = null;
     disposePanel = () => {
       cancelMove();
+      stopLanguage();
       stopAddress?.();
       startAddress = null;
       unregisterAssistant();

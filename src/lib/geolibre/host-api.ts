@@ -81,8 +81,8 @@ export interface GeoLibreNativeLayerRegistration {
 export interface GeoLibreRightPanelRegistration {
   /** Stable, plugin-unique id used to open/collapse/close the panel. */
   id: string;
-  /** Title shown in the panel header and the collapsed rail. */
-  title: string;
+  /** Title shown in the panel header and the collapsed rail; a getter follows the app language (GeoLibre 3.4.0). */
+  title: string | (() => string);
   /** Optional rail icon: a URL or `data:` URI rendered as an image. */
   icon?: string;
   /** Preferred expanded width in px (desktop only; the host clamps it). */
@@ -197,6 +197,14 @@ export interface GeoLibreAppAPI<TControl extends GeoLibreControl = GeoLibreContr
   registerToolbarMenu?: (menu: GeoLibreToolbarMenu) => () => void;
   /** Remove a previously registered toolbar menu. */
   unregisterToolbarMenu?: (id: string) => void;
+  /** The app's UI language (`"en"`, `"it"`, `"pt-BR"`, …), GeoLibre 3.4.0. */
+  getLocale?: () => string;
+  /** Called after the user switches language; returns the unsubscribe function (GeoLibre 3.4.0). */
+  onLocaleChange?: (listener: (locale: string) => void) => () => void;
+  /** Resolve a key in the app language, else `defaultValue`; `{{name}}` interpolation, `count` for plurals (GeoLibre 3.4.0). */
+  translate?: (key: string, defaultValue: string, params?: Record<string, string | number>) => string;
+  /** Ship the plugin's own catalogues: `{ it: { "plugin.<id>.<key>": "…" } }`, once (GeoLibre 3.4.0). */
+  registerTranslations?: (resources: Record<string, Record<string, string>>) => void;
   /**
    * Register a floating panel: a draggable, closeable card the host overlays on
    * the map's top-left corner. Returns an unregister function (call it from
@@ -226,8 +234,8 @@ export interface GeoLibreToolbarMenuAction {
   type?: "action";
   /** Stable id, unique within the menu. */
   id: string;
-  /** Label shown in the menu. */
-  label: string;
+  /** Label shown in the menu; a getter follows the app language (GeoLibre 3.4.0). */
+  label: string | (() => string);
   /** Optional icon: a URL or `data:` URI rendered as an image. */
   icon?: string;
   /** When true, the item is shown disabled and cannot be selected. */
@@ -240,7 +248,7 @@ export interface GeoLibreToolbarMenuAction {
 export interface GeoLibreToolbarSubmenu {
   type: "submenu";
   id: string;
-  label: string;
+  label: string | (() => string);
   icon?: string;
   items: GeoLibreToolbarMenuItem[];
 }
@@ -263,7 +271,7 @@ export type GeoLibreToolbarMenuItem =
  */
 export interface GeoLibreToolbarMenu {
   id: string;
-  label: string;
+  label: string | (() => string);
   icon?: string;
   items: GeoLibreToolbarMenuItem[];
 }
