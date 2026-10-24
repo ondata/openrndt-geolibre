@@ -36,7 +36,7 @@ GeoLibre 3.4.0 lets a plugin follow the app language (`getLocale`, `onLocaleChan
 
 | What | Why |
 |---|---|
-| The plugin's name in the Plugins menu and in the registry | the name comes from `plugin.json`; a plugin can translate only its own keys |
+| The plugin's name in the Plugins menu and in the registry | the name comes from `plugin.json`, and its menu label is a key of GeoLibre's own catalogue: `registerTranslations` takes only keys under `plugin.` |
 | The descriptions of the AI Assistant tools and their guidance | they are read by the model, not by the user |
 | The names of the link parameters (`rndt`, `rndtTheme`, …) | a shared link must work in every language |
 | **Copy for an agent** | Markdown for an AI agent, with the filters in words |

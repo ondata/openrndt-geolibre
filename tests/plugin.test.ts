@@ -3045,6 +3045,19 @@ describe("Recent searches (#25)", () => {
     expect(stored().map((e) => [e.form.text, e.filters])).toEqual([["ortofoto", ["WMS", "Map view"]], ["vecchia", []]]);
   });
 
+  it("runs an entry saved in Italian on its area, whose name it keeps (#3)", async () => {
+    localStorage.setItem(KEY, JSON.stringify([
+      entry("ortofoto", { form: { ...entry("ortofoto").form, bbox: [7.5, 44, 9.5, 46], spatialRel: "Within" }, filters: ["Dentro: Vista della mappa"] }),
+    ]));
+    const { container } = await mountPanel(() => fixture("search-alberi.json"));
+    box(container).dispatchEvent(new Event("focus"));
+    mousedown(items(container)[0]);
+    await flush();
+    expect(chipLabels(container)).toEqual(["Inside: Saved area"]);
+    // Read in either language, the area keeps the name it had when the search was made.
+    expect(stored()[0].filters).toEqual(["Inside: Vista della mappa"]);
+  });
+
   it("keeps a record opened by its id, with its title, and opens it again", async () => {
     const page = JSON.parse(fixture("search-alberi.json"));
     const record = page.results[0];
