@@ -66,6 +66,8 @@ sources:
 
 The plugin declares the names in `urlParameterNames`. When one is in the address GeoLibre activates the plugin, if it is registered, and calls `handleUrlParameters`.[^entry] These two parameters never install the plugin.
 
+GeoLibre reads the address only at startup and has no API to write it. From the next release (#61) the plugin keeps it on the search shown by itself, with `history.replaceState`: see [From the address bar](../guides/share-a-search.md).
+
 GeoLibre after 3.2.0 (`main`, on web.geolibre.app) adds its own `?plugin=openrndt-geolibre`. Seen on 2026-10-04:[^log]
 
 | Link | Plugin installed | What happens |

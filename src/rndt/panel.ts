@@ -925,6 +925,8 @@ export class RndtPanel {
   private detailEl!: HTMLElement;
   private requestSeq = 0;
   private lastForm: SearchForm | null = null;
+  /** Called when what `projectState` gives changes: a search done, a record opened or closed, results cleared (#61). */
+  onStateChange: (() => void) | null = null;
   /** Gives each layer list its own radio group name. */
   private layerListSeq = 0;
   /** Layer rows of the open detail view, to tell apart layers that would get the same name. */
@@ -2558,6 +2560,7 @@ export class RndtPanel {
       if (byId) this.openDetail(page.records[0].id);
       // A record saved as open that the catalogue no longer gives in this page: the list stays.
       else if (openId) this.openDetail(openId);
+      this.onStateChange?.();
       return { form: current, total: page.total, start, records: page.records };
     } catch (error) {
       if (seq !== this.requestSeq) return null;
@@ -2705,6 +2708,7 @@ export class RndtPanel {
     this.records = [];
     this.total = 0;
     this.lastForm = null;
+    this.onStateChange?.();
     this.tracksTop = false;
     this.footprintsLayer?.clear();
     if (this.copyQueryEl) this.copyQueryEl.disabled = true;
@@ -3104,6 +3108,7 @@ export class RndtPanel {
     const record = this.records.find((r) => r.id === id);
     if (!record || !this.root) return;
     this.detailId = id;
+    this.onStateChange?.();
     this.footprintsLayer?.select(id);
     this.detailRows = [];
     for (const li of this.listEl.querySelectorAll(".ordt-last-viewed")) li.classList.remove("ordt-last-viewed");
@@ -3133,6 +3138,7 @@ export class RndtPanel {
     if (this.detailId === null) return;
     const id = this.detailId;
     this.detailId = null;
+    this.onStateChange?.();
     this.detailRows = [];
     this.detailEl.hidden = true;
     this.detailEl.replaceChildren();

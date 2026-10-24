@@ -1,5 +1,9 @@
 # LOG
 
+## 2026-10-24
+
+- **The browser address follows the search** (#61, proposed by the ingv-geolibre session, as in ingv-geolibre 0.2.4): `src/rndt/address.ts` writes, 500 ms after a finished search, a record opened or closed, results cleared or a map move, the parameters Share writes (search or `rndt=<record id>`, `lat`/`lon`/`zoom`) with `history.replaceState`; others' parameters and `plugin=` stay. No layers (Share's network check is too costly at every move; Share keeps them). Opened from a link, the sync starts only after `handleUrlParameters`. Plugin off takes ours out, GeoLibre's view stays. The panel gets an `onStateChange` callback. Tried on web.geolibre.app headless with the dev copy: `?keep=1` + search catasto gives `?keep=1&rndt=catasto&lat=…&zoom=4.22`, zoom follows (5.22), a record gives `rndt=c_l219:a883ab12-…`, back gives `rndt=catasto`; the link `rndt=catasto&rndtTheme=cp&…zoom=10.53` stays intact while loading (7,807 records) and then follows the zoom (9.53); Deactivate leaves `?keep=1&lat=…&zoom=9.53`. 8 new tests; 555 pass. Wiki: Share a search, URL parameters. Not released.
+
 ## 2026-10-20
 
 - **0.3.14 is in the registry**: [opengeos/geolibre-plugins#111](https://github.com/opengeos/geolibre-plugins/pull/111) merged by giswqs at 18:45 UTC; `plugin-registry.json` gives 0.3.14, `minGeoLibreVersion` 3.4.0, sha256 `c91c24b5…`, and the plugin's `plugin.json` 0.3.14.

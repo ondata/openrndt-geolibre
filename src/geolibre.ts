@@ -1,4 +1,5 @@
 import type { GeoLibrePlugin, GeoLibreRightPanelRegistration } from "./lib/geolibre/host-api";
+import { syncAddress } from "./rndt/address";
 import { registerAssistantTools } from "./rndt/assistant";
 import { ITALY_BBOX, PANEL_ID, PLUGIN_ID, PLUGIN_LABEL, PLUGIN_NAME, PLUGIN_VERSION } from "./rndt/constants";
 import type { RndtHost } from "./rndt/host";
@@ -32,6 +33,8 @@ let fitWhenSettled: ((bbox: Bbox) => void) | null = null;
 let savedState: PanelState | null = null;
 /** The link already followed: GeoLibre gives its parameters again at every project it opens. */
 let followedLink: string | null = null;
+/** Starts keeping the address on the search (#61), once; after a link has been applied, when there is one. */
+let startAddress: (() => void) | null = null;
 
 export const plugin: Plugin = {
   id: PLUGIN_ID,
@@ -114,10 +117,18 @@ export const plugin: Plugin = {
     if (view && !onItaly) fit(ITALY_BBOX);
     activePanel = panel;
     fitWhenSettled = fit;
+    // Opened from a link: the address waits for handleUrlParameters, or it
+    // could be rewritten before GeoLibre hands the link to the plugin.
+    let stopAddress: (() => void) | null = null;
+    startAddress = () => void (stopAddress ??= syncAddress(panel, host));
+    const params = new URLSearchParams(location.search);
+    if (!URL_PARAMETER_NAMES.some((name) => params.has(name))) startAddress();
     if (savedState) panel.restore(savedState);
     savedState = null;
     disposePanel = () => {
       cancelMove();
+      stopAddress?.();
+      startAddress = null;
       unregisterAssistant();
       unregisterMenu?.();
       host.closeRightPanel?.(PANEL_ID);
@@ -131,11 +142,17 @@ export const plugin: Plugin = {
     const link = linkSearchFrom(params);
     const layers = linkLayersFrom(params);
     const view = linkViewFrom(params);
-    if ((!link && !layers.length && !view) || !activePanel) return;
+    if ((!link && !layers.length && !view) || !activePanel) {
+      startAddress?.();
+      return;
+    }
     // A link opens the app on a search, once: a project opened later brings
     // its own search, or none.
     const key = JSON.stringify([link, layers, view]);
-    if (key === followedLink) return;
+    if (key === followedLink) {
+      startAddress?.();
+      return;
+    }
     followedLink = key;
     // The link's view, else its search box, replaces the move to Italy made
     // at activation (#47); a link with GeoLibre's own map view keeps it (#44).
@@ -144,6 +161,7 @@ export const plugin: Plugin = {
     // A link with no view of its own opens on the layers it adds (#49).
     const fitLayers = fitTo || linkHasView(params) ? undefined : (bbox: Bbox) => fitWhenSettled?.(bbox);
     if (link || layers.length) activePanel.searchFromLink(link, layers, fitLayers);
+    startAddress?.();
   },
   // The last search travels with the project (`plugins.settings`): saved in
   // the web version, it comes back in Desktop, where every service can be read.

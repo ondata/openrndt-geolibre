@@ -58,6 +58,16 @@ A link can do more than search, and anyone can write one, not only Share:
 
 The [openrndt](https://github.com/ondata/openrndt) command line tool writes such links: `geolibre_url` for each record (3.5.0), and with `resources <id> --layers` one link per WMS layer of a record (3.6.0).
 
+# From the address bar
+
+From the next release (#61). In GeoLibre web the address follows the panel: half a second after a search, a record opened or closed, or a map move, it holds the same parameters Share writes, the search (or `?rndt=<id>` of the record open) and the map view (`lat`, `lon`, `zoom`). The address can be copied as it is. Differences from Share:
+
+- no layers: Share checks over the network that the browser can draw each one, too slow at every move. To pass layers on, use Share;
+- no `?plugin=`: the address keeps the one it had, or none;
+- the other parameters of the address (`?url=` of a project, other plugins') stay.
+
+The plugin rewrites the history entry in place, so Back is not filled. Turned off, it takes its parameters out and leaves GeoLibre's view. A link opened stays as it is until the plugin has followed it. GeoLibre Desktop has no address bar: nothing to see there.
+
 # With a project
 
 From version 0.1.7. When a GeoLibre project is saved, the last search of the panel goes into it: text and filters, the area as the box that was searched, the page, the open record. Whoever opens the project finds the plugin on, the search done and that record open. What is saved is in [Project state](../reference/project-state.md).
