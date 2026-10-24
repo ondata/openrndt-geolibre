@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-10-24
+* **Update**: [Registry status](upstream/registry-status.md): 0.3.14 and 0.3.15 are in the registry (opengeos/geolibre-plugins#111, #123).
 * **Update**: [Share a search](guides/share-a-search.md): the address bar of GeoLibre web follows the panel (#61, from 0.3.15). [URL parameters](reference/url-parameters.md): the plugin writes the address.
 
 ## 2026-10-20

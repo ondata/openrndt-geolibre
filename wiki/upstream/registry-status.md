@@ -5,12 +5,12 @@ description: Which version of the plugin the GeoLibre plugin registry serves, an
 resource: https://plugins.geolibre.app/plugin-registry.json
 tags: [upstream, registry, release]
 status: stable
-stale_after: 2026-11-18T00:00:00Z
+stale_after: 2026-11-23T00:00:00Z
 sources:
   - id: registry
     resource: https://plugins.geolibre.app/plugin-registry.json
     title: The registry's list of plugins
-    last_modified: 2026-10-19T20:55:00Z
+    last_modified: 2026-10-24T11:50:00Z
   - id: pr64
     resource: https://github.com/opengeos/geolibre-plugins/pull/64
     title: opengeos/geolibre-plugins#64
@@ -19,19 +19,23 @@ sources:
     resource: https://github.com/opengeos/geolibre-plugins/pull/110
     title: opengeos/geolibre-plugins#110
     last_modified: 2026-10-19T20:51:59Z
+  - id: pr123
+    resource: https://github.com/opengeos/geolibre-plugins/pull/123
+    title: opengeos/geolibre-plugins#123
+    last_modified: 2026-10-24T11:47:51Z
   - id: releases
     resource: https://github.com/ondata/openrndt-geolibre/releases
     title: Releases of the plugin
 ---
 
-# State on 2026-10-19
+# State on 2026-10-24
 
 | | Version |
 |---|---|
-| In the registry (what Manage Plugins installs) | 0.3.13 |
-| Latest release of the repository | 0.3.13 |
+| In the registry (what Manage Plugins installs) | 0.3.15 |
+| Latest release of the repository | 0.3.15 |
 
-The registry has the latest release: 0.3.13 (the [AI Assistant drives the panel](../guides/ai-assistant.md), minimum GeoLibre 3.4.0) was read in its list, with `minGeoLibreVersion` 3.4.0 and the zip's sha256 `408461f4…`, and in the plugin's `plugin.json` on 2026-10-19, after [opengeos/geolibre-plugins#110](https://github.com/opengeos/geolibre-plugins/pull/110) was merged. Before the merge the pull request's preview served 0.3.13, and a search from a link worked there (17 records, Diagnostics 0).
+The registry has the latest release: 0.3.15 (the [address bar follows the search](../guides/share-a-search.md), minimum GeoLibre 3.4.0) was read in its list, with `minGeoLibreVersion` 3.4.0 and the zip's sha256 `3630e66e…`, and in the plugin's `plugin.json` on 2026-10-24, after [opengeos/geolibre-plugins#123](https://github.com/opengeos/geolibre-plugins/pull/123) was merged.
 
 This page ages: read the registry's list after its `stale_after` date.
 
@@ -52,6 +56,8 @@ To use a newer version before the registry has it: install from the zip of the r
 | 0.3.8 | 2026-10-10, [opengeos/geolibre-plugins#104](https://github.com/opengeos/geolibre-plugins/pull/104), a link with layers and no view opens on them, date filter on the record's last change |
 | 0.3.12 | 2026-10-10, [opengeos/geolibre-plugins#105](https://github.com/opengeos/geolibre-plugins/pull/105), opened for 0.3.9 and moved up: organisation names with commas, swapped box corners, filter by IPA code, ⋯ menus |
 | 0.3.13 | 2026-10-19, [opengeos/geolibre-plugins#110](https://github.com/opengeos/geolibre-plugins/pull/110), the AI Assistant drives the panel, minimum GeoLibre 3.4.0 |
+| 0.3.14 | 2026-10-20, [opengeos/geolibre-plugins#111](https://github.com/opengeos/geolibre-plugins/pull/111), Stop and turning the plugin on from the AI Assistant |
+| 0.3.15 | 2026-10-24, [opengeos/geolibre-plugins#123](https://github.com/opengeos/geolibre-plugins/pull/123), the address bar of GeoLibre web follows the search |
 | 0.1.9 | 2026-10-03, [opengeos/geolibre-plugins#65](https://github.com/opengeos/geolibre-plugins/pull/65) |
 | 0.1.7 | 2026-10-03, [opengeos/geolibre-plugins#64](https://github.com/opengeos/geolibre-plugins/pull/64) |
 | 0.1.4 | 2026-10-02, [opengeos/geolibre-plugins#62](https://github.com/opengeos/geolibre-plugins/pull/62) |
