@@ -1,3 +1,4 @@
+import { fmt, tr } from "./i18n";
 import type { FeatureCollection } from "geojson";
 import type {
   ExpressionSpecification,
@@ -147,7 +148,7 @@ export class FootprintsLayer {
     menu.setAttribute("role", "menu");
     const head = document.createElement("div");
     head.className = "ordt-footprint-menu-head";
-    head.textContent = `${hits.length} footprints here, smallest first`;
+    head.textContent = tr("footprints.here", "{{n}} footprints here, smallest first", { n: fmt(hits.length) });
     menu.append(head);
     for (const hit of hits) {
       const item = document.createElement("button");
@@ -185,7 +186,7 @@ export class FootprintsLayer {
       this.tooltip.className = "ordt-footprint-tooltip";
       this.map.getContainer().append(this.tooltip);
     }
-    const more = hits.length > 1 ? ` (+${hits.length - 1}, click to choose)` : "";
+    const more = hits.length > 1 ? ` ${tr("footprints.more", "(+{{n}}, click to choose)", { n: fmt(hits.length - 1) })}` : "";
     this.tooltip.textContent = `${hits[0].title}${more}`;
     // Keep it inside the map: near its right or bottom edge (the RNDT panel
     // sits beyond the right one) the tooltip went under the panel. Flip it to

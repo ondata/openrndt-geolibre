@@ -1,3 +1,4 @@
+import { tr } from "./i18n";
 import type { Feature, FeatureCollection, Geometry, Position } from "geojson";
 import type * as Proj4 from "proj4";
 
@@ -71,14 +72,14 @@ export async function toWgs84(
     const first = fc.features.map((f) => firstPosition(f.geometry)).find(Boolean);
     if (first && (Math.abs(first[0]) > 180 || Math.abs(first[1]) > 90)) {
       throw new Error(
-        `the coordinates are not longitude/latitude (first position ${first[0]}, ${first[1]}) and the file declares no system`,
+        tr("crs.notLonLat", "the coordinates are not longitude/latitude (first position {{x}}, {{y}}) and the file declares no system", { x: first[0], y: first[1] }),
       );
     }
     return { fc, from: null };
   }
   const definition = DEFINITIONS[code];
-  if (!definition) throw new Error(`the coordinates are in EPSG:${code}, a system the plugin cannot convert`);
-  if (!getProj4) throw new Error(`the coordinates are in EPSG:${code}, and this GeoLibre gives plugins no proj4 to convert them`);
+  if (!definition) throw new Error(tr("crs.unknown", "the coordinates are in EPSG:{{code}}, a system the plugin cannot convert", { code }));
+  if (!getProj4) throw new Error(tr("crs.noProj4", "the coordinates are in EPSG:{{code}}, and this GeoLibre gives plugins no proj4 to convert them", { code }));
   // Definitions are passed as strings, never registered: the host's registry is shared.
   const convert = (await getProj4()).default(definition, "WGS84").forward;
   const mapped: FeatureCollection = {

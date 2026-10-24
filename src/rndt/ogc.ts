@@ -1,3 +1,4 @@
+import { tr } from "./i18n";
 import type { Feature, FeatureCollection, Geometry, Position } from "geojson";
 import { bboxError, type Bbox } from "./query";
 
@@ -100,12 +101,12 @@ export function repairXml(xml: string): string {
 export function parseXml(xml: string): Document {
   const doc = parse(xml) ?? parse(repairXml(xml));
   if (!doc) {
-    throw new Error("The service did not return valid XML.");
+    throw new Error(tr("ogc.badXml", "The service did not return valid XML."));
   }
   const root = doc.documentElement;
   const rootName = root ? localName(root) : "";
   if (rootName === "ServiceExceptionReport" || rootName === "ExceptionReport") {
-    throw new Error(`Service error: ${text(root).slice(0, 300)}`);
+    throw new Error(tr("ogc.exception", "Service error: {{text}}", { text: text(root).slice(0, 300) }));
   }
   return doc;
 }

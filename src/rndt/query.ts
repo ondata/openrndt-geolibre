@@ -17,6 +17,8 @@
  *   query; `*` and `?` stay usable as wildcards. "Lucene" mode passes text as is.
  */
 
+import { tr } from "./i18n";
+
 export type ResourceKind = "all" | "data" | "services";
 /** Link types a record can offer, whatever its record type. */
 export type LinkKind = "WMS" | "WFS" | "ArcGIS REST";
@@ -167,14 +169,14 @@ function quotedOr(values: string[]): string {
 /** Error message for an invalid box, or null when it is usable. */
 export function bboxError(bbox: Bbox): string | null {
   if (bbox.length !== 4 || !bbox.every((v) => Number.isFinite(v))) {
-    return "The box needs four numbers: west, south, east, north.";
+    return tr("where.fourNumbers", "The box needs four numbers: west, south, east, north.");
   }
   const [w, s, e, n] = bbox;
   if (w < -180 || e > 180 || s < -90 || n > 90) {
-    return "Longitudes must be within -180..180 and latitudes within -90..90.";
+    return tr("box.range", "Longitudes must be within -180..180 and latitudes within -90..90.");
   }
   if (w >= e || s >= n) {
-    return "West must be less than east and south less than north.";
+    return tr("box.order", "West must be less than east and south less than north.");
   }
   return null;
 }
@@ -206,7 +208,7 @@ function dateClause(form: SearchForm): string | null {
   const to = form.dateTo.trim();
   if (!from && !to) return null;
   for (const value of [from, to]) {
-    if (value && !DATE_RE.test(value)) throw new Error(`Invalid date "${value}": use yyyy-mm-dd.`);
+    if (value && !DATE_RE.test(value)) throw new Error(tr("date.invalid", 'Invalid date "{{date}}": use yyyy-mm-dd.', { date: value }));
   }
   return `${form.dateField}:[${from || "1900-01-01"} TO ${to || "2100-12-31"}]`;
 }

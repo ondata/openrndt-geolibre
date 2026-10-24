@@ -378,6 +378,37 @@ function recordType(type: string): string {
   return names[type] ?? type;
 }
 
+/** "Added 2 of 3 layers, named with their titles." */
+function addedText(added: number, of: number): string {
+  return trCount("service.added", "Added {{added}} of {{n}} layer, named with their titles.", "Added {{added}} of {{n}} layers, named with their titles.", of, {
+    added: fmt(added),
+  });
+}
+
+/** Layers already in the project, not added twice. */
+function alreadyText(names: string[]): string {
+  return trCount(
+    "service.already",
+    "Already on the map, not added again: {{names}}. Remove it from Layers to add it again.",
+    "Already on the map, not added again: {{names}}. Remove them from Layers to add them again.",
+    names.length,
+    { names: names.join("; ") },
+  );
+}
+
+/** The question before a large download, WFS or ArcGIS. */
+function manyFeatures(total: number): string {
+  return tr("features.many", "{{total}} features in this area. Downloading them all can be slow and use a lot of memory.", { total: fmt(total) });
+}
+
+function downloadChoices(): { value: string; label: string }[] {
+  return [
+    { value: "all", label: tr("features.all", "Download all") },
+    { value: "first", label: tr("features.first", "First {{n}} only", { n: fmt(WFS_MAX_FEATURES) }) },
+    { value: "cancel", label: tr("features.cancel", "Cancel") },
+  ];
+}
+
 /** "3 layers", "1 layer". */
 function layerCount(n: number): string {
   return trCount("layers.count", "{{n}} layer", "{{n}} layers", n);
@@ -1088,7 +1119,7 @@ export class RndtPanel {
       this.settingsEl = this.buildSettings();
       this.emptyEl = h("div", { className: "ordt-empty ordt-small", hidden: true });
       this.detailBarEl = h("div", { className: "ordt-detail-bar ordt-small", hidden: true });
-      this.detailEl = h("section", { className: "ordt-detail-view", hidden: true, "aria-label": "Record details" });
+      this.detailEl = h("section", { className: "ordt-detail-view", hidden: true, "aria-label": tr("detail.aria", "Record details") });
       this.footerEl = this.buildFooter();
       this.root.append(
         this.searchBarEl,
@@ -1179,7 +1210,7 @@ export class RndtPanel {
     if (JSON.stringify(state) === JSON.stringify(this.projectState())) return;
     this.writeForm(state.form);
     // The box of a project is a saved area too. A search a project brings was not made here: not in the history.
-    if (state.form.bbox) this.savedArea = { box: this.field<HTMLInputElement>("box").value.trim(), label: "Saved area" };
+    if (state.form.bbox) this.savedArea = { box: this.field<HTMLInputElement>("box").value.trim(), label: tr("chip.saved", "Saved area") };
     void this.search(state.start, undefined, state.recordId, "none");
   }
 
@@ -2933,10 +2964,10 @@ export class RndtPanel {
     const button = this.copyQueryEl;
     void navigator.clipboard?.writeText(command).then(
       () => {
-        button.textContent = "✓ copied";
+        button.textContent = `✓ ${tr("results.curlCopied", "copied")}`;
         setTimeout(() => (button.textContent = "curl"), 1500);
       },
-      () => this.setStatus("Could not copy to the clipboard.", "error"),
+      () => this.setStatus(tr("status.noClipboard", "Could not copy to the clipboard."), "error"),
     );
   }
 
@@ -3158,7 +3189,7 @@ export class RndtPanel {
         label.textContent = tr("agent.copied", "Copied: paste it into your agent");
         setTimeout(() => (label.textContent = tr("menu.copyAgent", "Copy for an agent")), 3000);
       },
-      () => this.setStatus("Could not copy to the clipboard.", "error"),
+      () => this.setStatus(tr("status.noClipboard", "Could not copy to the clipboard."), "error"),
     );
   }
 
@@ -3608,12 +3639,12 @@ export class RndtPanel {
     if (text && toggle && text.clientHeight > 0) toggle.hidden = text.scrollHeight <= text.clientHeight;
   }
 
-  private copyButton(value: string, label = "Copy URL"): HTMLButtonElement {
+  private copyButton(value: string, label = tr("detail.copyUrl", "Copy URL")): HTMLButtonElement {
     const button = h("button", { className: "ordt-link", type: "button", title: value }, label);
     button.addEventListener("click", () => {
       void navigator.clipboard?.writeText(value).then(
         () => {
-          button.textContent = "Copied";
+          button.textContent = tr("detail.copied", "Copied");
           setTimeout(() => (button.textContent = label), 1500);
         },
         () => undefined,
@@ -3634,7 +3665,7 @@ export class RndtPanel {
     const countEl = h("strong", { className: "ordt-layer-count" });
     const actions: Child[] = [];
     if (service.kind === "download" && isGeoJsonUrl(service.url) && this.app.addGeoJsonLayer) {
-      const add = h("button", { className: "ordt-button", type: "button", "data-action": "map" }, "Add to map");
+      const add = h("button", { className: "ordt-button", type: "button", "data-action": "map" }, tr("service.addToMap", "Add to map"));
       // Disabled while it runs, so a slow server is not hit twice.
       add.addEventListener("click", () => {
         add.disabled = true;
@@ -3642,7 +3673,7 @@ export class RndtPanel {
       });
       actions.push(add);
     }
-    actions.push(h("a", { className: "ordt-link", href: service.url, target: "_blank", rel: "noopener" }, "Open"));
+    actions.push(h("a", { className: "ordt-link", href: service.url, target: "_blank", rel: "noopener" }, tr("service.open", "Open")));
     actions.push(this.copyButton(service.url));
     if (service.kind === "WMS" && this.app.addWmsLayer) void this.openWms(record, service, area, countEl);
     else if (service.kind === "WFS" && this.app.addGeoJsonLayer) void this.openWfs(record, service, area, countEl);
@@ -3662,7 +3693,9 @@ export class RndtPanel {
         h(
           "p",
           { className: "ordt-note" },
-          `Not declared in the record: the ${service.kind === "WMS" ? "WMS" : "REST endpoint"} of the same ArcGIS service as its WMTS, which GeoLibre plugins cannot add.`,
+          service.kind === "WMS"
+            ? tr("service.derivedWms", "Not declared in the record: the WMS of the same ArcGIS service as its WMTS, which GeoLibre plugins cannot add.")
+            : tr("service.derivedRest", "Not declared in the record: the REST endpoint of the same ArcGIS service as its WMTS, which GeoLibre plugins cannot add."),
         ),
       area,
     );
@@ -3815,7 +3848,9 @@ export class RndtPanel {
       const show = h(
         "button",
         { className: "ordt-link ordt-show-layers", type: "button" },
-        `Show all ${layers.length.toLocaleString("en")} layers${list.hidden ? " to choose from" : ""}`,
+        list.hidden
+          ? tr("layers.showAllChoose", "Show all {{n}} layers to choose from", { n: fmt(layers.length) })
+          : tr("layers.showAll", "Show all {{n}} layers", { n: fmt(layers.length) }),
       );
       show.addEventListener("click", () => {
         folded = false;
@@ -3840,8 +3875,8 @@ export class RndtPanel {
       const field = h("input", {
         className: "ordt-input",
         type: "search",
-        placeholder: `Filter ${layers.length.toLocaleString("en")} layers…`,
-        "aria-label": "Filter layers",
+        placeholder: tr("layers.filter", "Filter {{n}} layers…", { n: fmt(layers.length) }),
+        "aria-label": tr("layers.filterAria", "Filter layers"),
         hidden: folded,
       });
       filter = field;
@@ -3878,7 +3913,7 @@ export class RndtPanel {
       return true;
     };
     if (layers.some((l) => wantsTitle(l.name))) {
-      const status = h("p", { className: "ordt-note", "data-kind": "busy" }, "Looking up readable names in RNDT…");
+      const status = h("p", { className: "ordt-note", "data-kind": "busy" }, tr("names.looking", "Looking up readable names in RNDT…"));
       controls.push(status);
       void lookupLayerTitles(this.app, RNDT_BASE_URL, serviceUrl).then((lookup) => {
         if (lookup.mode === "all") {
@@ -3891,7 +3926,7 @@ export class RndtPanel {
           const report = () => {
             status.hidden = found === 0;
             status.dataset.kind = "info";
-            status.textContent = `Readable names from RNDT for ${found.toLocaleString("en")} of ${layers.length.toLocaleString("en")} layers.`;
+            status.textContent = tr("names.found", "Readable names from RNDT for {{found}} of {{n}} layers.", { found: fmt(found), n: fmt(layers.length) });
           };
           report();
           const missing = Array.from(rows.keys()).filter(wantsTitle);
@@ -3905,7 +3940,7 @@ export class RndtPanel {
             list.removeEventListener("focusin", onReach);
             status.hidden = false;
             status.dataset.kind = "busy";
-            status.textContent = `Looking up readable names in RNDT for ${missing.length.toLocaleString("en")} layers…`;
+            status.textContent = tr("names.lookingFor", "Looking up readable names in RNDT for {{n}} layers…", { n: fmt(missing.length) });
             const worker = async () => {
               for (let name = missing.shift(); name; name = missing.shift()) {
                 const title = await lookupLayerTitleByCode(this.app, RNDT_BASE_URL, serviceUrl, name);
@@ -3927,7 +3962,7 @@ export class RndtPanel {
           if (todo.length) {
             running++;
             status.dataset.kind = "busy";
-            status.textContent = "Looking up the readable name of the selected layer in RNDT…";
+            status.textContent = tr("names.lookingOne", "Looking up the readable name of the selected layer in RNDT…");
             for (const [name] of todo) {
               asked.add(name);
               const title =
@@ -3940,7 +3975,7 @@ export class RndtPanel {
           // Also with nothing ticked: the first "Looking up…" must not stay as if still at work.
           if (running) return;
           status.dataset.kind = "info";
-          status.textContent = "Readable names are looked up in RNDT for the selected layer only.";
+          status.textContent = tr("names.selectedOnly", "Readable names are looked up in RNDT for the selected layer only.");
         };
         list.addEventListener("change", () => void lookupTicked());
         void lookupTicked();
@@ -3962,7 +3997,7 @@ export class RndtPanel {
         const r = rows.get(name)!;
         r.row.classList.toggle("ordt-layer-on-map", on);
         r.row.querySelector(".ordt-layer-tag")?.remove();
-        if (on) r.title.after(h("span", { className: "ordt-layer-tag" }, "on the map"));
+        if (on) r.title.after(h("span", { className: "ordt-layer-tag" }, tr("layers.onMap", "on the map")));
       },
     };
   }
@@ -3991,7 +4026,7 @@ export class RndtPanel {
     const undeclared = caps.layers.filter((l) => !supportsWebMercator(l));
     let serverDraws3857 = false;
     if (undeclared.length) {
-      progress("Checking whether the server draws EPSG:3857…");
+      progress(tr("wms.checking3857", "Checking whether the server draws EPSG:3857…"));
       const sample =
         undeclared.find((l) => !l.group && l.bbox) ?? undeclared.find((l) => l.bbox) ?? undeclared[0];
       serverDraws3857 =
@@ -4028,13 +4063,13 @@ export class RndtPanel {
   }
 
   private async openWms(record: RndtRecord, service: ServiceGroup, area: HTMLElement, countEl: HTMLElement): Promise<void> {
-    this.note(area, "Reading the WMS capabilities…", "busy");
+    this.note(area, tr("wms.reading", "Reading the WMS capabilities…"), "busy");
     try {
       const wms = await this.prepareWms(record, service, (text) => this.note(area, text, "busy"));
       const { caps, byName, serverDraws3857, hostTakesCrs, crsOf } = wms;
       if (!caps.layers.length) {
-        if (service.derivedFrom) this.note(area, "This ArcGIS service has no WMS layers.", "info");
-        else this.note(area, "The WMS lists no named layers.", "error", { record, service });
+        if (service.derivedFrom) this.note(area, tr("wms.derivedNoLayers", "This ArcGIS service has no WMS layers."), "info");
+        else this.note(area, tr("wms.noLayers", "The WMS lists no named layers."), "error", { record, service });
         return;
       }
       countEl.textContent = layerCount(caps.layers.length);
@@ -4054,19 +4089,20 @@ export class RndtPanel {
       );
       const outside3857 = (name: string) => {
         const layer = byName.get(name)!;
-        if (fixedPicture.has(name)) return "A group of the layers below: the server gives one fixed picture for it, whatever the area asked. Tick its layers instead.";
+        if (fixedPicture.has(name)) return tr("wms.fixedGroup", "A group of the layers below: the server gives one fixed picture for it, whatever the area asked. Tick its layers instead.");
         return crsOf(layer)
           ? null
-          : `Not offered in EPSG:3857 (only ${layer.crs.slice(0, 6).join(", ")}${layer.crs.length > 6 ? ", …" : ""}), and the server did not draw a test tile in it: ${
-              hostTakesCrs ? "GeoLibre cannot display it." : "it needs GeoLibre 3.2.0 or later."
-            }`;
+          : tr("wms.not3857", "Not offered in EPSG:3857 (only {{systems}}), and the server did not draw a test tile in it: {{why}}", {
+              systems: `${layer.crs.slice(0, 6).join(", ")}${layer.crs.length > 6 ? ", …" : ""}`,
+              why: hostTakesCrs ? tr("wms.cannotDisplay", "GeoLibre cannot display it.") : tr("wms.needs320", "it needs GeoLibre 3.2.0 or later."),
+            });
       };
       const drawnAnyway = (name: string) => {
         const layer = byName.get(name)!;
         if (supportsWebMercator(layer)) return null;
         return serverDraws3857
-          ? "EPSG:3857 not declared, but the server drew a test tile in it."
-          : `Not offered in EPSG:3857: asked in ${crsOf(layer)} and redrawn by GeoLibre.`;
+          ? tr("wms.drew3857", "EPSG:3857 not declared, but the server drew a test tile in it.")
+          : tr("wms.redrawn", "Not offered in EPSG:3857: asked in {{crs}} and redrawn by GeoLibre.", { crs: crsOf(layer) ?? "" });
       };
       const wanted = wantedLayer(record, service, caps.layers);
       const { list, controls, selected, nameOf, setOnMap } = this.layerList(
@@ -4074,7 +4110,7 @@ export class RndtPanel {
         wanted,
         service.url,
         "multi",
-        "WMS layers",
+        tr("wms.layersAria", "WMS layers"),
         "WMS",
         outside3857,
         drawnAnyway,
@@ -4085,9 +4121,9 @@ export class RndtPanel {
       const sync = () => {
         const count = selected().length;
         add.disabled = count === 0;
-        add.textContent = count ? `Add to map (${count})` : "Select a layer";
+        add.textContent = count ? tr("service.addCount", "Add to map ({{n}})", { n: fmt(count) }) : tr("service.select", "Select a layer");
       };
-      if (controls.some((c) => c.tagName === "INPUT")) add.title = "Ticked layers hidden by the filter are added too";
+      if (controls.some((c) => c.tagName === "INPUT")) add.title = tr("service.hiddenTicked", "Ticked layers hidden by the filter are added too");
       list.addEventListener("change", sync);
       add.addEventListener("click", () => {
         // A layer added from here and still in the project is not added again.
@@ -4107,17 +4143,16 @@ export class RndtPanel {
         result.hidden = false;
         result.dataset.kind = failed.length ? "error" : "info";
         result.textContent = [
-          names.length > 0 && `Added ${added} of ${names.length} ${names.length === 1 ? "layer" : "layers"}, named with their titles.`,
-          already.length > 0 &&
-            `Already on the map, not added again: ${already.map(nameOf).join("; ")}. Remove ${already.length === 1 ? "it" : "them"} from Layers to add ${already.length === 1 ? "it" : "them"} again.`,
-          ...failed.map((f) => `Could not add ${f}`),
+          names.length > 0 && addedText(added, names.length),
+          already.length > 0 && alreadyText(already.map(nameOf)),
+          ...failed.map((f) => tr("service.failed", "Could not add {{layer}}", { layer: f })),
         ]
           .filter(Boolean)
           .join(" ");
       });
       for (const name of caps.layers.map((l) => l.name)) if (this.wmsOnMap(caps.getMapUrl, name)) setOnMap(name, true);
       const note = enabledCount(caps.layers, outside3857) === 0
-        ? h("p", { className: "ordt-note", "data-kind": "error" }, `No layer of this WMS is offered in EPSG:3857: ${hostTakesCrs ? "GeoLibre cannot display them" : "they need GeoLibre 3.2.0 or later"}.`)
+        ? h("p", { className: "ordt-note", "data-kind": "error" }, hostTakesCrs ? tr("wms.noneCannot", "No layer of this WMS is offered in EPSG:3857: GeoLibre cannot display them.") : tr("wms.noneNeeds", "No layer of this WMS is offered in EPSG:3857: they need GeoLibre 3.2.0 or later."))
         : null;
       area.replaceChildren(
         ...controls.filter((c) => c.tagName === "INPUT"),
@@ -4125,27 +4160,27 @@ export class RndtPanel {
         ...controls.filter((c) => c.tagName !== "INPUT"),
         ...(note ? [note] : []),
         ...(wms.endpointNote ? [h("p", { className: "ordt-note" }, wms.endpointNote)] : []),
-        h("div", { className: "ordt-row ordt-small ordt-add-row" }, add, h("span", { className: "ordt-muted" }, "added with their titles as layer names")),
+        h("div", { className: "ordt-row ordt-small ordt-add-row" }, add, h("span", { className: "ordt-muted" }, tr("wms.addedHint", "added with their titles as layer names"))),
         result,
       );
       showTicked(list);
       sync();
     } catch (error) {
       // A WMS the record does not declare is a guess: its absence is not a fault to report.
-      if (service.derivedFrom) this.note(area, "This ArcGIS service offers no WMS.", "info");
-      else this.note(area, `WMS error: ${errorMessage(error)}`, "error", { record, service }, error);
+      if (service.derivedFrom) this.note(area, tr("wms.derivedNone", "This ArcGIS service offers no WMS."), "info");
+      else this.note(area, tr("wms.error", "WMS error: {{error}}", { error: errorMessage(error) }), "error", { record, service }, error);
     }
   }
 
   private async openWfs(record: RndtRecord, service: ServiceGroup, area: HTMLElement, countEl: HTMLElement): Promise<void> {
-    this.note(area, "Reading the WFS capabilities…", "busy");
+    this.note(area, tr("wfs.reading", "Reading the WFS capabilities…"), "busy");
     try {
       const fetched = await fetchTextFrom(this.app, capabilitiesUrl(service.url, "WFS"));
       const caps = parseWfsCapabilities(fetched.text, fetched.url);
       const endpoint = await reachableEndpoint(this.app, caps.getFeatureUrl, fetched.url, serviceBaseUrl);
       caps.getFeatureUrl = upgradeToHttps(endpoint.url, fetched.url);
       if (!caps.featureTypes.length) {
-        this.note(area, "The WFS lists no feature types.", "error", { record, service });
+        this.note(area, tr("wfs.noTypes", "The WFS lists no feature types."), "error", { record, service });
         return;
       }
       const format = pickJsonFormat(caps.outputFormats);
@@ -4154,19 +4189,22 @@ export class RndtPanel {
         // "Try": the cadastral WFS fails there too (it refuses application/json and any SRSNAME, 2026-10-03).
         this.note(
           area,
-          "This WFS offers no GeoJSON output, so the plugin cannot add it. GeoLibre's Add Data > WFS Layer can read GML services: Copy URL above and try it there.",
+          tr(
+            "wfs.noGeoJson",
+            "This WFS offers no GeoJSON output, so the plugin cannot add it. GeoLibre's Add Data > WFS Layer can read GML services: Copy URL above and try it there.",
+          ),
           "error",
         );
         return;
       }
       countEl.textContent = layerCount(caps.featureTypes.length);
       const wanted = wantedLayer(record, service, caps.featureTypes);
-      const { list, controls, selected, nameOf } = this.layerList(caps.featureTypes, wanted, service.url, "single", "WFS feature types", "WFS");
+      const { list, controls, selected, nameOf } = this.layerList(caps.featureTypes, wanted, service.url, "single", tr("wfs.typesAria", "WFS feature types"), "WFS");
       const inView = h("input", { type: "checkbox", checked: true });
-      const add = h("button", { className: "ordt-button ordt-primary", type: "button", "data-action": "features" }, "Add features");
+      const add = h("button", { className: "ordt-button ordt-primary", type: "button", "data-action": "features" }, tr("service.addFeatures", "Add features"));
       const syncAdd = () => {
         add.disabled = selected().length === 0;
-        add.title = add.disabled ? "Pick a feature type first" : "";
+        add.title = add.disabled ? tr("wfs.pickType", "Pick a feature type first") : "";
       };
       list.addEventListener("change", syncAdd);
       const result = h("p", { className: "ordt-note", hidden: true });
@@ -4179,37 +4217,29 @@ export class RndtPanel {
           add.disabled = true;
           result.hidden = false;
           result.dataset.kind = "busy";
-          result.textContent = "Counting features…";
+          result.textContent = tr("features.counting", "Counting features…");
           try {
             const total = await this.countFeatures(caps, name, bbox);
             let limit = WFS_MAX_FEATURES;
             if (total !== null && total > WFS_MAX_FEATURES) {
-              const choice = await askChoice(
-                result,
-                `${total.toLocaleString("en")} features in this area. Downloading them all can be slow and use a lot of memory.`,
-                [
-                  { value: "all", label: "Download all" },
-                  { value: "first", label: `First ${WFS_MAX_FEATURES.toLocaleString("en")} only` },
-                  { value: "cancel", label: "Cancel" },
-                ],
-              );
+              const choice = await askChoice(result, manyFeatures(total), downloadChoices());
               if (choice === "cancel") {
                 result.dataset.kind = "info";
-                result.textContent = "Download cancelled.";
+                result.textContent = tr("features.cancelled", "Download cancelled.");
                 return;
               }
               if (choice === "all") limit = total;
             }
             result.dataset.kind = "busy";
-            result.textContent = "Downloading features…";
+            result.textContent = tr("features.downloading", "Downloading features…");
             const url = buildGetFeatureUrl(caps, name, { format, maxFeatures: limit, bbox });
             const data = await fetchJson(this.app, url, { download: true });
-            if (!isFeatureCollection(data)) throw new Error("the response is not a GeoJSON FeatureCollection");
+            if (!isFeatureCollection(data)) throw new Error(tr("features.notGeoJson", "the response is not a GeoJSON FeatureCollection"));
             if (!data.features.length) {
               result.dataset.kind = "info";
               result.textContent = inView.checked
-                ? "No features in the current map view."
-                : "The service returned no features.";
+                ? tr("features.noneInView", "No features in the current map view.")
+                : tr("features.none", "The service returned no features.");
               return;
             }
             const wgs84 = await toWgs84(data, this.app.getProj4 && (() => this.app.getProj4!()));
@@ -4219,21 +4249,22 @@ export class RndtPanel {
             const added = data.features.length;
             result.textContent =
               (total !== null && added < total
-                ? `Added ${added.toLocaleString("en")} of ${total.toLocaleString("en")} features: the map is incomplete, zoom in for the rest.`
+                ? tr("features.addedPart", "Added {{added}} of {{total}} features: the map is incomplete, zoom in for the rest.", { added: fmt(added), total: fmt(total) })
                 : total === null && added >= limit
-                  ? `Added ${added.toLocaleString("en")} features: limit reached, the map may be incomplete; zoom in for the rest.`
-                  : `Added ${added.toLocaleString("en")} features.`) + styled;
+                  ? tr("features.addedLimit", "Added {{added}} features: limit reached, the map may be incomplete; zoom in for the rest.", { added: fmt(added) })
+                  : trCount("features.added", "Added {{n}} feature.", "Added {{n}} features.", added)) + styled;
           } catch (error) {
             result.dataset.kind = "error";
             // A server that does not answer in time is usually sending a big
             // layer: say what to try, not only what failed.
             const message = errorMessage(error);
+            const failure = tr("wfs.error", "WFS error: {{error}}", { error: message });
             result.textContent = error instanceof Unreachable
-              ? `WFS error: ${message}. Large layers can be slow: zoom in and keep "Only features in the current map view" checked.`
-              : `WFS error: ${message}`;
+              ? tr("wfs.errorSlow", 'WFS error: {{error}}. Large layers can be slow: zoom in and keep "Only features in the current map view" checked.', { error: message })
+              : failure;
             if (!message.includes(browserBlockNote())) {
-              result.append(" ", reportControl(record, service, `WFS error: ${message}`));
-              this.logError(record, service, `WFS error: ${message}`);
+              result.append(" ", reportControl(record, service, failure));
+              this.logError(record, service, failure);
             }
           } finally {
             syncAdd();
@@ -4244,7 +4275,7 @@ export class RndtPanel {
         ...controls.filter((c) => c.tagName === "INPUT"),
         list,
         ...controls.filter((c) => c.tagName !== "INPUT"),
-        h("label", { className: "ordt-check ordt-small" }, inView, "Only features in the current map view"),
+        h("label", { className: "ordt-check ordt-small" }, inView, tr("features.inView", "Only features in the current map view")),
         ...(endpoint.note ? [h("p", { className: "ordt-note" }, endpoint.note)] : []),
         h("div", { className: "ordt-row ordt-small ordt-add-row" }, add),
         result,
@@ -4252,7 +4283,7 @@ export class RndtPanel {
       showTicked(list);
       syncAdd();
     } catch (error) {
-      this.note(area, `WFS error: ${errorMessage(error)}`, "error", { record, service }, error);
+      this.note(area, tr("wfs.error", "WFS error: {{error}}", { error: errorMessage(error) }), "error", { record, service }, error);
     }
   }
 
@@ -4270,9 +4301,11 @@ export class RndtPanel {
       const outcome = this.app.importLayerStyle(layerId, text);
       if (!outcome.ok) return "";
       const skipped = outcome.warnings.length;
-      return skipped
-        ? ` Drawn with the server's style, except ${skipped} ${skipped === 1 ? "part" : "parts"} GeoLibre cannot show.`
-        : " Drawn with the server's style.";
+      return ` ${
+        skipped
+          ? trCount("style.partly", "Drawn with the server's style, except {{n}} part GeoLibre cannot show.", "Drawn with the server's style, except {{n}} parts GeoLibre cannot show.", skipped)
+          : tr("style.server", "Drawn with the server's style.")
+      }`;
     } catch {
       return "";
     }
@@ -4291,7 +4324,7 @@ export class RndtPanel {
     try {
       json = JSON.parse(fetched.text);
     } catch {
-      throw new Error("the service description is not JSON");
+      throw new Error(tr("arcgis.notJson", "the service description is not JSON"));
     }
     // The URL that answered: an http link upgraded to https stays so for the tiles.
     const arcgis: ArcgisUrl = { ...parsed, serviceUrl: fetched.url.replace(/\?.*$/, "") };
@@ -4306,18 +4339,24 @@ export class RndtPanel {
   }
 
   private async openArcgis(record: RndtRecord, service: ServiceGroup, area: HTMLElement, countEl: HTMLElement): Promise<void> {
-    this.note(area, "Reading the ArcGIS service…", "busy");
+    this.note(area, tr("arcgis.reading", "Reading the ArcGIS service…"), "busy");
     try {
       const { arcgis, info, image, layers, tileUrl } = await this.prepareArcgis(record, service);
       if (!layers.length) {
-        if (service.derivedFrom) this.note(area, "This ArcGIS service has no layers to add.", "info");
-        else this.note(area, "The ArcGIS service lists no layers.", "error", { record, service });
+        if (service.derivedFrom) this.note(area, tr("arcgis.derivedNoLayers", "This ArcGIS service has no layers to add."), "info");
+        else this.note(area, tr("arcgis.noLayers", "The ArcGIS service lists no layers."), "error", { record, service });
         return;
       }
       const canDraw = info.drawsImage && !!this.app.addTileLayer;
       const canQuery = info.hasGeoJson && !!this.app.addGeoJsonLayer && layers.some((l) => l.hasFeatures);
       if (!canDraw && !canQuery) {
-        this.note(area, info.hasQuery ? "This ArcGIS service gives neither images nor GeoJSON features (ArcGIS before 10.4): it cannot be added." : "This ArcGIS service gives neither images nor features: it cannot be added.", "info");
+        this.note(
+          area,
+          info.hasQuery
+            ? tr("arcgis.nothingOld", "This ArcGIS service gives neither images nor GeoJSON features (ArcGIS before 10.4): it cannot be added.")
+            : tr("arcgis.nothing", "This ArcGIS service gives neither images nor features: it cannot be added."),
+          "info",
+        );
         return;
       }
       countEl.textContent = layerCount(layers.length);
@@ -4328,12 +4367,12 @@ export class RndtPanel {
       // error from a missing header.
       let drawProblem: string | null = null;
       if (canDraw) {
-        this.note(area, "Checking that the service draws in GeoLibre…", "busy");
+        this.note(area, tr("arcgis.checking", "Checking that the service draws in GeoLibre…"), "busy");
         const probe = arcgisExportUrl(arcgis, null, probeBbox3857(record.bbox), 64);
         if (!(await browserGetsImage(probe))) {
           drawProblem = (await answersWithImage(this.app, probe))
-            ? "The server draws the map, but does not let GeoLibre show it (no CORS header in its answer)."
-            : "The server did not draw a test image in EPSG:3857.";
+            ? tr("arcgis.noCors", "The server draws the map, but does not let GeoLibre show it (no CORS header in its answer).")
+            : tr("arcgis.noImage", "The server did not draw a test image in EPSG:3857.");
         }
       }
 
@@ -4344,22 +4383,26 @@ export class RndtPanel {
         wanted,
         service.url,
         "multi",
-        "ArcGIS layers",
+        tr("arcgis.layersAria", "ArcGIS layers"),
         ARCGIS_KIND,
         () => null,
         (name) => scaleNote(byName.get(name)!),
       );
       const add = h("button", { className: "ordt-button ordt-primary", type: "button", "data-action": "map" });
-      const addFeatures = h("button", { className: "ordt-button", type: "button", "data-action": "features" }, "Add features");
+      const addFeatures = h("button", { className: "ordt-button", type: "button", "data-action": "features" }, tr("service.addFeatures", "Add features"));
       const inView = h("input", { type: "checkbox", checked: true });
       const result = h("p", { className: "ordt-note", hidden: true });
       const sync = () => {
         const count = selected().length;
         add.disabled = !!drawProblem || count === 0;
-        add.textContent = count ? `Add to map (${count})` : "Select a layer";
+        add.textContent = count ? tr("service.addCount", "Add to map ({{n}})", { n: fmt(count) }) : tr("service.select", "Select a layer");
         const one = count === 1 ? byName.get(selected()[0])! : null;
         addFeatures.disabled = !one?.hasFeatures;
-        addFeatures.title = !one ? "Tick one layer: its features are downloaded" : one.hasFeatures ? "" : "A raster layer: it has no features to download";
+        addFeatures.title = !one
+          ? tr("arcgis.tickOne", "Tick one layer: its features are downloaded")
+          : one.hasFeatures
+            ? ""
+            : tr("arcgis.raster", "A raster layer: it has no features to download");
       };
       list.addEventListener("change", sync);
 
@@ -4383,10 +4426,9 @@ export class RndtPanel {
         result.hidden = false;
         result.dataset.kind = failed.length ? "error" : "info";
         result.textContent = [
-          names.length > 0 && `Added ${added} of ${names.length} ${names.length === 1 ? "layer" : "layers"}, named with their titles.`,
-          already.length > 0 &&
-            `Already on the map, not added again: ${already.map(nameOf).join("; ")}. Remove ${already.length === 1 ? "it" : "them"} from Layers to add ${already.length === 1 ? "it" : "them"} again.`,
-          ...failed.map((f) => `Could not add ${f}`),
+          names.length > 0 && addedText(added, names.length),
+          already.length > 0 && alreadyText(already.map(nameOf)),
+          ...failed.map((f) => tr("service.failed", "Could not add {{layer}}", { layer: f })),
         ]
           .filter(Boolean)
           .join(" ");
@@ -4401,11 +4443,11 @@ export class RndtPanel {
           addFeatures.disabled = true;
           result.hidden = false;
           result.dataset.kind = "busy";
-          result.textContent = "Counting features…";
+          result.textContent = tr("features.counting", "Counting features…");
           try {
             await this.addArcgisFeatures(arcgis, name, nameOf(name), bbox, result);
           } catch (error) {
-            const message = `ArcGIS error: ${errorMessage(error)}`;
+            const message = tr("arcgis.error", "ArcGIS error: {{error}}", { error: errorMessage(error) });
             result.dataset.kind = "error";
             result.textContent = message;
             if (!message.includes(browserBlockNote())) {
@@ -4422,16 +4464,16 @@ export class RndtPanel {
       const drawRow = canDraw
         ? [
             ...(drawProblem ? [h("p", { className: "ordt-note", "data-kind": "error" }, drawProblem)] : []),
-            h("div", { className: "ordt-row ordt-small ordt-add-row" }, add, h("span", { className: "ordt-muted" }, "added as images, with their titles as layer names")),
+            h("div", { className: "ordt-row ordt-small ordt-add-row" }, add, h("span", { className: "ordt-muted" }, tr("arcgis.addedHint", "added as images, with their titles as layer names"))),
           ]
-        : [h("p", { className: "ordt-note" }, "This service gives no images, only features.")];
+        : [h("p", { className: "ordt-note" }, tr("arcgis.featuresOnly", "This service gives no images, only features."))];
       const featureRow = canQuery
         ? [
-            h("label", { className: "ordt-check ordt-small" }, inView, "Only features in the current map view"),
-            h("div", { className: "ordt-row ordt-small" }, addFeatures, h("span", { className: "ordt-muted" }, "of the one ticked layer")),
+            h("label", { className: "ordt-check ordt-small" }, inView, tr("features.inView", "Only features in the current map view")),
+            h("div", { className: "ordt-row ordt-small" }, addFeatures, h("span", { className: "ordt-muted" }, tr("arcgis.ofTicked", "of the one ticked layer"))),
           ]
         : !image && info.hasQuery
-          ? [h("p", { className: "ordt-note" }, "Features cannot be downloaded: the service gives no GeoJSON (ArcGIS before 10.4).")]
+          ? [h("p", { className: "ordt-note" }, tr("arcgis.noGeoJson", "Features cannot be downloaded: the service gives no GeoJSON (ArcGIS before 10.4)."))]
           : [];
       area.replaceChildren(
         ...controls.filter((c) => c.tagName === "INPUT"),
@@ -4445,8 +4487,8 @@ export class RndtPanel {
       sync();
     } catch (error) {
       // A REST endpoint the record does not declare is a guess: its absence is not a fault to report.
-      if (service.derivedFrom) this.note(area, `The ArcGIS REST endpoint of this WMTS cannot be read: ${errorMessage(error)}.`, "info");
-      else this.note(area, `ArcGIS error: ${errorMessage(error)}`, "error", { record, service }, error);
+      if (service.derivedFrom) this.note(area, tr("arcgis.derivedUnread", "The ArcGIS REST endpoint of this WMTS cannot be read: {{error}}.", { error: errorMessage(error) }), "info");
+      else this.note(area, tr("arcgis.error", "ArcGIS error: {{error}}", { error: errorMessage(error) }), "error", { record, service }, error);
     }
   }
 
@@ -4466,23 +4508,15 @@ export class RndtPanel {
     }
     if (total === 0) {
       result.dataset.kind = "info";
-      result.textContent = bbox ? "No features in the current map view." : "The service returned no features.";
+      result.textContent = bbox ? tr("features.noneInView", "No features in the current map view.") : tr("features.none", "The service returned no features.");
       return;
     }
     let limit = WFS_MAX_FEATURES;
     if (total !== null && total > WFS_MAX_FEATURES) {
-      const choice = await askChoice(
-        result,
-        `${total.toLocaleString("en")} features in this area. Downloading them all can be slow and use a lot of memory.`,
-        [
-          { value: "all", label: "Download all" },
-          { value: "first", label: `First ${WFS_MAX_FEATURES.toLocaleString("en")} only` },
-          { value: "cancel", label: "Cancel" },
-        ],
-      );
+      const choice = await askChoice(result, manyFeatures(total), downloadChoices());
       if (choice === "cancel") {
         result.dataset.kind = "info";
-        result.textContent = "Download cancelled.";
+        result.textContent = tr("features.cancelled", "Download cancelled.");
         return;
       }
       if (choice === "all") limit = total;
@@ -4492,13 +4526,16 @@ export class RndtPanel {
     let partial = false;
     for (let page = 0; features.length < target; page++) {
       result.dataset.kind = "busy";
-      result.textContent = `Downloading features… ${features.length.toLocaleString("en")}${total !== null ? ` of ${target.toLocaleString("en")}` : ""}`;
+      result.textContent =
+        total !== null
+          ? tr("features.downloadingOf", "Downloading features… {{done}} of {{target}}", { done: fmt(features.length), target: fmt(target) })
+          : tr("features.downloadingN", "Downloading features… {{done}}", { done: fmt(features.length) });
       const want = Math.min(layer.pageSize, target - features.length);
       const url = arcgisQueryUrl(layerUrl, layer.paginates ? { bbox, offset: features.length, limit: want } : { bbox });
       const data = await fetchJson(this.app, url, { download: true });
       if (!isFeatureCollection(data)) {
         throwArcgisError(data);
-        throw new Error("the response is not a GeoJSON FeatureCollection");
+        throw new Error(tr("features.notGeoJson", "the response is not a GeoJSON FeatureCollection"));
       }
       features.push(...data.features.slice(0, target - features.length));
       // Without paging the server gives its first page only.
@@ -4510,7 +4547,7 @@ export class RndtPanel {
     }
     if (!features.length) {
       result.dataset.kind = "info";
-      result.textContent = bbox ? "No features in the current map view." : "The service returned no features.";
+      result.textContent = bbox ? tr("features.noneInView", "No features in the current map view.") : tr("features.none", "The service returned no features.");
       return;
     }
     this.app.addGeoJsonLayer!(layerName, { type: "FeatureCollection", features });
@@ -4518,10 +4555,12 @@ export class RndtPanel {
     result.dataset.kind = "info";
     result.textContent =
       total !== null && added < total
-        ? `Added ${added.toLocaleString("en")} of ${total.toLocaleString("en")} features: the map is incomplete${partial ? ", the server gives one page only" : ""}; zoom in for the rest.`
+        ? partial
+          ? tr("features.addedPartPage", "Added {{added}} of {{total}} features: the map is incomplete, the server gives one page only; zoom in for the rest.", { added: fmt(added), total: fmt(total) })
+          : tr("features.addedPart", "Added {{added}} of {{total}} features: the map is incomplete, zoom in for the rest.", { added: fmt(added), total: fmt(total) })
         : partial
-          ? `Added ${added.toLocaleString("en")} features: the server gives one page only, the map may be incomplete; zoom in for the rest.`
-          : `Added ${added.toLocaleString("en")} features.`;
+          ? tr("features.addedPage", "Added {{added}} features: the server gives one page only, the map may be incomplete; zoom in for the rest.", { added: fmt(added) })
+          : trCount("features.added", "Added {{n}} feature.", "Added {{n}} features.", added);
   }
 
   /** How many features a download would match, or null when the server cannot tell. */
@@ -4536,15 +4575,20 @@ export class RndtPanel {
   }
 
   private async addGeoJson(record: RndtRecord, service: RndtService, area: HTMLElement): Promise<void> {
-    this.note(area, "Downloading GeoJSON…", "busy");
+    this.note(area, tr("geojson.downloading", "Downloading GeoJSON…"), "busy");
     try {
       const data = await fetchJson(this.app, service.url, { download: true });
-      if (!isFeatureCollection(data)) throw new Error("the file is not a GeoJSON FeatureCollection");
+      if (!isFeatureCollection(data)) throw new Error(tr("geojson.notFc", "the file is not a GeoJSON FeatureCollection"));
       const wgs84 = await toWgs84(data, this.app.getProj4 && (() => this.app.getProj4!()));
       this.app.addGeoJsonLayer!(record.title, fixAxisOrder(wgs84.fc));
-      this.note(area, `Added ${data.features.length} features${wgs84.from ? `, converted from EPSG:${wgs84.from}` : ""}.`);
+      this.note(
+        area,
+        wgs84.from
+          ? trCount("geojson.addedFrom", "Added {{n}} feature, converted from EPSG:{{crs}}.", "Added {{n}} features, converted from EPSG:{{crs}}.", data.features.length, { crs: wgs84.from })
+          : trCount("features.added", "Added {{n}} feature.", "Added {{n}} features.", data.features.length),
+      );
     } catch (error) {
-      this.note(area, `Could not add the file: ${errorMessage(error)}`, "error", { record, service });
+      this.note(area, tr("geojson.failed", "Could not add the file: {{error}}", { error: errorMessage(error) }), "error", { record, service });
     }
   }
 }

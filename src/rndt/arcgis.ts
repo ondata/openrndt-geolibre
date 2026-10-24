@@ -1,4 +1,5 @@
 import type { Bbox } from "./query";
+import { fmt, tr } from "./i18n";
 
 /**
  * ArcGIS REST services (MapServer, ImageServer, FeatureServer). GeoLibre adds
@@ -55,8 +56,9 @@ export function throwArcgisError(json: unknown): void {
   const error = asObject(json).error;
   if (!error) return;
   const { code, message } = asObject(error);
-  const text = typeof message === "string" && message.trim() ? message.trim() : "no message";
-  throw new Error(`the server answers ${typeof code === "number" ? `${code}, ` : ""}"${text}"${code === 499 ? " (the service needs a login)" : ""}`);
+  const text = typeof message === "string" && message.trim() ? message.trim() : tr("arcgis.noMessage", "no message");
+  const answer = typeof code === "number" ? `${code}, "${text}"` : `"${text}"`;
+  throw new Error(code === 499 ? tr("arcgis.answersLogin", "the server answers {{answer}} (the service needs a login)", { answer }) : tr("arcgis.answers", "the server answers {{answer}}", { answer }));
 }
 
 const listed = (value: unknown): string[] =>
@@ -188,9 +190,10 @@ export function parseArcgisCount(json: unknown): number | null {
  * 1:50,000 and closer shows nothing at regional zoom, and looks broken.
  */
 export function scaleNote(layer: { minScale: number; maxScale: number }): string | null {
-  const scale = (n: number) => `1:${Math.round(n).toLocaleString("en")}`;
-  if (layer.minScale > 0 && layer.maxScale > 0) return `Drawn only between ${scale(layer.minScale)} and ${scale(layer.maxScale)}.`;
-  if (layer.minScale > 0) return `Drawn only at ${scale(layer.minScale)} and closer: zoom in to see it.`;
-  if (layer.maxScale > 0) return `Drawn only up to ${scale(layer.maxScale)}.`;
+  const scale = (n: number) => `1:${fmt(Math.round(n))}`;
+  if (layer.minScale > 0 && layer.maxScale > 0)
+    return tr("scale.between", "Drawn only between {{min}} and {{max}}.", { min: scale(layer.minScale), max: scale(layer.maxScale) });
+  if (layer.minScale > 0) return tr("scale.closer", "Drawn only at {{min}} and closer: zoom in to see it.", { min: scale(layer.minScale) });
+  if (layer.maxScale > 0) return tr("scale.upTo", "Drawn only up to {{max}}.", { max: scale(layer.maxScale) });
   return null;
 }

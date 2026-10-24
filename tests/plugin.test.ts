@@ -523,14 +523,14 @@ describe("RNDT panel", () => {
     expect(getStyles.searchParams.get("SERVICE")).toBe("WMS");
     expect(getStyles.searchParams.get("LAYERS")).toBeTruthy();
     expect(host.importLayerStyle).toHaveBeenCalledWith("geojson-1", sld);
-    expect(item.textContent).toContain("Added 1 features. Drawn with the server's style, except 1 part GeoLibre cannot show.");
+    expect(item.textContent).toContain("Added 1 feature. Drawn with the server's style, except 1 part GeoLibre cannot show.");
 
     // A server that answers no SLD: the default style stays, without an error.
     styles = '<ServiceExceptionReport><ServiceException>no WMS here</ServiceException></ServiceExceptionReport>';
     add().click();
     for (let i = 0; i < 4; i++) await flush();
     expect(host.importLayerStyle).toHaveBeenCalledTimes(1);
-    expect(item.textContent).toContain("Added 1 features.");
+    expect(item.textContent).toContain("Added 1 feature.");
     expect(item.textContent).not.toContain("server's style");
     expect(item.textContent).not.toContain("WFS error");
   });

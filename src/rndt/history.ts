@@ -3,6 +3,7 @@
  * box the search used) and records opened by id, newest first. They live in the
  * webview's localStorage, per user and per computer, never in a project.
  */
+import { tr } from "./i18n";
 import { PLUGIN_ID } from "./constants";
 import { parsePanelState } from "./project-state";
 import type { SearchForm } from "./query";
@@ -119,6 +120,6 @@ export function whenLabel(time: string, now = new Date()): string {
   const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
   const days = Math.round((day(now) - day(then)) / 86_400_000);
   if (days <= 0) return `${pad(then.getHours())}:${pad(then.getMinutes())}`;
-  if (days === 1) return "Yesterday";
+  if (days === 1) return tr("history.yesterday", "Yesterday");
   return `${then.getFullYear()}-${pad(then.getMonth() + 1)}-${pad(then.getDate())}`;
 }

@@ -145,7 +145,7 @@ export interface FetchOptions {
 export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`no answer after ${Math.round(ms / 1000)} s`)), ms);
+    timer = setTimeout(() => reject(new Error(tr("error.timeout", "no answer after {{s}} s", { s: Math.round(ms / 1000) }))), ms);
   });
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
@@ -254,7 +254,7 @@ export async function reachableEndpoint(
   if (name === own || !(isPrivateName(name) || (await nameIsMissing(host, name)))) return { url: declared, note: null };
   return {
     url: serviceBase(capabilitiesUrl),
-    note: `Requests go to ${own}: the capabilities declare ${name}, a name only the publisher's network knows.`,
+    note: tr("error.privateName", "Requests go to {{own}}: the capabilities declare {{name}}, a name only the publisher's network knows.", { own, name }),
   };
 }
 
@@ -389,7 +389,7 @@ export async function fetchJson(host: RndtHost, url: string, options: FetchOptio
   try {
     return JSON.parse(body);
   } catch {
-    throw new Error(`The response from ${new URL(url).host} is not JSON.`);
+    throw new Error(tr("error.notJson", "The response from {{host}} is not JSON.", { host: new URL(url).host }));
   }
 }
 
