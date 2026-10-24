@@ -56,7 +56,8 @@ import {
 import { clearHistory, loadHistory, matchesEntry, saveHistory, whenLabel, withEntry, withTopUpdated, withoutEntry, type HistoryEntry } from "./history";
 import type { PanelState } from "./project-state";
 import { shareUrl, type LinkLayer, type LinkSearch } from "./url-params";
-import { isItalian, tr, trCount } from "./i18n";
+import { fmt, isItalian, tr, trCount } from "./i18n";
+import { IT } from "./i18n-it";
 import { agentText } from "./agent-text";
 import { detailLoading, TOOL_WAIT_MS, type AssistantAdd, type AssistantSearch } from "./assistant";
 import { bboxError, buildCurlCommand, buildSearchUrl, clampBbox, emptyForm, idForm, joinNames, recordIdIn, splitNames, type Bbox, type ResourceKind, type LinkKind, type SearchForm, type SpatialRel, type TextMode } from "./query";
@@ -365,6 +366,16 @@ export function groupServices(services: RndtService[]): ServiceGroup[] {
     }
   }
   return Array.from(groups.values());
+}
+
+/** The type of a record as the catalogue gives it (dataset, series, service), in the panel's language. */
+function recordType(type: string): string {
+  const names: Record<string, string> = {
+    dataset: tr("recordType.dataset", "dataset"),
+    series: tr("recordType.series", "series"),
+    service: tr("recordType.service", "service"),
+  };
+  return names[type] ?? type;
 }
 
 /** "3 layers", "1 layer". */
@@ -932,6 +943,19 @@ const SORT_HELP = (): [string, string][] => [
 
 const SORT_NOTE = () =>
   tr("sortHelp.note", "The catalogue cannot sort by the resource dates (revision, publication, creation): it ignores that request.");
+/**
+ * The area chip of a history entry, written in the language of the day it was
+ * saved (#3): read in English and in Italian alike.
+ */
+const both = (key: string, english: string) => [english, IT[key] ?? english];
+const escapeRe = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const AREA_INSIDE = new RegExp(`^(${both("chip.inside", "Inside: {{area}}").map((t) => escapeRe(t.replace("{{area}}", ""))).join("|")})`);
+const AREA_NAME = new RegExp(
+  `^(${[...both("chip.view", "Map view"), ...both("chip.drawn", "Drawn shapes"), ...both("chip.saved", "Saved area"), ...both("chip.box", "Box {{box}}").map((t) => t.replace("{{box}}", ""))]
+    .map(escapeRe)
+    .join("|")})`,
+);
+
 /** The search bar's text box and button join the form through this id. */
 const FORM_ID = "ordt-search-form";
 
@@ -1352,7 +1376,7 @@ export class RndtPanel {
     const serviceTypes = h(
       "fieldset",
       { className: "ordt-fieldset ordt-service-types", hidden: true },
-      h("legend", {}, "Service type"),
+      h("legend", {}, tr("label.serviceType", "Service type")),
       ...serviceTypeOptions().map((o) =>
         h("label", { className: "ordt-check" }, h("input", { type: "checkbox", name: "serviceType", value: o.value }), o.label),
       ),
@@ -1364,14 +1388,14 @@ export class RndtPanel {
       name: "box",
       placeholder: "12.3, 41.7, 12.7, 42.0",
       hidden: true,
-      "aria-label": "Box as west, south, east, north",
+      "aria-label": tr("label.boxAria", "Box as west, south, east, north"),
     });
     const spatialRel = radioGroup("spatialRel", SPATIAL_RELS(), "Intersects", () => undefined);
     spatialRel.classList.add("ordt-spatial-rel", "ordt-small");
-    spatialRel.setAttribute("aria-label", "Records whose extent");
+    spatialRel.setAttribute("aria-label", tr("label.spatialAria", "Records whose extent"));
     const whereSelect = select(WHERE_OPTIONS(), "view", {
       name: "where",
-      "aria-label": "Where",
+      "aria-label": tr("label.where", "Where"),
       onchange: () => {
         boxInput.hidden = whereSelect.value !== "box";
         spatialRel.hidden = whereSelect.value === "anywhere";
@@ -1379,9 +1403,9 @@ export class RndtPanel {
       },
     });
 
-    const themes = select([{ value: "", label: "Any theme" }, ...themeOptions()], "", {
+    const themes = select([{ value: "", label: tr("theme.any", "Any theme") }, ...themeOptions()], "", {
       name: "theme",
-      "aria-label": "INSPIRE theme",
+      "aria-label": tr("label.theme", "INSPIRE theme"),
     });
 
     const exampleButton = (example: SearchExample) =>
@@ -1397,7 +1421,7 @@ export class RndtPanel {
     const modeHelp = h(
       "div",
       { className: "ordt-help", id: "ordt-search-help", hidden: true },
-      h("p", {}, "Click an example to try it."),
+      h("p", {}, tr("help.tryExample", "Click an example to try it.")),
       h(
         "ul",
         {},
@@ -1413,18 +1437,18 @@ export class RndtPanel {
       h(
         "p",
         {},
-        'Lucene sends the text as it is, so characters such as / : ( ) " are query syntax: 42/2004 works in All words but is an error in Lucene.',
+        tr("help.lucene", 'Lucene sends the text as it is, so characters such as / : ( ) " are query syntax: 42/2004 works in All words but is an error in Lucene.'),
       ),
       h(
         "p",
         {},
-        'A record id alone, as "Copy id" gives it (r_veneto:c11023040561_RovereVer), opens that record whatever the filters.',
+        tr("help.recordId", 'A record id alone, as "Copy id" gives it (r_veneto:c11023040561_RovereVer), opens that record whatever the filters.'),
       ),
     );
     const fieldHelp = h(
       "div",
       { className: "ordt-help", id: "ordt-field-help", hidden: true },
-      h("p", {}, "Where the words are looked for. Click an example to try it."),
+      h("p", {}, tr("help.field", "Where the words are looked for. Click an example to try it.")),
       h(
         "ul",
         {},
@@ -1445,12 +1469,12 @@ export class RndtPanel {
       h(
         "p",
         {},
-        "Lucene ignores this choice: write the field in the query, e.g. title:ortofoto.",
+        tr("help.fieldLucene", "Lucene ignores this choice: write the field in the query, e.g. title:ortofoto."),
       ),
     );
     const fieldSelect = select(searchFieldOptions(), "", {
       name: "field",
-      "aria-label": "Search in",
+      "aria-label": tr("label.searchIn", "Search in"),
     });
     const whereHelp = h(
       "div",
@@ -1490,12 +1514,18 @@ export class RndtPanel {
       h(
         "p",
         {},
-        "A record's extent is a rectangle. With Touches the area a record is found when its extent touches the area, so national and regional records show up too: in the Palermo box, catastale finds 125 records, the cadastral maps of the municipalities (a rectangle also touches the neighbouring provinces) and the national cadastral services.",
+        tr(
+          "whereHelp.touches",
+          "A record's extent is a rectangle. With Touches the area a record is found when its extent touches the area, so national and regional records show up too: in the Palermo box, catastale finds 125 records, the cadastral maps of the municipalities (a rectangle also touches the neighbouring provinces) and the national cadastral services.",
+        ),
       ),
       h(
         "p",
         {},
-        "With Inside the area only records whose extent lies entirely within the area are kept: catastale in the Palermo box finds 85, all municipal cadastral maps. Regional records that reach beyond the area are left out too.",
+        tr(
+          "whereHelp.inside",
+          "With Inside the area only records whose extent lies entirely within the area are kept: catastale in the Palermo box finds 85, all municipal cadastral maps. Regional records that reach beyond the area are left out too.",
+        ),
       ),
     );
 
@@ -1511,12 +1541,15 @@ export class RndtPanel {
     const openDataHelp = textHelp("ordt-open-data-help", OPEN_DATA_HELP());
     const dateHelp = helpBox(
       "ordt-date-help",
-      h("p", {}, "The first three are dates of the resource, not of its metadata:"),
+      h("p", {}, tr("dateHelp.intro", "The first three are dates of the resource, not of its metadata:")),
       h("ul", {}, ...DATE_HELP().map(([term, note]) => termItem(term, note))),
       h(
         "p",
         {},
-        "Publishers usually fill in only one of the first three: depending on the type, 44% to 64% of the records lack it, and a date range leaves them out. If you get few results, try another date type. With both dates empty there is no date filter.",
+        tr(
+          "dateHelp.few",
+          "Publishers usually fill in only one of the first three: depending on the type, 44% to 64% of the records lack it, and a date range leaves them out. If you get few results, try another date type. With both dates empty there is no date filter.",
+        ),
       ),
     );
     const sortHelp = helpBox(
@@ -1531,8 +1564,8 @@ export class RndtPanel {
         className: "ordt-button ordt-curl",
         type: "button",
         disabled: true,
-        title: "Copy query as curl",
-        "aria-label": "Copy query as curl",
+        title: tr("results.curl", "Copy query as curl"),
+        "aria-label": tr("results.curl", "Copy query as curl"),
         onclick: () => this.copyQuery(),
       },
       "curl",
@@ -1541,24 +1574,30 @@ export class RndtPanel {
     this.footprintsToggleEl = h(
       "button",
       { className: "ordt-link", type: "button", disabled: true, onclick: () => this.toggleFootprints() },
-      "Hide footprints",
+      tr("footprints.hide", "Hide footprints"),
     );
 
     this.advancedCountEl = h("span", { className: "ordt-count", hidden: true });
     this.helpEl = h(
       "div",
       { className: "ordt-help-all", id: "ordt-help-all", hidden: true },
-      helpSection("Search modes", modeHelp),
-      helpSection("Search in", fieldHelp),
-      helpSection("Type", resourcesHelp),
-      helpSection("Where", whereHelp),
-      helpSection("Available as", availableAsHelp),
-      helpSection("Sort by", sortHelp),
+      helpSection(tr("help.modes", "Search modes"), modeHelp),
+      helpSection(tr("label.searchIn", "Search in"), fieldHelp),
+      helpSection(tr("label.type", "Type"), resourcesHelp),
+      helpSection(tr("label.where", "Where"), whereHelp),
+      helpSection(tr("label.availableAs", "Available as"), availableAsHelp),
+      helpSection(tr("label.sortBy", "Sort by"), sortHelp),
       helpSection(
-        "Recent searches",
+        tr("help.history", "Recent searches"),
         textHelp("ordt-history-help", [
-          "A click in the search box lists your last 20 searches, newest first, with their filters; a record opened by its id is listed with its title. A click runs one again; typing narrows the list; × removes an entry.",
-          "A search made on the map view is run again on the area it had then. The list stays on this computer; Settings turns it off.",
+          tr(
+            "historyHelp.list",
+            "A click in the search box lists your last 20 searches, newest first, with their filters; a record opened by its id is listed with its title. A click runs one again; typing narrows the list; × removes an entry.",
+          ),
+          tr(
+            "historyHelp.area",
+            "A search made on the map view is run again on the area it had then. The list stays on this computer; Settings turns it off.",
+          ),
         ]),
       ),
     );
@@ -1578,18 +1617,18 @@ export class RndtPanel {
         onchange: () => this.updateAdvancedCount(),
         oninput: () => this.updateAdvancedCount(),
       },
-      h("div", { className: "ordt-label" }, "Type", radioGroup("kind", KIND_OPTIONS(), "all", toggleServiceTypes, "ordt-segmented")),
+      h("div", { className: "ordt-label" }, tr("label.type", "Type"), radioGroup("kind", KIND_OPTIONS(), "all", toggleServiceTypes, "ordt-segmented")),
       serviceTypes,
-      h("div", { className: "ordt-label" }, "Where", whereSelect),
+      h("div", { className: "ordt-label" }, tr("label.where", "Where"), whereSelect),
       boxInput,
       spatialRel,
       h(
         "div",
         { className: "ordt-label" },
-        "Available as",
+        tr("label.availableAs", "Available as"),
         h(
           "div",
-          { className: "ordt-pills", role: "group", "aria-label": "Available as" },
+          { className: "ordt-pills", role: "group", "aria-label": tr("label.availableAs", "Available as") },
           ...LINK_KINDS.map((kind) =>
             h("label", { className: "ordt-pill" }, h("input", { type: "checkbox", name: "availableAs", value: kind }), kind),
           ),
@@ -1601,15 +1640,15 @@ export class RndtPanel {
         h(
           "summary",
           {},
-          h("span", {}, "Advanced filters ", this.advancedCountEl),
-          h("span", { className: "ordt-more-hint" }, "text, theme, organisation, dates, sort"),
+          h("span", {}, tr("form.advanced", "Advanced filters"), " ", this.advancedCountEl),
+          h("span", { className: "ordt-more-hint" }, tr("form.advancedHint", "text, theme, organisation, dates, sort")),
         ),
-        h("div", { className: "ordt-label" }, "Match", radioGroup("textMode", TEXT_MODES(), "all", () => undefined, "ordt-segmented")),
-        h("div", { className: "ordt-label" }, "Search in", fieldSelect),
+        h("div", { className: "ordt-label" }, tr("label.match", "Match"), radioGroup("textMode", TEXT_MODES(), "all", () => undefined, "ordt-segmented")),
+        h("div", { className: "ordt-label" }, tr("label.searchIn", "Search in"), fieldSelect),
         h(
           "div",
           { className: "ordt-label" },
-          h("span", { className: "ordt-label-head" }, "INSPIRE theme", helpToggle(themeHelp, "Help on INSPIRE themes")),
+          h("span", { className: "ordt-label-head" }, tr("label.theme", "INSPIRE theme"), helpToggle(themeHelp, tr("help.onThemes", "Help on INSPIRE themes"))),
           themeHelp,
           themes,
           h("p", { className: "ordt-note ordt-services-note", hidden: true }, SERVICES_NO_THEME()),
@@ -1620,16 +1659,17 @@ export class RndtPanel {
           h(
             "span",
             { className: "ordt-label-head" },
-            "Keywords ",
-            h("span", { className: "ordt-hint" }, "· exact, case-sensitive, comma-separated"),
-            helpToggle(keywordsHelp, "Help on keywords"),
+            tr("label.keywords", "Keywords"),
+            " ",
+            h("span", { className: "ordt-hint" }, tr("form.keywordsHint", "· exact, case-sensitive, comma-separated")),
+            helpToggle(keywordsHelp, tr("help.onKeywords", "Help on keywords")),
           ),
           keywordsHelp,
           h("input", {
             className: "ordt-input",
             name: "keywords",
             placeholder: "opendata, Idrografia",
-            "aria-label": "Keywords",
+            "aria-label": tr("label.keywords", "Keywords"),
           }),
         ),
         h(
@@ -1638,9 +1678,10 @@ export class RndtPanel {
           h(
             "span",
             { className: "ordt-label-head" },
-            "Organisation ",
-            h("span", { className: "ordt-hint" }, "· comma-separated"),
-            helpToggle(organisationHelp, "Help on organisation"),
+            tr("label.organisation", "Organisation"),
+            " ",
+            h("span", { className: "ordt-hint" }, tr("form.commaHint", "· comma-separated")),
+            helpToggle(organisationHelp, tr("help.onOrganisation", "Help on organisation")),
           ),
           organisationHelp,
           h(
@@ -1650,48 +1691,48 @@ export class RndtPanel {
               className: "ordt-input ordt-grow",
               name: "organisation",
               placeholder: "Regione Piemonte",
-              "aria-label": "Organisation",
+              "aria-label": tr("label.organisation", "Organisation"),
               oninput: () => this.syncClearButtons(),
             }),
-            this.clearButton("organisation", "organisation"),
+            this.clearButton("organisation", tr("clear.organisation", "organisation")),
           ),
           radioGroup("orgMode", ORG_MODES(), "only", () => undefined, "ordt-segmented"),
         ),
         h(
           "div",
           { className: "ordt-label" },
-          h("span", { className: "ordt-label-head" }, "IPA code of the owner ", h("span", { className: "ordt-hint" }, "· comma-separated")),
+          h("span", { className: "ordt-label-head" }, tr("label.ipa", "IPA code of the owner"), " ", h("span", { className: "ordt-hint" }, tr("form.commaHint", "· comma-separated"))),
           h("input", {
             className: "ordt-input",
             name: "ipa",
             placeholder: "r_piemon",
-            "aria-label": "IPA code of the owner",
+            "aria-label": tr("label.ipa", "IPA code of the owner"),
           }),
           h(
             "span",
             { className: "ordt-hint" },
-            "The prefix of the record id, before the colon: it keeps together the spellings of one owner, and finds records with no organisation.",
+            tr("form.ipaHint", "The prefix of the record id, before the colon: it keeps together the spellings of one owner, and finds records with no organisation."),
           ),
         ),
         h(
           "div",
           { className: "ordt-row" },
-          h("label", { className: "ordt-check" }, h("input", { type: "checkbox", name: "openData" }), "Open data only"),
-          helpToggle(openDataHelp, "Help on open data"),
+          h("label", { className: "ordt-check" }, h("input", { type: "checkbox", name: "openData" }), tr("label.openData", "Open data only")),
+          helpToggle(openDataHelp, tr("help.onOpenData", "Help on open data")),
         ),
         openDataHelp,
         h("p", { className: "ordt-note ordt-services-note", hidden: true }, SERVICES_NO_LICENCE()),
         h(
           "div",
           { className: "ordt-label" },
-          h("span", { className: "ordt-label-head" }, "Date", helpToggle(dateHelp, "Help on dates")),
+          h("span", { className: "ordt-label-head" }, tr("label.date", "Date"), helpToggle(dateHelp, tr("help.onDates", "Help on dates"))),
           dateHelp,
           h(
             "div",
             { className: "ordt-date-row" },
-            select(dateFieldOptions(), "apiso_RevisionDate_dt", { name: "dateField", "aria-label": "Date type" }),
-            h("input", { className: "ordt-input", type: "date", name: "dateFrom", "aria-label": "From" }),
-            h("input", { className: "ordt-input", type: "date", name: "dateTo", "aria-label": "To" }),
+            select(dateFieldOptions(), "apiso_RevisionDate_dt", { name: "dateField", "aria-label": tr("label.dateType", "Date type") }),
+            h("input", { className: "ordt-input", type: "date", name: "dateFrom", "aria-label": tr("label.from", "From") }),
+            h("input", { className: "ordt-input", type: "date", name: "dateTo", "aria-label": tr("label.to", "To") }),
           ),
           h(
             "div",
@@ -1700,14 +1741,14 @@ export class RndtPanel {
               h("button", { className: "ordt-link", type: "button", onclick: () => this.setDateFrom(days) }, label),
             ),
           ),
-          h("span", { className: "ordt-hint" }, "Most records carry only one of the three resource dates."),
+          h("span", { className: "ordt-hint" }, tr("form.dateHint", "Most records carry only one of the three resource dates.")),
         ),
-        h("div", { className: "ordt-label" }, "Sort by", select(sortOptions(), "", { name: "sort", "aria-label": "Sort by" })),
+        h("div", { className: "ordt-label" }, tr("label.sortBy", "Sort by"), select(sortOptions(), "", { name: "sort", "aria-label": tr("label.sortBy", "Sort by") })),
         h(
           "div",
           { className: "ordt-row ordt-small" },
-          h("button", { className: "ordt-button ordt-primary", type: "submit" }, "Search"),
-          h("button", { className: "ordt-link", type: "button", onclick: () => this.clearFilters() }, "Clear all"),
+          h("button", { className: "ordt-button ordt-primary", type: "submit" }, tr("form.search", "Search")),
+          h("button", { className: "ordt-link", type: "button", onclick: () => this.clearFilters() }, tr("form.clearAll", "Clear all")),
         ),
       ),
     );
@@ -1716,15 +1757,15 @@ export class RndtPanel {
 
   /** Text box and Search button: outside the form so they can stay on top, tied to it by `form`. */
   private buildSearchBar(): HTMLElement {
-    this.historyEl = h("div", { className: "ordt-history", id: "ordt-history", role: "listbox", "aria-label": "Recent searches", hidden: true });
+    this.historyEl = h("div", { className: "ordt-history", id: "ordt-history", role: "listbox", "aria-label": tr("help.history", "Recent searches"), hidden: true });
     // The panel's own list of recent searches takes the place of the browser's autocomplete.
     const input: HTMLInputElement = h("input", {
       className: "ordt-input ordt-grow",
       name: "text",
       type: "search",
       form: FORM_ID,
-      placeholder: "Search titles, abstracts, keywords…",
-      "aria-label": "Free text",
+      placeholder: tr("form.placeholder", "Search titles, abstracts, keywords…"),
+      "aria-label": tr("form.textAria", "Free text"),
       autocomplete: "off",
       role: "combobox",
       "aria-expanded": "false",
@@ -1756,7 +1797,7 @@ export class RndtPanel {
       "div",
       { className: "ordt-row ordt-search-bar" },
       input,
-      h("button", { className: "ordt-button ordt-primary", type: "submit", form: FORM_ID }, "Search"),
+      h("button", { className: "ordt-button ordt-primary", type: "submit", form: FORM_ID }, tr("form.search", "Search")),
       this.historyEl,
     );
   }
@@ -1799,7 +1840,7 @@ export class RndtPanel {
     input.setAttribute("aria-expanded", String(!this.historyEl.hidden));
     if (this.historyCountEl) {
       const n = this.history.length;
-      this.historyCountEl.textContent = `${n} ${n === 1 ? "search" : "searches"}`;
+      this.historyCountEl.textContent = trCount("history.count", "{{n}} search", "{{n}} searches", n);
     }
     if (this.historyEl.hidden) return this.historyEl.replaceChildren();
     this.historyHi = Math.min(this.historyHi, shown.length - 1);
@@ -1809,7 +1850,7 @@ export class RndtPanel {
       h(
         "div",
         { className: "ordt-history-head ordt-muted" },
-        h("span", {}, filtered ? `${shown.length} of ${total} recent searches` : "Recent searches"),
+        h("span", {}, filtered ? tr("history.filtered", "{{shown}} of {{total}} recent searches", { shown: fmt(shown.length), total: fmt(total) }) : tr("help.history", "Recent searches")),
         h("span", {}, "↑↓ Enter · Esc"),
       ),
       h(
@@ -1817,7 +1858,7 @@ export class RndtPanel {
         { className: "ordt-history-list" },
         ...shown.map((entry, index) => {
           const record = entry.kind === "record";
-          const sub = record ? entry.recordId! : entry.filters.length ? entry.filters.join(" · ") : "No filters";
+          const sub = record ? entry.recordId! : entry.filters.length ? entry.filters.join(" · ") : tr("history.noFilters", "No filters");
           return h(
             "div",
             {
@@ -1840,20 +1881,20 @@ export class RndtPanel {
                 { className: "ordt-history-row" },
                 record || entry.form.text.trim()
                   ? h("span", { className: "ordt-history-text" }, record ? entry.title : entry.form.text.trim())
-                  : h("em", { className: "ordt-history-text ordt-muted" }, "No text"),
+                  : h("em", { className: "ordt-history-text ordt-muted" }, tr("history.noText", "No text")),
                 h("span", { className: "ordt-history-when ordt-muted" }, whenLabel(entry.time)),
               ),
               h(
                 "div",
                 { className: "ordt-history-row ordt-muted" },
-                record && h("span", { className: "ordt-history-kind" }, "Record"),
+                record && h("span", { className: "ordt-history-kind" }, tr("history.record", "Record")),
                 h("span", { className: record ? "ordt-history-sub ordt-history-id" : "ordt-history-sub", title: sub }, sub),
-                !record && h("span", { className: "ordt-history-count" }, entry.total.toLocaleString("en")),
+                !record && h("span", { className: "ordt-history-count" }, fmt(entry.total)),
               ),
             ),
             h(
               "button",
-              { className: "ordt-history-remove", type: "button", tabIndex: -1, "data-history": "remove", title: "Remove from history", "aria-label": "Remove from history" },
+              { className: "ordt-history-remove", type: "button", tabIndex: -1, "data-history": "remove", title: tr("history.remove", "Remove from history"), "aria-label": tr("history.remove", "Remove from history") },
               "×",
             ),
           );
@@ -1863,15 +1904,15 @@ export class RndtPanel {
         ? h(
             "div",
             { className: "ordt-history-foot" },
-            h("span", {}, `Clear all ${total} ${total === 1 ? "search" : "searches"}?`),
-            h("button", { className: "ordt-link ordt-danger", type: "button", tabIndex: -1, "data-history": "clear" }, "Clear"),
-            h("button", { className: "ordt-link", type: "button", tabIndex: -1, "data-history": "keep" }, "Keep"),
+            h("span", {}, trCount("history.clearAsk", "Clear {{n}} search?", "Clear all {{n}} searches?", total)),
+            h("button", { className: "ordt-link ordt-danger", type: "button", tabIndex: -1, "data-history": "clear" }, tr("history.clear", "Clear")),
+            h("button", { className: "ordt-link", type: "button", tabIndex: -1, "data-history": "keep" }, tr("history.keep", "Keep")),
           )
         : h(
             "div",
             { className: "ordt-history-foot" },
-            h("button", { className: "ordt-link ordt-danger", type: "button", tabIndex: -1, "data-history": "ask" }, "Clear history"),
-            h("span", { className: "ordt-muted" }, "On this computer only"),
+            h("button", { className: "ordt-link ordt-danger", type: "button", tabIndex: -1, "data-history": "ask" }, tr("history.clearAll", "Clear history")),
+            h("span", { className: "ordt-muted" }, tr("history.local", "On this computer only")),
           ),
     );
     this.historyEl.querySelector('[aria-selected="true"]')?.scrollIntoView?.({ block: "nearest" });
@@ -1936,8 +1977,8 @@ export class RndtPanel {
     }
     this.writeForm(entry.form);
     if (entry.form.bbox) {
-      const named = entry.filters.map((f) => f.replace(/^Inside: /, "")).find((f) => /^(Map view|Drawn shapes|Saved area|Box )/.test(f));
-      this.savedArea = { box: this.field<HTMLInputElement>("box").value.trim(), label: named ?? "Saved area" };
+      const named = entry.filters.map((f) => f.replace(AREA_INSIDE, "")).find((f) => AREA_NAME.test(f));
+      this.savedArea = { box: this.field<HTMLInputElement>("box").value.trim(), label: named ?? tr("chip.saved", "Saved area") };
       this.app.fitBounds?.(entry.form.bbox);
     }
     void this.search(1);
@@ -1960,7 +2001,7 @@ export class RndtPanel {
     const entry: HistoryEntry = {
       kind: record ? "record" : "search",
       form: { ...form },
-      filters: record ? [] : this.activeChips().map((chip) => (saved ? chip.label.replace("Saved area", saved) : chip.label)),
+      filters: record ? [] : this.activeChips().map((chip) => (saved ? chip.label.replace(tr("chip.saved", "Saved area"), saved) : chip.label)),
       recordId: record ? record.id : null,
       title: record ? record.title : "",
       total: this.total,
@@ -1983,21 +2024,21 @@ export class RndtPanel {
     this.summaryToggleEl = h(
       "button",
       { className: "ordt-link", type: "button", onclick: () => this.showFilters(this.formEl.hidden === true) },
-      "Edit filters",
+      tr("summary.edit", "Edit filters"),
     );
     this.clearAllEl = h(
       "button",
       {
         className: "ordt-link",
         type: "button",
-        title: "Remove all filters and search again; the text stays",
+        title: tr("summary.clearTitle", "Remove all filters and search again; the text stays"),
         onclick: () => {
           this.clearFilters();
           this.refining = true;
           this.formEl.requestSubmit();
         },
       },
-      "Clear all",
+      tr("form.clearAll", "Clear all"),
     );
     this.skippedEl = h("p", { className: "ordt-note ordt-skipped", hidden: true });
     return h(
@@ -2013,11 +2054,11 @@ export class RndtPanel {
   private buildResultsHead(): HTMLElement {
     this.sortEl = select(sortOptions(), "", {
       className: "ordt-input ordt-sort",
-      "aria-label": "Sort results",
+      "aria-label": tr("results.sortAria", "Sort results"),
       onchange: () => this.changeSort(),
     });
-    this.copyAgentLabelEl = h("span", {}, "Copy for an agent");
-    this.shareLabelEl = h("span", {}, "Share");
+    this.copyAgentLabelEl = h("span", {}, tr("menu.copyAgent", "Copy for an agent"));
+    this.shareLabelEl = h("span", {}, tr("menu.share", "Share"));
     this.copyAgentHintEl = h("span", { className: "ordt-menu-hint ordt-muted" });
     const menu = h(
       "div",
@@ -2033,22 +2074,22 @@ export class RndtPanel {
         this.copyAgentLabelEl,
         this.copyAgentHintEl,
       ),
-      h("button", { className: "ordt-menu-item ordt-danger", type: "button", onclick: () => this.clearResults() }, "Clear results"),
+      h("button", { className: "ordt-menu-item ordt-danger", type: "button", onclick: () => this.clearResults() }, tr("menu.clearResults", "Clear results")),
     );
     this.resultActionsEl = h(
       "div",
       { className: "ordt-head-tools", hidden: true },
       this.copyQueryEl,
       this.sortEl,
-      menuWrap(menu, "More actions"),
+      menuWrap(menu, tr("menu.more", "More actions")),
     );
     this.zoomLinkEl =
-      this.app.fitBounds && h("button", { className: "ordt-link", type: "button", onclick: () => this.zoomToResults() }, "Zoom to results");
+      this.app.fitBounds && h("button", { className: "ordt-link", type: "button", onclick: () => this.zoomToResults() }, tr("results.zoom", "Zoom to results"));
     // The handle of the folded form when no chip row is there to hold it.
     this.filtersLinkEl = h(
       "button",
       { className: "ordt-link ordt-filters-link", type: "button", hidden: true, onclick: () => this.showFilters(this.formEl.hidden === true) },
-      "Filters",
+      tr("results.filters", "Filters"),
     );
     this.zoomRowEl = h("div", { className: "ordt-row ordt-small", hidden: true }, this.zoomLinkEl, this.footprintsToggleEl, this.filtersLinkEl);
     return h(
@@ -2069,7 +2110,7 @@ export class RndtPanel {
         "aria-controls": this.helpEl.id,
         onclick: () => this.showHelp(this.helpEl.hidden === true),
       },
-      "Search help",
+      tr("footer.help", "Search help"),
     );
     this.settingsToggleEl = h(
       "button",
@@ -2080,7 +2121,7 @@ export class RndtPanel {
         "aria-controls": this.settingsEl.id,
         onclick: () => this.showSettings(this.settingsEl.hidden === true),
       },
-      "⚙ Settings",
+      `⚙ ${tr("settings.title", "Settings")}`,
     );
     return h(
       "div",
@@ -2088,7 +2129,7 @@ export class RndtPanel {
       h(
         "a",
         { className: "ordt-link", href: "https://geodati.gov.it/geoportale/", target: "_blank", rel: "noopener" },
-        "Italian geospatial catalogue",
+        tr("footer.catalogue", "Italian geospatial catalogue"),
       ),
       h(
         "span",
@@ -2128,12 +2169,15 @@ export class RndtPanel {
     return h(
       "section",
       { className: "ordt-settings", id: "ordt-settings", hidden: true },
-      h("h3", {}, "Settings"),
-      h("label", { className: "ordt-check" }, historyBox, "Remember my last 20 searches"),
+      h("h3", {}, tr("settings.title", "Settings")),
+      h("label", { className: "ordt-check" }, historyBox, tr("settings.remember", "Remember my last 20 searches")),
       h(
         "p",
         { className: "ordt-note" },
-        "Text, filters and area of each search, and the record opened by id. They are listed under the search box. Turning this off also clears the list.",
+        tr(
+          "settings.rememberNote",
+          "Text, filters and area of each search, and the record opened by id. They are listed under the search box. Turning this off also clears the list.",
+        ),
       ),
       h(
         "div",
@@ -2149,20 +2193,23 @@ export class RndtPanel {
               this.renderHistory();
             },
           },
-          "Clear history",
+          tr("history.clearAll", "Clear history"),
         ),
       ),
-      h("label", { className: "ordt-check" }, logBox, "Log service URLs that fail (unreachable or errors)"),
+      h("label", { className: "ordt-check" }, logBox, tr("settings.log", "Log service URLs that fail (unreachable or errors)")),
       h(
         "p",
         { className: "ordt-note" },
-        "Each failure adds a line: time (UTC), record, organisation, service type, URL, error. Up to 1,000 lines, the oldest leave first. Settings, history and log stay on this computer.",
+        tr(
+          "settings.logNote",
+          "Each failure adds a line: time (UTC), record, organisation, service type, URL, error. Up to 1,000 lines, the oldest leave first. Settings, history and log stay on this computer.",
+        ),
       ),
       h(
         "div",
         { className: "ordt-row ordt-small" },
         this.logCountEl,
-        h("button", { className: "ordt-link", type: "button", onclick: () => this.exportErrorLog() }, "Export JSON Lines"),
+        h("button", { className: "ordt-link", type: "button", onclick: () => this.exportErrorLog() }, tr("settings.export", "Export JSON Lines")),
         h(
           "button",
           {
@@ -2173,7 +2220,7 @@ export class RndtPanel {
               this.updateLogCount();
             },
           },
-          "Clear log",
+          tr("settings.clearLog", "Clear log"),
         ),
       ),
     );
@@ -2191,7 +2238,7 @@ export class RndtPanel {
 
   private updateLogCount(): void {
     const count = readErrorLog().length;
-    this.logCountEl.textContent = `${count.toLocaleString("en")} ${count === 1 ? "entry" : "entries"}`;
+    this.logCountEl.textContent = trCount("settings.logCount", "{{n}} entry", "{{n}} entries", count);
   }
 
   /** Save the log through the host's "Save as" dialog, or as a download on the web. */
@@ -2254,8 +2301,8 @@ export class RndtPanel {
   /** Unfold or fold the filters; the chip line stays as their handle. */
   private showFilters(show: boolean): void {
     this.formEl.hidden = !show;
-    this.summaryToggleEl.textContent = show ? "Hide filters" : "Edit filters";
-    this.filtersLinkEl.textContent = show ? "Hide filters" : "Filters";
+    this.summaryToggleEl.textContent = show ? tr("summary.hide", "Hide filters") : tr("summary.edit", "Edit filters");
+    this.filtersLinkEl.textContent = show ? tr("summary.hide", "Hide filters") : tr("results.filters", "Filters");
     // Filters set in the advanced part must be visible when editing.
     if (show && this.advancedCount() > 0) this.formEl.querySelector<HTMLDetailsElement>(".ordt-more")!.open = true;
   }
@@ -2319,7 +2366,7 @@ export class RndtPanel {
       chips.push({ label: TEXT_MODES().find((o) => o.value === mode)!.label, clear: () => setRadio("textMode", "all") });
     }
     if (this.field("field").value) {
-      chips.push({ label: `In ${selected("field")}`, clear: () => (this.field("field").value = "") });
+      chips.push({ label: tr("chip.in", "In {{field}}", { field: selected("field") }), clear: () => (this.field("field").value = "") });
     }
     const kind = checkedValue(this.formEl, "kind");
     if (kind && kind !== "all") {
@@ -2340,13 +2387,13 @@ export class RndtPanel {
       const area =
         where.value === "box"
           ? this.isSavedArea()
-            ? "Saved area"
-            : `Box ${this.field("box").value.trim()}`
+            ? tr("chip.saved", "Saved area")
+            : tr("chip.box", "Box {{box}}", { box: this.field("box").value.trim() })
           : where.value === "view"
-            ? "Map view"
-            : "Drawn shapes";
+            ? tr("chip.view", "Map view")
+            : tr("chip.drawn", "Drawn shapes");
       chips.push({
-        label: checkedValue(this.formEl, "spatialRel") === "Within" ? `Inside: ${area}` : area,
+        label: checkedValue(this.formEl, "spatialRel") === "Within" ? tr("chip.inside", "Inside: {{area}}", { area }) : area,
         clear: () => {
           where.value = "anywhere";
           where.dispatchEvent(new Event("change"));
@@ -2359,14 +2406,14 @@ export class RndtPanel {
     }
     const keywords = this.field("keywords").value.trim();
     if (keywords) {
-      chips.push({ label: `Keywords: ${keywords}`, clear: () => (this.field("keywords").value = "") });
+      chips.push({ label: tr("chip.keywords", "Keywords: {{keywords}}", { keywords }), clear: () => (this.field("keywords").value = "") });
     }
     const organisation = this.field<HTMLInputElement>("organisation");
     const names = splitNames(organisation.value);
     const hiding = checkedValue(this.formEl, "orgMode") === "hide";
     for (const name of names) {
       chips.push({
-        label: `${hiding ? "Hiding" : "Only"}: ${name}`,
+        label: hiding ? tr("chip.hiding", "Hiding: {{name}}", { name }) : tr("chip.only", "Only: {{name}}", { name }),
         clear: () => {
           organisation.value = joinNames(names.filter((n) => n !== name));
           this.syncClearButtons();
@@ -2378,13 +2425,13 @@ export class RndtPanel {
       chips.push({ label: `IPA: ${ipa}`, clear: () => (this.field("ipa").value = "") });
     }
     if (this.field<HTMLInputElement>("openData").checked && kind !== "services") {
-      chips.push({ label: "Open data only", clear: () => (this.field<HTMLInputElement>("openData").checked = false) });
+      chips.push({ label: tr("label.openData", "Open data only"), clear: () => (this.field<HTMLInputElement>("openData").checked = false) });
     }
     const from = this.field("dateFrom").value;
     const to = this.field("dateTo").value;
     if (from || to) {
       chips.push({
-        label: `${selected("dateField")} ${from || "…"} to ${to || "…"}`,
+        label: tr("chip.dates", "{{field}} {{from}} to {{to}}", { field: selected("dateField"), from: from || "…", to: to || "…" }),
         clear: () => {
           this.field("dateFrom").value = "";
           this.field("dateTo").value = "";
@@ -2408,8 +2455,8 @@ export class RndtPanel {
             {
               className: "ordt-chip-remove",
               type: "button",
-              "aria-label": `Remove ${chip.label}`,
-              title: "Remove this filter and search again",
+              "aria-label": tr("chip.removeAria", "Remove {{filter}}", { filter: chip.label }),
+              title: tr("chip.removeTitle", "Remove this filter and search again"),
               onclick: () => {
                 chip.clear();
                 this.refining = true;
@@ -2435,18 +2482,25 @@ export class RndtPanel {
   private renderSkipped(): void {
     const services = checkedValue(this.formEl, "kind") === "services";
     const names = [
-      this.field("theme").value ? "Theme" : "",
-      this.field<HTMLInputElement>("openData").checked ? "Open data only" : "",
+      this.field("theme").value ? tr("skipped.theme", "Theme") : "",
+      this.field<HTMLInputElement>("openData").checked ? tr("label.openData", "Open data only") : "",
     ].filter(Boolean);
     this.skippedEl.hidden = !services || names.length === 0;
     if (this.skippedEl.hidden) return this.skippedEl.replaceChildren();
     const formats = this.datasetFormats();
     this.skippedEl.replaceChildren(
-      `${names.join(" and ")} not applied: the catalogue gives services no theme and no licence. Datasets have them, with their WMS and WFS. `,
+      trCount(
+        "skipped.note",
+        "{{names}} not applied: the catalogue gives services no theme and no licence. Datasets have them, with their WMS and WFS.",
+        "{{names}} not applied: the catalogue gives services no theme and no licence. Datasets have them, with their WMS and WFS.",
+        names.length,
+        { names: names.join(tr("skipped.and", " and ")) },
+      ),
+      " ",
       h(
         "button",
         { className: "ordt-link", type: "button", onclick: () => this.searchDatasets(formats) },
-        `Search datasets with a ${formats.join(" or ")}`,
+        tr("skipped.search", "Search datasets with a {{formats}}", { formats: formats.join(tr("skipped.or", " or ")) }),
       ),
     );
   }
@@ -2482,14 +2536,14 @@ export class RndtPanel {
   /** Turn on GeoEditor when "Drawn shapes" is picked and nothing is drawn yet. */
   private async prepareDrawing(): Promise<void> {
     if (drawnBbox(this.app)) {
-      this.setStatus("Search will use the shapes drawn with GeoEditor.");
+      this.setStatus(tr("status.drawnReady", "Search will use the shapes drawn with GeoEditor."));
       return;
     }
     const activated = (await this.app.activatePlugin?.(GEO_EDITOR_PLUGIN_ID).catch(() => false)) ?? false;
     this.setStatus(
       activated
-        ? "GeoEditor is on: draw a rectangle or polygon on the map, then press Search."
-        : "Turn on GeoEditor (Plugins > GeoEditor), draw a shape, then press Search.",
+        ? tr("status.drawOn", "GeoEditor is on: draw a rectangle or polygon on the map, then press Search.")
+        : tr("status.drawOff", "Turn on GeoEditor (Plugins > GeoEditor), draw a shape, then press Search."),
     );
   }
 
@@ -2521,8 +2575,8 @@ export class RndtPanel {
         type: "button",
         hidden: true,
         "data-field": field,
-        "aria-label": `Clear ${label}`,
-        title: `Clear ${label} and search again`,
+        "aria-label": tr("clear.aria", "Clear {{field}}", { field: label }),
+        title: tr("clear.title", "Clear {{field}} and search again", { field: label }),
         onclick: () => this.clearField(field),
       },
       "×",
@@ -2587,17 +2641,17 @@ export class RndtPanel {
     if (where === "anywhere") return null;
     if (where === "view") {
       const view = this.app.getViewBounds?.();
-      if (!view) throw new Error("The map view is not available.");
+      if (!view) throw new Error(tr("where.noView", "The map view is not available."));
       return clampBbox(view);
     }
     if (where === "drawn") {
       const box = drawnBbox(this.app);
-      if (!box) throw new Error("Draw a shape first with the GeoEditor plugin (Plugins > GeoEditor), or pick another area.");
+      if (!box) throw new Error(tr("where.noDrawn", "Draw a shape first with the GeoEditor plugin (Plugins > GeoEditor), or pick another area."));
       return clampBbox(box);
     }
     const parts = this.field<HTMLInputElement>("box").value.split(/[\s,;]+/).filter(Boolean).map(Number);
     const box = parts as Bbox;
-    const error = parts.length === 4 ? bboxError(box) : "The box needs four numbers: west, south, east, north.";
+    const error = parts.length === 4 ? bboxError(box) : tr("where.fourNumbers", "The box needs four numbers: west, south, east, north.");
     if (error) throw new Error(error);
     return box;
   }
@@ -2626,7 +2680,7 @@ export class RndtPanel {
       current = emptyForm();
     }
     const seq = ++this.requestSeq;
-    this.setStatus("Searching the RNDT catalogue…", "busy");
+    this.setStatus(tr("status.searching", "Searching the RNDT catalogue…"), "busy");
     try {
       // A page of 20 results weighs about 1 MB (each carries its whole ISO XML,
       // which the catalogue cannot leave out): past the 8 s native budget of
@@ -2643,7 +2697,7 @@ export class RndtPanel {
       }
       if (!page) {
         // Not an id after all: the form's own error, if it had one.
-        if (!url) throw new Error(`No record with id ${id}, and the form cannot be searched.`);
+        if (!url) throw new Error(tr("status.noIdNoForm", "No record with id {{id}}, and the form cannot be searched.", { id: id! }));
         page = await fetchPage(url);
       }
       if (seq !== this.requestSeq) return null; // a newer search is running
@@ -2679,8 +2733,9 @@ export class RndtPanel {
       return { form: current, total: page.total, start, records: page.records };
     } catch (error) {
       if (seq !== this.requestSeq) return null;
-      this.setStatus(`Search failed: ${errorMessage(error)}`, "error");
-      return { error: `Search failed: ${errorMessage(error)}` };
+      const failed = tr("status.failed", "Search failed: {{error}}", { error: errorMessage(error) });
+      this.setStatus(failed, "error");
+      return { error: failed };
     }
   }
 
@@ -2838,7 +2893,7 @@ export class RndtPanel {
     this.summaryEl.hidden = true;
     this.emptyEl.hidden = true;
     this.showFilters(true);
-    this.setStatus("Results cleared.");
+    this.setStatus(tr("status.cleared", "Results cleared."));
   }
 
   /** Hide all footprints, or show them all again (also those hidden one by one). */
@@ -2861,13 +2916,13 @@ export class RndtPanel {
     const layer = this.footprintsLayer;
     const allVisible = layer?.isVisible() ?? true;
     this.footprintsToggleEl.disabled = !layer || !this.records.some((r) => r.bbox);
-    this.footprintsToggleEl.textContent = allVisible ? "Hide footprints" : "Show footprints";
+    this.footprintsToggleEl.textContent = allVisible ? tr("footprints.hide", "Hide footprints") : tr("footprints.show", "Show footprints");
     // In the list (⋯ of each card) and in the detail view.
     for (const button of Array.from(this.root?.querySelectorAll<HTMLButtonElement>(".ordt-footprint-toggle") ?? [])) {
       const id = button.dataset.id!;
-      button.textContent = layer?.isHidden(id) ? "Show footprint" : "Hide footprint";
+      button.textContent = layer?.isHidden(id) ? tr("footprint.show", "Show footprint") : tr("footprint.hide", "Hide footprint");
       button.disabled = !allVisible;
-      button.title = allVisible ? "" : "All footprints are hidden: use Show footprints first";
+      button.title = allVisible ? "" : tr("footprint.allHidden", "All footprints are hidden: use Show footprints first");
     }
   }
 
@@ -2911,7 +2966,7 @@ export class RndtPanel {
       this.linkNoteEl.dataset.kind = kind;
       this.linkNoteEl.textContent = text;
     };
-    note(`Adding ${layers.length === 1 ? "the layer" : `${layers.length} layers`} of the link…`, "busy");
+    note(trCount("link.adding", "Adding the layer of the link…", "Adding {{n}} layers of the link…", layers.length), "busy");
     const once = <T,>(cache: Map<string, Promise<T>>, key: string, read: () => Promise<T>) => {
       if (!cache.has(key)) cache.set(key, read());
       return cache.get(key)!;
@@ -2922,7 +2977,7 @@ export class RndtPanel {
     /** How to add one layer, found before any is added so the order holds; it returns the layer's box. */
     const resolve = async (link: LinkLayer): Promise<() => Bbox | undefined> => {
       const record = await once(records, link.recordId, () => this.recordById(link.recordId));
-      if (!record) throw new Error(`no record ${link.recordId} in the catalogue`);
+      if (!record) throw new Error(tr("link.noRecord", "no record {{id}} in the catalogue", { id: link.recordId }));
       const kind = link.kind === "wms" ? "WMS" : ARCGIS_KIND;
       for (const service of servicesWithDerivedWms(record.services).filter((s) => s.kind === kind)) {
         try {
@@ -2931,7 +2986,7 @@ export class RndtPanel {
             const wms = await once(wmsServices, service.url, () => this.prepareWms(record, service));
             const layer = wms.byName.get(link.name);
             if (!layer) continue;
-            if (!wms.crsOf(layer)) throw new NotInWebMercator("GeoLibre cannot display it (not offered in EPSG:3857)");
+            if (!wms.crsOf(layer)) throw new NotInWebMercator(tr("link.not3857", "GeoLibre cannot display it (not offered in EPSG:3857)"));
             return () => {
               const options = this.wmsOptions(record, wms, link.name);
               if (!this.wmsOnMap(wms.caps.getMapUrl, link.name)) {
@@ -2961,7 +3016,7 @@ export class RndtPanel {
           // This service did not answer: the next one of the record may list the layer.
         }
       }
-      throw new Error(`not found in a ${link.kind === "wms" ? "WMS" : "ArcGIS"} service of ${record.title}`);
+      throw new Error(tr("link.notFound", "not found in a {{kind}} service of {{title}}", { kind: link.kind === "wms" ? "WMS" : "ArcGIS", title: record.title }));
     };
     const found = await Promise.allSettled(layers.map(resolve));
     const failed: string[] = [];
@@ -2985,7 +3040,10 @@ export class RndtPanel {
     }
     const added = layers.length - failed.length;
     note(
-      [`Added ${added} of ${layers.length} ${layers.length === 1 ? "layer" : "layers"} of the link.`, ...failed.map((f) => `Could not add ${f}.`)].join(" "),
+      [
+        trCount("link.added", "Added {{added}} of {{n}} layer of the link.", "Added {{added}} of {{n}} layers of the link.", layers.length, { added: fmt(added) }),
+        ...failed.map((f) => tr("link.failed", "Could not add {{layer}}.", { layer: f })),
+      ].join(" "),
       failed.length ? "error" : "info",
     );
   }
@@ -3044,25 +3102,29 @@ export class RndtPanel {
     const view = map && center ? { lon: center.lng, lat: center.lat, zoom: map.getZoom() } : null;
     // The share sheet and the clipboard need the click to be recent (about
     // 5 s in Firefox): the layer checks get a shorter budget.
-    label.textContent = "Checking the layers…";
+    label.textContent = tr("share.checking", "Checking the layers…");
     const { layers, left } = await this.layersForLink(SHARE_PROBE_TIMEOUT_MS);
-    label.textContent = "Share";
+    label.textContent = tr("menu.share", "Share");
     const url = shareUrl(state?.form ?? emptyForm(), record?.id ?? state?.recordId ?? null, view, layers);
     if (layers.length || left.length) {
       this.linkNoteEl.hidden = false;
       this.linkNoteEl.dataset.kind = "info";
       this.linkNoteEl.textContent = [
-        `Layers in the link: ${layers.length}.`,
+        tr("share.inLink", "Layers in the link: {{n}}.", { n: fmt(layers.length) }),
         left.length > 0 &&
-          `Left out: ${left.join("; ")}. A link brings back only catalogue layers drawn from a service (WMS, ArcGIS images) on an https server the web version can read.`,
+          tr(
+            "share.leftOut",
+            "Left out: {{layers}}. A link brings back only catalogue layers drawn from a service (WMS, ArcGIS images) on an https server the web version can read.",
+            { layers: left.join("; ") },
+          ),
       ]
         .filter(Boolean)
         .join(" ");
     }
-    const title = record ? `RNDT: ${record.title}` : state?.form.text ? `RNDT: ${state.form.text}` : "RNDT search";
+    const title = record ? `RNDT: ${record.title}` : state?.form.text ? `RNDT: ${state.form.text}` : tr("share.title", "RNDT search");
     const show = (text: string) => {
       label.textContent = text;
-      setTimeout(() => (label.textContent = "Share"), 3000);
+      setTimeout(() => (label.textContent = tr("menu.share", "Share")), 3000);
     };
     if (typeof navigator.share === "function" && (!navigator.canShare || navigator.canShare({ title, url }))) {
       try {
@@ -3075,12 +3137,12 @@ export class RndtPanel {
     }
     try {
       await navigator.clipboard.writeText(url);
-      show("Link copied");
+      show(tr("share.copied", "Link copied"));
     } catch {
       this.setStatus(
         layers.length || left.length
-          ? "Could not copy the link to the clipboard: the layer checks took too long. Try Share again."
-          : "Could not copy the link to the clipboard.",
+          ? tr("share.slow", "Could not copy the link to the clipboard: the layer checks took too long. Try Share again.")
+          : tr("share.noClipboard", "Could not copy the link to the clipboard."),
         "error",
       );
     }
@@ -3093,8 +3155,8 @@ export class RndtPanel {
     const label = this.copyAgentLabelEl;
     void navigator.clipboard?.writeText(text).then(
       () => {
-        label.textContent = "Copied: paste it into your agent";
-        setTimeout(() => (label.textContent = "Copy for an agent"), 3000);
+        label.textContent = tr("agent.copied", "Copied: paste it into your agent");
+        setTimeout(() => (label.textContent = tr("menu.copyAgent", "Copy for an agent")), 3000);
       },
       () => this.setStatus("Could not copy to the clipboard.", "error"),
     );
@@ -3115,12 +3177,12 @@ export class RndtPanel {
     const end = this.start + this.records.length - 1;
     this.setStatus(
       this.total === 0
-        ? "No records found."
-        : `${this.start}-${end} of ${this.total.toLocaleString("en")}`,
+        ? tr("results.none", "No records found.")
+        : tr("results.range", "{{start}}-{{end}} of {{total}}", { start: fmt(this.start), end: fmt(end), total: fmt(this.total) }),
     );
     this.listEl.replaceChildren(...this.records.map((r) => this.renderRecord(r)));
     const shown = this.records.length;
-    this.copyAgentHintEl.textContent = `This search, its ${shown === 1 ? "result" : `${shown} results`} and the commands to go on`;
+    this.copyAgentHintEl.textContent = trCount("agent.hint", "This search, its result and the commands to go on", "This search, its {{n}} results and the commands to go on", shown);
     // With no record curl, sort and the menu have nothing to act on.
     this.resultActionsEl.hidden = this.total === 0;
     const mapped = this.records.some((r) => r.bbox);
@@ -3163,7 +3225,7 @@ export class RndtPanel {
                 this.formEl.requestSubmit();
               },
             },
-            "Search Anywhere instead of the map view",
+            tr("remedy.anywhere", "Search Anywhere instead of the map view"),
           ),
         );
       }
@@ -3180,12 +3242,12 @@ export class RndtPanel {
                 this.formEl.requestSubmit();
               },
             },
-            `Match any word (${words.join(" or ")})`,
+            tr("remedy.anyWord", "Match any word ({{words}})", { words: words.join(tr("skipped.or", " or ")) }),
           ),
         );
       }
     }
-    this.emptyEl.replaceChildren(...(remedies.length ? [h("span", { className: "ordt-muted" }, "Try:"), ...remedies] : []));
+    this.emptyEl.replaceChildren(...(remedies.length ? [h("span", { className: "ordt-muted" }, tr("remedy.try", "Try:")), ...remedies] : []));
     this.emptyEl.hidden = remedies.length === 0;
   }
 
@@ -3200,17 +3262,17 @@ export class RndtPanel {
       h("button", {
         className: "ordt-button",
         type: "button",
-        "aria-label": "Previous page",
+        "aria-label": tr("pager.previousAria", "Previous page"),
         disabled: this.start <= 1,
         onclick: () => go(Math.max(1, this.start - PAGE_SIZE)),
-      }, compact ? "‹" : "‹ Previous"),
+      }, compact ? "‹" : `‹ ${tr("pager.previous", "Previous")}`),
       h("button", {
         className: "ordt-button",
         type: "button",
-        "aria-label": "Next page",
+        "aria-label": tr("pager.nextAria", "Next page"),
         disabled: end >= this.total,
         onclick: () => go(this.start + PAGE_SIZE),
-      }, compact ? "›" : "Next ›"),
+      }, compact ? "›" : `${tr("pager.next", "Next")} ›`),
     ];
   }
 
@@ -3234,9 +3296,13 @@ export class RndtPanel {
       h(
         "button",
         { className: "ordt-link ordt-back", type: "button", onclick: () => this.closeDetail(true) },
-        `← ${this.total.toLocaleString("en")} ${this.total === 1 ? "result" : "results"}`,
+        `← ${trCount("detail.back", "{{n}} result", "{{n}} results", this.total)}`,
       ),
-      h("span", { className: "ordt-detail-position ordt-muted" }, `${this.records.indexOf(record) + 1} of ${this.records.length}`),
+      h(
+        "span",
+        { className: "ordt-detail-position ordt-muted" },
+        tr("detail.position", "{{i}} of {{n}}", { i: fmt(this.records.indexOf(record) + 1), n: fmt(this.records.length) }),
+      ),
     );
     this.detailBarEl.hidden = false;
     this.root.classList.add("ordt-in-detail");
@@ -3290,7 +3356,7 @@ export class RndtPanel {
         {
           className: "ordt-result-title",
           type: "button",
-          title: "Show details and zoom to the extent",
+          title: tr("result.titleHint", "Show details and zoom to the extent"),
           onclick: () => {
             this.openDetail(record.id);
             if (record.bbox) this.app.fitBounds?.(record.bbox);
@@ -3302,14 +3368,14 @@ export class RndtPanel {
       h(
         "div",
         { className: "ordt-meta" },
-        record.type && h("span", { className: "ordt-muted" }, record.type),
+        record.type && h("span", { className: "ordt-muted" }, recordType(record.type)),
         ...kinds.map((k) => h("span", { className: "ordt-badge ordt-badge-service" }, k)),
       ),
       h(
         "div",
         { className: "ordt-meta ordt-meta-org" },
         h("span", { className: "ordt-org-name", title: record.organisation }, record.organisation),
-        record.modified && h("span", { className: "ordt-muted ordt-date" }, `Metadata ${record.modified}`),
+        record.modified && h("span", { className: "ordt-muted ordt-date" }, tr("result.metadata", "Metadata {{date}}", { date: record.modified })),
       ),
     );
     if (record.bbox) {
@@ -3327,13 +3393,14 @@ export class RndtPanel {
         h(
           "button",
           { className: "ordt-menu-item ordt-hide-org", type: "button", onclick: () => this.excludeOrganisation(record.organisation) },
-          "Hide results from ",
+          tr("result.hideOrg", "Hide results from"),
+          " ",
           h("strong", {}, record.organisation),
         ),
         h(
           "button",
           { className: "ordt-menu-item ordt-org", type: "button", onclick: () => this.filterByOrganisation(record.organisation) },
-          "Show only this organisation",
+          tr("result.onlyOrg", "Show only this organisation"),
         ),
       );
     }
@@ -3345,7 +3412,8 @@ export class RndtPanel {
         h(
           "button",
           { className: "ordt-menu-item ordt-ipa", type: "button", onclick: () => this.filterByIpa(ipa) },
-          "Show only records of this owner (IPA ",
+          tr("result.onlyIpa", "Show only records of this owner"),
+          " (IPA ",
           h("strong", {}, ipa),
           ")",
         ),
@@ -3353,7 +3421,7 @@ export class RndtPanel {
     }
     if (record.bbox && this.app.fitBounds) {
       items.push(
-        h("button", { className: "ordt-menu-item", type: "button", onclick: () => this.app.fitBounds!(record.bbox!) }, "Zoom to extent"),
+        h("button", { className: "ordt-menu-item", type: "button", onclick: () => this.app.fitBounds!(record.bbox!) }, tr("result.zoom", "Zoom to extent")),
       );
     }
     if (record.bbox && this.footprintsLayer) {
@@ -3367,11 +3435,11 @@ export class RndtPanel {
             disabled: !this.footprintsLayer.isVisible(),
             onclick: () => this.toggleFootprint(record.id),
           },
-          this.footprintsLayer.isHidden(record.id) ? "Show footprint" : "Hide footprint",
+          this.footprintsLayer.isHidden(record.id) ? tr("footprint.show", "Show footprint") : tr("footprint.hide", "Hide footprint"),
         ),
       );
     }
-    return menuWrap(h("div", { className: "ordt-menu", role: "menu", hidden: true }, ...items), "Record actions");
+    return menuWrap(h("div", { className: "ordt-menu", role: "menu", hidden: true }, ...items), tr("result.actions", "Record actions"));
   }
 
   private renderDetail(record: RndtRecord): Child[] {
@@ -3386,10 +3454,10 @@ export class RndtPanel {
           title: record.id,
           onclick: () => void navigator.clipboard?.writeText(record.id).catch(() => undefined),
         },
-        "Copy id",
+        tr("detail.copyId", "Copy id"),
       ),
     ];
-    const shareLabel = h("span", {}, "Share");
+    const shareLabel = h("span", {}, tr("menu.share", "Share"));
     more.unshift(
       h(
         "button",
@@ -3408,7 +3476,7 @@ export class RndtPanel {
             disabled: !this.footprintsLayer.isVisible(),
             onclick: () => this.toggleFootprint(record.id),
           },
-          this.footprintsLayer.isHidden(record.id) ? "Show footprint" : "Hide footprint",
+          this.footprintsLayer.isHidden(record.id) ? tr("footprint.show", "Show footprint") : tr("footprint.hide", "Hide footprint"),
         ),
       );
     }
@@ -3417,20 +3485,20 @@ export class RndtPanel {
       h(
         "div",
         { className: "ordt-meta" },
-        record.type && h("span", { className: "ordt-muted" }, record.type),
+        record.type && h("span", { className: "ordt-muted" }, recordType(record.type)),
         ...kinds.map((k) => h("span", { className: "ordt-badge ordt-badge-service" }, k)),
       ),
-      record.modified && h("div", { className: "ordt-small ordt-muted" }, `Metadata updated ${record.modified}`),
+      record.modified && h("div", { className: "ordt-small ordt-muted" }, tr("detail.updated", "Metadata updated {{date}}", { date: record.modified })),
       ...this.renderContact(record),
       record.abstract && this.renderAbstract(record.abstract),
       record.services.length
         ? h("ul", { className: "ordt-services" }, ...servicesWithDerivedWms(record.services).map((g) => this.renderService(record, g)))
-        : !record.otherLinks.length && h("p", { className: "ordt-muted" }, "No services or downloads declared in this record."),
+        : !record.otherLinks.length && h("p", { className: "ordt-muted" }, tr("detail.noServices", "No services or downloads declared in this record.")),
       record.otherLinks.length > 0 &&
         h(
           "div",
           { className: "ordt-other-links" },
-          h("p", { className: "ordt-muted" }, "Other links (web pages, folders: the plugin cannot add them to the map)"),
+          h("p", { className: "ordt-muted" }, tr("detail.otherLinks", "Other links (web pages, folders: the plugin cannot add them to the map)")),
           h(
             "ul",
             {},
@@ -3451,9 +3519,9 @@ export class RndtPanel {
         { className: "ordt-row ordt-small ordt-detail-actions" },
         record.bbox &&
           this.app.fitBounds &&
-          h("button", { className: "ordt-link", type: "button", onclick: () => this.app.fitBounds!(record.bbox!) }, "Zoom to extent"),
-        h("a", { className: "ordt-link", href: record.htmlUrl, target: "_blank", rel: "noopener" }, "Metadata"),
-        menuWrap(h("div", { className: "ordt-menu", role: "menu", hidden: true }, ...more), "More record actions"),
+          h("button", { className: "ordt-link", type: "button", onclick: () => this.app.fitBounds!(record.bbox!) }, tr("result.zoom", "Zoom to extent")),
+        h("a", { className: "ordt-link", href: record.htmlUrl, target: "_blank", rel: "noopener" }, tr("detail.metadata", "Metadata")),
+        menuWrap(h("div", { className: "ordt-menu", role: "menu", hidden: true }, ...more), tr("detail.moreActions", "More record actions")),
       ),
     ];
   }
@@ -3468,10 +3536,10 @@ export class RndtPanel {
     const email = contactEmail(record);
     const toContact = record.contactEmails.length > 0;
     const preview = h("pre", { className: "ordt-contact-text", hidden: true }, emailText(email));
-    const show = h("button", { className: "ordt-link ordt-contact-show", type: "button" }, "Show text");
+    const show = h("button", { className: "ordt-link ordt-contact-show", type: "button" }, tr("contact.showText", "Show text"));
     show.addEventListener("click", () => {
       preview.hidden = !preview.hidden;
-      show.textContent = preview.hidden ? "Show text" : "Hide text";
+      show.textContent = preview.hidden ? tr("contact.showText", "Show text") : tr("contact.hideText", "Hide text");
     });
     const box = h(
       "div",
@@ -3479,45 +3547,45 @@ export class RndtPanel {
       h(
         "dl",
         { className: "ordt-contact-rows" },
-        h("dt", {}, "About"),
+        h("dt", {}, tr("contact.about", "About")),
         h("dd", {}, h("span", {}, record.title), h("code", {}, record.id)),
-        h("dt", {}, "Organisation"),
-        h("dd", { className: record.organisation ? "" : "ordt-muted" }, record.organisation || "Not named in the record"),
-        h("dt", {}, "Contact"),
+        h("dt", {}, tr("label.organisation", "Organisation")),
+        h("dd", { className: record.organisation ? "" : "ordt-muted" }, record.organisation || tr("contact.noOrg", "Not named in the record")),
+        h("dt", {}, tr("contact.contact", "Contact")),
         toContact
           ? h(
               "dd",
               {},
               ...record.contactEmails.map((address) => h("span", { className: "ordt-contact-address" }, address)),
-              h("span", { className: "ordt-muted" }, "point of contact named in the record"),
+              h("span", { className: "ordt-muted" }, tr("contact.named", "point of contact named in the record")),
             )
-          : h("dd", { className: "ordt-muted" }, "This record gives no email address."),
+          : h("dd", { className: "ordt-muted" }, tr("contact.noEmail", "This record gives no email address.")),
       ),
       h(
         "p",
         { className: "ordt-muted" },
         toContact
-          ? "A question on the data, its licence, an update, another format: the email names this record, you write the request."
-          : "RNDT runs the catalogue and can tell you whom to write to. The email asks them for the organisation's contact for this record.",
+          ? tr("contact.toOrg", "A question on the data, its licence, an update, another format: the email names this record, you write the request.")
+          : tr("contact.toRndt", "RNDT runs the catalogue and can tell you whom to write to. The email asks them for the organisation's contact for this record."),
       ),
       h(
         "div",
         { className: "ordt-row ordt-contact-actions" },
         copyEmailControl(
-          toContact ? "Copy email" : "Copy email to RNDT",
+          toContact ? tr("contact.copy", "Copy email") : tr("contact.copyRndt", "Copy email to RNDT"),
           email,
           toContact ? email.to.join(", ") : "RNDT",
           "ordt-copy-email",
-          "Copy recipients, subject and text of an email about this record",
+          tr("contact.copyTitle", "Copy recipients, subject and text of an email about this record"),
         ),
         show,
       ),
       preview,
     );
-    const link = h("button", { className: "ordt-link ordt-contact-link", type: "button", "aria-expanded": "false" }, "Contact");
+    const link = h("button", { className: "ordt-link ordt-contact-link", type: "button", "aria-expanded": "false" }, tr("contact.contact", "Contact"));
     link.addEventListener("click", () => {
       box.hidden = !box.hidden;
-      link.textContent = box.hidden ? "Contact" : "Close";
+      link.textContent = box.hidden ? tr("contact.contact", "Contact") : tr("contact.close", "Close");
       link.setAttribute("aria-expanded", String(!box.hidden));
     });
     return [h("div", { className: "ordt-org-row ordt-small" }, h("span", {}, record.organisation), link), box];
@@ -3526,9 +3594,9 @@ export class RndtPanel {
   /** The abstract cut at a few lines, with More / Less: a long one pushed the first service below the fold. */
   private renderAbstract(abstract: string): HTMLElement {
     const text = h("p", { className: "ordt-abstract ordt-clamped" }, abstract);
-    const toggle = h("button", { className: "ordt-link ordt-abstract-toggle", type: "button" }, "More");
+    const toggle = h("button", { className: "ordt-link ordt-abstract-toggle", type: "button" }, tr("abstract.more", "More"));
     toggle.addEventListener("click", () => {
-      toggle.textContent = text.classList.toggle("ordt-clamped") ? "More" : "Less";
+      toggle.textContent = text.classList.toggle("ordt-clamped") ? tr("abstract.more", "More") : tr("abstract.less", "Less");
     });
     return h("div", { className: "ordt-abstract-wrap" }, text, toggle);
   }
