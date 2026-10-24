@@ -59,7 +59,7 @@ GeoLibre 3.4.0, to be declared as `minGeoLibreVersion` in the registry entry wit
 | `registerAssistantToolSpec`, `registerAssistantGuidance` | the tools and the guidance of the [AI Assistant](../guides/ai-assistant.md) (GeoLibre 3.0 and 3.1, [#58](https://github.com/ondata/openrndt-geolibre/issues/58), from 0.3.13) | no: without them the assistant does not know the panel |
 | `{ signal }`, second argument of a tool callback | Stop ends a tool's wait at once (after GeoLibre 3.4.0, opengeos/GeoLibre#3161; [#59](https://github.com/ondata/openrndt-geolibre/issues/59), from 0.3.14) | no: without it a tool waits at most 10 s (20 to add) |
 | `assistant.description` in `plugin.json` | read by the assistant's `activate_plugin` to offer the plugin while it is off (after GeoLibre 3.4.0, opengeos/GeoLibre#3160; #59, from 0.3.14) | no: GeoLibre 3.4.0 ignores it |
-| `getLocale`, `onLocaleChange`, `translate`, `registerTranslations`; titles and menu labels as getters | the panel in Italian when GeoLibre is (GeoLibre 3.4.0, [#3](https://github.com/ondata/openrndt-geolibre/issues/3), next release): see [Language](language.md) | no: without them the panel is in English |
+| `getLocale`, `onLocaleChange`, `translate`, `registerTranslations`; titles and menu labels as getters | the panel in Italian when GeoLibre is (GeoLibre 3.4.0, [#3](https://github.com/ondata/openrndt-geolibre/issues/3), from 0.4.0): see [Language](language.md) | no: without them the panel is in English |
 
 Every method except `registerRightPanel` is called only if present.[^host]
 

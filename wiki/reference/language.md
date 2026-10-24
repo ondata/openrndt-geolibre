@@ -18,7 +18,7 @@ sources:
 
 # What follows the language
 
-From the next release (#3). The panel speaks the language GeoLibre is set to in **Settings > Language**: Italian when GeoLibre is in Italian (`it`, `it-IT`), English in every other language. There is one plugin, not an Italian copy.
+From 0.4.0 (#3). The panel speaks the language GeoLibre is set to in **Settings > Language**: Italian when GeoLibre is in Italian (`it`, `it-IT`), English in every other language. There is one plugin, not an Italian copy.
 
 In Italian, besides the labels and the messages:
 
