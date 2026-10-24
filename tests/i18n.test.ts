@@ -148,3 +148,69 @@ describe("the panel follows a language switch (#3)", () => {
     plugin.deactivate(host);
   });
 });
+
+describe("the panel in Italian (#3)", () => {
+  /** English phrases of the panel's own UI: none may be left with GeoLibre in Italian. */
+  const ENGLISH = [
+    "Search help",
+    "Settings",
+    "Advanced filters",
+    "Available as",
+    "Sort by",
+    "Clear all",
+    "Open data only",
+    "Copy id",
+    "Zoom to extent",
+    "Metadata updated",
+    "Add to map",
+    "Select a layer",
+    "Show footprint",
+    "Hide footprint",
+    "Copy URL",
+    "Readable names",
+    "Records whose",
+    "Recent searches",
+    "Remember my last",
+    "Any theme",
+    "Hydrography",
+    "of the link",
+  ];
+
+  it("leaves none of its English labels in the form, the results and an open record", async () => {
+    const { host: lang } = languageHost("it");
+    let registration: GeoLibreRightPanelRegistration | null = null;
+    const host = {
+      ...lang,
+      registerRightPanel: (p: GeoLibreRightPanelRegistration) => {
+        registration = p;
+        return vi.fn();
+      },
+      openRightPanel: vi.fn(() => true),
+      closeRightPanel: vi.fn(),
+      fetchArrayBuffer: vi.fn(async (url: string) =>
+        new TextEncoder().encode(url.includes("/rest/metadata/search") ? fixture("search-services.json") : fixture("wms-piemonte-111.xml")).buffer as ArrayBuffer,
+      ),
+      fitBounds: vi.fn(),
+      getViewBounds: () => [12, 41, 13, 42],
+      addWmsLayer: vi.fn(() => "wms-1"),
+    } as unknown as RndtHost;
+    plugin.activate(host);
+    const container = document.createElement("div");
+    document.body.append(container);
+    registration!.render(container);
+    container.querySelector<HTMLInputElement>('input[name="text"]')!.value = "catasto";
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const results = container.textContent!;
+    container.querySelector<HTMLButtonElement>(".ordt-result-title")!.click();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const detail = container.querySelector(".ordt-detail-view")!.textContent!;
+    expect(container.querySelector('select[name="theme"]')!.textContent).toContain("Idrografia");
+    expect(ENGLISH.filter((phrase) => results.includes(phrase) || detail.includes(phrase))).toEqual([]);
+    expect(results).toContain("Aiuto alla ricerca");
+    // The WMS was read: its add button is there, in Italian.
+    expect(detail).toMatch(/Aggiungi alla mappa|Scegli un layer/);
+    plugin.deactivate(host);
+  });
+});
+
