@@ -1,7 +1,7 @@
 # Update Log
 
 ## 2026-10-24
-* **Update**: [Share a search](guides/share-a-search.md): the address bar of GeoLibre web follows the panel (#61, next release). [URL parameters](reference/url-parameters.md): the plugin writes the address.
+* **Update**: [Share a search](guides/share-a-search.md): the address bar of GeoLibre web follows the panel (#61, from 0.3.15). [URL parameters](reference/url-parameters.md): the plugin writes the address.
 
 ## 2026-10-20
 * **New**: [Reference services for tests](development/reference-services.md): two services per kind of try, measured, with GeoLibre web links (#60). **Update**: [Build and test](development/build-and-test.md): the live run re-checks them.

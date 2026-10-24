@@ -39,6 +39,7 @@ The cadastral maps of Italian municipalities, published by the Agenzia delle Ent
 ### 7. Keep it, share it, hand it to an AI agent
 
 - **Share**, in the ⋯ menu of the results or of a record, builds a link like the ones above and hands it to your system's share sheet (mail, WhatsApp, Teams…), or copies it. Whoever opens it finds the search on screen, the map where you were looking, and the catalogue layers you turned on, in the same order. Only layers the web version can show go in (https servers that let the browser read them): the panel names the ones left out.
+- **The address bar** of GeoLibre web follows the panel: the search, the record open and the map view are always in it, ready to copy. Layers stay out of it: for those, use Share.
 - **Save the project**: the search goes into it, with the record you had open. Whoever opens the file finds the same search, run again on today's catalogue.
 - **Copy for an agent**, in the ⋯ menu of the results, copies the search as Markdown, with the filters in words, the records as a table and a ready `curl` request: paste it into an AI assistant and go on from there with [openrndt](#openrndt-the-same-catalogue-from-the-command-line).
 

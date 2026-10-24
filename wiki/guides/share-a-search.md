@@ -60,7 +60,7 @@ The [openrndt](https://github.com/ondata/openrndt) command line tool writes such
 
 # From the address bar
 
-From the next release (#61). In GeoLibre web the address follows the panel: half a second after a search, a record opened or closed, or a map move, it holds the same parameters Share writes, the search (or `?rndt=<id>` of the record open) and the map view (`lat`, `lon`, `zoom`). The address can be copied as it is. Differences from Share:
+From 0.3.15 (#61). In GeoLibre web the address follows the panel: half a second after a search, a record opened or closed, or a map move, it holds the same parameters Share writes, the search (or `?rndt=<id>` of the record open) and the map view (`lat`, `lon`, `zoom`). The address can be copied as it is. Differences from Share:
 
 - no layers: Share checks over the network that the browser can draw each one, too slow at every move. To pass layers on, use Share;
 - no `?plugin=`: the address keeps the one it had, or none;
