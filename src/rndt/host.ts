@@ -2,6 +2,7 @@ import type { Feature, FeatureCollection, Geometry } from "geojson";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import type { GeoLibreAppAPI } from "../lib/geolibre/host-api";
 import type { GetProj4 } from "./crs";
+import { tr } from "./i18n";
 import type { Bbox } from "./query";
 
 /**
@@ -195,17 +196,21 @@ export async function fetchTextFrom(
   // to geoportale.comune.milano.it, NXDOMAIN since 2026-09-27) from one that
   // does not answer.
   if (await nameIsMissing(host, hostname)) {
-    throw new Error(`server ${hostname} does not exist: its name is not in the DNS`);
+    throw new Unreachable(tr("error.noDns", "server {{host}} does not exist: its name is not in the DNS", { host: hostname }));
   }
   // In a browser a server without CORS headers fails like one that is down
   // (a TypeError, "Failed to fetch" or "NetworkError"), but it is fine: an
   // opaque request tells them apart. Not a fault to report to its owner.
   if (!isDesktop() && lastError instanceof Error && lastError.name === "TypeError" && (await answersOpaque(candidates[0]))) {
-    throw new Error(`${hostname} answers, ${BROWSER_BLOCK_NOTE}`);
+    throw new Error(tr("error.answers", "{{host}} answers, {{note}}", { host: hostname, note: browserBlockNote() }));
   }
   const reason = lastError instanceof Error ? lastError.message : String(lastError);
-  const tried = candidates.length > 1 ? " (tried HTTPS and HTTP)" : "";
-  throw new Error(`cannot reach ${new URL(url).host}${tried}: ${reason}`);
+  const where = new URL(url).host;
+  throw new Unreachable(
+    candidates.length > 1
+      ? tr("error.unreachableBoth", "cannot reach {{host}} (tried HTTPS and HTTP): {{reason}}", { host: where, reason })
+      : tr("error.unreachable", "cannot reach {{host}}: {{reason}}", { host: where, reason }),
+  );
 }
 
 /** GeoLibre Desktop (Tauri), whose native client reads services without CORS. */
@@ -214,8 +219,12 @@ export function isDesktop(): boolean {
 }
 
 /** End of the error for a service the web version cannot read; no error report is offered for it. */
-export const BROWSER_BLOCK_NOTE =
-  "but a web page cannot read it: the server sends no CORS headers. The service works in GeoLibre Desktop";
+/** A server that is not there or does not answer: told by its class, not by its words, which follow the language (#3). */
+export class Unreachable extends Error {}
+
+/** What a message says of a server without CORS headers, in the panel's language: not a fault to report to its owner. */
+export const browserBlockNote = () =>
+  tr("error.noCors", "but a web page cannot read it: the server sends no CORS headers. The service works in GeoLibre Desktop");
 
 /** True when the browser gets an answer it may not read (a request without CORS). */
 async function answersOpaque(url: string): Promise<boolean> {

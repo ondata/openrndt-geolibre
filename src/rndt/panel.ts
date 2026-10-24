@@ -26,7 +26,7 @@ import {
   throwArcgisError,
   type ArcgisUrl,
 } from "./arcgis";
-import { answersWithImage, BROWSER_BLOCK_NOTE, browserGetsImage, browserNeedsHttp, browserReaches, drawnBbox, fetchJson, fetchText, fetchTextFrom, GEO_EDITOR_PLUGIN_ID, isDesktop, reachableEndpoint, testTile, type RndtHost, type WmsLayerOptions } from "./host";
+import { answersWithImage, browserBlockNote, browserGetsImage, browserNeedsHttp, browserReaches, drawnBbox, fetchJson, fetchText, fetchTextFrom, GEO_EDITOR_PLUGIN_ID, isDesktop, reachableEndpoint, testTile, Unreachable, type RndtHost, type WmsLayerOptions } from "./host";
 import {
   bestMatchingLayer,
   buildGetFeatureUrl,
@@ -56,7 +56,7 @@ import {
 import { clearHistory, loadHistory, matchesEntry, saveHistory, whenLabel, withEntry, withTopUpdated, withoutEntry, type HistoryEntry } from "./history";
 import type { PanelState } from "./project-state";
 import { shareUrl, type LinkLayer, type LinkSearch } from "./url-params";
-import { tr } from "./i18n";
+import { isItalian, tr, trCount } from "./i18n";
 import { agentText } from "./agent-text";
 import { detailLoading, TOOL_WAIT_MS, type AssistantAdd, type AssistantSearch } from "./assistant";
 import { bboxError, buildCurlCommand, buildSearchUrl, clampBbox, emptyForm, idForm, joinNames, recordIdIn, splitNames, type Bbox, type ResourceKind, type LinkKind, type SearchForm, type SpatialRel, type TextMode } from "./query";
@@ -208,6 +208,9 @@ function host(url: string): string {
     return url;
   }
 }
+
+/** A WMS layer not offered in EPSG:3857: no other service of the record will do better. */
+class NotInWebMercator extends Error {}
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -366,7 +369,7 @@ export function groupServices(services: RndtService[]): ServiceGroup[] {
 
 /** "3 layers", "1 layer". */
 function layerCount(n: number): string {
-  return `${n.toLocaleString("en")} ${n === 1 ? "layer" : "layers"}`;
+  return trCount("layers.count", "{{n}} layer", "{{n}} layers", n);
 }
 
 /** Scroll a layer list to its first ticked row: the preselected layer may be far down. */
@@ -404,8 +407,8 @@ function repoLink(): HTMLAnchorElement {
     href: PLUGIN_REPO_URL,
     target: "_blank",
     rel: "noopener",
-    title: "The plugin on GitHub: code, releases, issues",
-    "aria-label": "The plugin on GitHub",
+    title: tr("footer.repoTitle", "The plugin on GitHub: code, releases, issues"),
+    "aria-label": tr("footer.repoLabel", "The plugin on GitHub"),
   });
   link.innerHTML = GITHUB_MARK; // a constant, not user data
   return link;
@@ -538,16 +541,57 @@ const FOLD_THRESHOLD = 8;
 const MAX_GROUP_TESTS = 10;
 
 const LINK_KINDS: LinkKind[] = ["WMS", "WFS", "ArcGIS REST"];
-const KIND_OPTIONS: Option[] = [
-  { value: "all", label: "All" },
-  { value: "data", label: "Data" },
-  { value: "services", label: "Services" },
+const KIND_OPTIONS = (): Option[] => [
+  { value: "all", label: tr("kind.all", "All") },
+  { value: "data", label: tr("kind.data", "Data") },
+  { value: "services", label: tr("kind.services", "Services") },
 ];
-const TEXT_MODES: Option[] = [
-  { value: "all", label: "All words" },
-  { value: "any", label: "Any word" },
+const TEXT_MODES = (): Option[] => [
+  { value: "all", label: tr("mode.all", "All words") },
+  { value: "any", label: tr("mode.any", "Any word") },
   { value: "lucene", label: "Lucene" },
 ];
+
+/**
+ * The options of constants.ts in the panel's language (#3). Their English
+ * labels stay there for "Copy for an agent"; an INSPIRE theme in Italian is
+ * its catalogue value, already the Italian name.
+ */
+const themeOptions = (): Option[] => INSPIRE_THEMES.map((o) => (isItalian() ? { ...o, label: o.value } : o));
+const optionsIn = (options: Option[], labels: Record<string, string>): Option[] => options.map((o) => ({ ...o, label: labels[o.value] ?? o.label }));
+const serviceTypeOptions = () =>
+  optionsIn(SERVICE_TYPES, {
+    view: tr("serviceType.view", "View (WMS, WMTS)"),
+    download: tr("serviceType.download", "Download (WFS, ATOM)"),
+    discovery: tr("serviceType.discovery", "Discovery (CSW)"),
+    transformation: tr("serviceType.transformation", "Transformation"),
+    invoke: tr("serviceType.invoke", "Invoke"),
+    other: tr("serviceType.other", "Other"),
+  });
+const searchFieldOptions = () =>
+  optionsIn(SEARCH_FIELDS, {
+    "": tr("field.anywhere", "Anywhere"),
+    title: tr("field.title", "Title"),
+    description: tr("field.abstract", "Abstract"),
+    apiso_Lineage_txt: tr("field.lineage", "Lineage"),
+    apiso_AccessConstraints_s: tr("field.limitation", "Use limitation"),
+  });
+const dateFieldOptions = () =>
+  optionsIn(DATE_FIELDS, {
+    apiso_RevisionDate_dt: tr("dateField.revision", "Revision"),
+    apiso_PublicationDate_dt: tr("dateField.publication", "Publication"),
+    apiso_CreationDate_dt: tr("dateField.creation", "Creation"),
+    sys_created_dt: tr("dateField.catalogue", "Added to catalogue"),
+    apiso_Modified_dt: tr("dateField.modified", "Record modified"),
+  });
+const sortOptions = () =>
+  optionsIn(SORT_OPTIONS, {
+    "": tr("sort.relevance", "Relevance"),
+    "title:asc": tr("sort.titleAsc", "Title A-Z"),
+    "title:desc": tr("sort.titleDesc", "Title Z-A"),
+    "apiso_Modified_dt:desc": tr("sort.newest", "Metadata date, newest first"),
+    "apiso_Modified_dt:asc": tr("sort.oldest", "Metadata date, oldest first"),
+  });
 
 /** A help example: clicking it fills text, mode and field, then searches. */
 interface SearchExample {
@@ -558,75 +602,81 @@ interface SearchExample {
   note: string;
 }
 
-const SEARCH_EXAMPLES: SearchExample[] = [
+const SEARCH_EXAMPLES = (): SearchExample[] => [
   {
     mode: "all",
     text: "catastale comune misiliscemi",
-    note: "every word must appear",
+    note: tr("example.all", "every word must appear"),
   },
   {
     mode: "any",
     text: "idrografia fiumi",
-    note: "one word is enough: more results",
+    note: tr("example.any", "one word is enough: more results"),
   },
-  { mode: "lucene", text: '"comune di misiliscemi"', note: "exact phrase" },
-  { mode: "lucene", text: "catastale AND NOT comune", note: "exclude a word" },
+  { mode: "lucene", text: '"comune di misiliscemi"', note: tr("example.phrase", "exact phrase") },
+  { mode: "lucene", text: "catastale AND NOT comune", note: tr("example.not", "exclude a word") },
   {
     mode: "lucene",
     text: 'catastale AND NOT EnteResponsabile_s:"Agenzia delle Entrate"',
-    note: "leave out an organisation (from about 8,100 records to about 440); the name must be exact, case included",
+    note: tr("example.org", "leave out an organisation (from about 8,100 records to about 440); the name must be exact, case included"),
   },
-  { mode: "all", text: "misilis*", note: "* truncates a word, in every mode" },
+  { mode: "all", text: "misilis*", note: tr("example.star", "* truncates a word, in every mode") },
 ];
 
 /** One entry per "Search in" option, same order as SEARCH_FIELDS. */
-const FIELD_EXAMPLES: SearchExample[] = [
-  { mode: "all", text: "ortofoto", field: "", note: "the whole record" },
-  { mode: "all", text: "ortofoto", field: "title", note: "the title only" },
+const FIELD_EXAMPLES = (): SearchExample[] => [
+  { mode: "all", text: "ortofoto", field: "", note: tr("fieldHelp.anywhere", "the whole record") },
+  { mode: "all", text: "ortofoto", field: "title", note: tr("fieldHelp.title", "the title only") },
   {
     mode: "all",
     text: "ortofoto",
     field: "description",
-    note: "the abstract, the description of the resource",
+    note: tr("fieldHelp.abstract", "the abstract, the description of the resource"),
   },
   {
     mode: "all",
     text: "ortofoto",
     field: "apiso_Lineage_txt",
-    note: "how the data were produced: sources, methods, processing",
+    note: tr("fieldHelp.lineage", "how the data were produced: sources, methods, processing"),
   },
   {
     mode: "all",
     text: "*CC*",
     field: "apiso_AccessConstraints_s",
-    note: "conditions of use and access, e.g. the licence. The statement is stored as one exact, case-sensitive value: a plain word matches only if it is the whole statement, so surround words with *",
+    note: tr(
+      "fieldHelp.limitation",
+      "conditions of use and access, e.g. the licence. The statement is stored as one exact, case-sensitive value: a plain word matches only if it is the whole statement, so surround words with *",
+    ),
   },
 ];
 
 /** One entry per "Where" option, same order as WHERE_OPTIONS (defined below). */
-const WHERE_HELP: { value: Where; note: string; box?: string }[] = [
-  { value: "anywhere", note: "no area filter, the whole catalogue" },
+const WHERE_HELP = (): { value: Where; note: string; box?: string }[] => [
+  { value: "anywhere", note: tr("whereHelp.anywhere", "no area filter, the whole catalogue") },
   {
     value: "view",
-    note: "the part of the map visible when you press Search; moving the map afterwards does not search again",
+    note: tr("whereHelp.view", "the part of the map visible when you press Search; moving the map afterwards does not search again"),
   },
   {
     value: "drawn",
-    note: "the rectangle around all the shapes drawn with GeoEditor, not their exact outline; a single point becomes a square of about 100 m. Choosing it turns GeoEditor on",
+    note: tr(
+      "whereHelp.drawn",
+      "the rectangle around all the shapes drawn with GeoEditor, not their exact outline; a single point becomes a square of about 100 m. Choosing it turns GeoEditor on",
+    ),
   },
   {
     value: "box",
-    note: "four numbers in degrees (WGS84): west, south, east, north. Example, the province of Palermo:",
+    note: tr("whereHelp.box", "four numbers in degrees (WGS84): west, south, east, north. Example, the province of Palermo:"),
     box: "12.95, 37.60, 14.30, 38.30",
   },
 ];
 
 /** A "?" button that shows and hides `box`, an inline help panel. */
 /** Shortcuts under the date range: days back from today. */
-const DATE_PRESETS: [string, number][] = [
-  ["Last week", 7],
-  ["Last month", 30],
-  ["Last year", 365],
+const DATE_PRESETS = (): [string, number][] => [
+  [tr("datePreset.week", "Last week"), 7],
+  [tr("datePreset.month", "Last month"), 30],
+  [tr("datePreset.year", "Last year"), 365],
 ];
 
 /** yyyy-mm-dd in local time (`toISOString` would give the UTC day). */
@@ -722,24 +772,24 @@ function copyEmailControl(label: string, email: Email, to: string, className: st
   button.addEventListener("click", () => {
     void navigator.clipboard?.writeText(emailText(email)).then(
       () => {
-        button.textContent = "Copied: paste it into a new email";
+        button.textContent = tr("email.copied", "Copied: paste it into a new email");
         setTimeout(() => (button.textContent = label), 3000);
       },
       () => undefined,
     );
   });
-  return h("span", { className: "ordt-report-wrap" }, button, " ", h("span", { className: "ordt-muted" }, `(to ${to})`));
+  return h("span", { className: "ordt-report-wrap" }, button, " ", h("span", { className: "ordt-muted" }, tr("email.to", "(to {{to}})", { to })));
 }
 
 /** "Copy error report", under the error of a service that failed to load. */
 function reportControl(record: RndtRecord, service: RndtService, error: string): HTMLElement {
   const report = errorReport(record, service, error);
   return copyEmailControl(
-    "Copy error report",
+    tr("report.copy", "Copy error report"),
     report,
-    report.cc.length ? `${report.to.join(", ")}, RNDT in copy` : report.to.join(", "),
+    report.cc.length ? tr("report.toWithCopy", "{{to}}, RNDT in copy", { to: report.to.join(", ") }) : report.to.join(", "),
     "ordt-report",
-    "Copy recipients, subject and text of an email about this error",
+    tr("report.title", "Copy recipients, subject and text of an email about this error"),
   );
 }
 
@@ -763,59 +813,95 @@ function termItem(term: string, note: string): HTMLElement {
  * Figures in the help texts were measured on geodati.gov.it on 2026-09-27
  * (23,831 records) and rounded, so they stay true as the catalogue grows.
  */
-const RESOURCES_HELP: [string, string][] = [
-  ["All", "data and services"],
-  ["Data", "records describing datasets and dataset series, about 20,700"],
+const RESOURCES_HELP = (): [string, string][] => [
+  [tr("kind.all", "All"), tr("kindHelp.all", "data and services")],
+  [tr("kind.data", "Data"), tr("kindHelp.data", "records describing datasets and dataset series, about 20,700")],
   [
-    "Services",
-    "records describing a web service (WMS, WFS, ATOM and others), about 3,200; a menu lets you pick the service type. INSPIRE theme and Open data only do not apply to services",
+    tr("kind.services", "Services"),
+    tr(
+      "kindHelp.services",
+      "records describing a web service (WMS, WFS, ATOM and others), about 3,200; a menu lets you pick the service type. INSPIRE theme and Open data only do not apply to services",
+    ),
   ],
 ];
 
-const RESOURCES_NOTE =
-  "This is the type of the record, not what you can do with it: a dataset record often links to a WMS or WFS too. The cadastral maps are about 7,700 dataset records, each with a WMS and a WFS, while the national cadastral service is a single service record. To find what you can add to the map, use Available as.";
+const RESOURCES_NOTE = () =>
+  tr(
+    "kindHelp.note",
+    "This is the type of the record, not what you can do with it: a dataset record often links to a WMS or WFS too. The cadastral maps are about 7,700 dataset records, each with a WMS and a WFS, while the national cadastral service is a single service record. To find what you can add to the map, use Available as.",
+  );
 
-const AVAILABLE_AS_HELP = [
-  "Keeps the records that link to a WMS, a WFS or an ArcGIS REST service, the services this plugin can add to the map, whatever the record type. With more boxes ticked, one of them is enough: idrografia finds about 1,130 records, 590 of them with a WMS or WFS.",
-  "The check looks for wms or wfs in the link address, so it matches the WMS and WFS badges of the results in about 99 cases out of 100. ArcGIS REST looks for a MapServer, ImageServer or FeatureServer under rest/services: about 1,600 records, about 650 of them with no WMS or WFS (Arpae Emilia-Romagna, Regione Lombardia, Arpa Piemonte).",
+const AVAILABLE_AS_HELP = () => [
+  tr(
+    "availableHelp.what",
+    "Keeps the records that link to a WMS, a WFS or an ArcGIS REST service, the services this plugin can add to the map, whatever the record type. With more boxes ticked, one of them is enough: idrografia finds about 1,130 records, 590 of them with a WMS or WFS.",
+  ),
+  tr(
+    "availableHelp.how",
+    "The check looks for wms or wfs in the link address, so it matches the WMS and WFS badges of the results in about 99 cases out of 100. ArcGIS REST looks for a MapServer, ImageServer or FeatureServer under rest/services: about 1,600 records, about 650 of them with no WMS or WFS (Arpae Emilia-Romagna, Regione Lombardia, Arpa Piemonte).",
+  ),
 ];
 
-const THEME_HELP = [
-  "One of the 34 INSPIRE themes, as declared by the publisher. Almost every dataset has one; services have none, so with Services this filter is ignored.",
+const THEME_HELP = () => [
+  tr(
+    "themeHelp.what",
+    "One of the 34 INSPIRE themes, as declared by the publisher. Almost every dataset has one; services have none, so with Services this filter is ignored.",
+  ),
 ];
 
 /** Under the two fields greyed out with Services (#33). */
-const SERVICES_NO_THEME = "Not with Services: the catalogue gives services no theme.";
-const SERVICES_NO_LICENCE = "Not with Services: the catalogue gives services no licence.";
+const SERVICES_NO_THEME = () => tr("services.noTheme", "Not with Services: the catalogue gives services no theme.");
+const SERVICES_NO_LICENCE = () => tr("services.noLicence", "Not with Services: the catalogue gives services no licence.");
 
-const KEYWORDS_HELP = [
-  "Keywords as the publisher wrote them. The match is exact and case-sensitive: opendata finds thousands of records, OpenData only a few.",
-  "Separate several keywords with commas: a record needs just one of them.",
+const KEYWORDS_HELP = () => [
+  tr(
+    "keywordsHelp.match",
+    "Keywords as the publisher wrote them. The match is exact and case-sensitive: opendata finds thousands of records, OpenData only a few.",
+  ),
+  tr("keywordsHelp.several", "Separate several keywords with commas: a record needs just one of them."),
 ];
 
-const ORGANISATION_HELP = [
-  "The owner of the resource, with its name as in the IPA index of public administrations, not the metadata contact. Part of the name is enough and case does not matter: piemonte finds Regione Piemonte.",
-  "Data are listed under whoever published them: data commissioned by a municipality but published by its Region appear under the Region.",
-  "Separate several organisations with commas; put a name that holds a comma in double quotes. Hide these hides them instead: entrate hides Agenzia delle Entrate, which alone publishes about a third of the catalogue (its municipal cadastral maps).",
-  "In the results, the ⋯ menu of a record keeps only its organisation or hides it, or keeps only the records of its owner by the IPA code at the start of its id (r_piemon), which also finds other spellings of the name and records that name no organisation.",
+const ORGANISATION_HELP = () => [
+  tr(
+    "orgHelp.owner",
+    "The owner of the resource, with its name as in the IPA index of public administrations, not the metadata contact. Part of the name is enough and case does not matter: piemonte finds Regione Piemonte.",
+  ),
+  tr(
+    "orgHelp.publisher",
+    "Data are listed under whoever published them: data commissioned by a municipality but published by its Region appear under the Region.",
+  ),
+  tr(
+    "orgHelp.several",
+    "Separate several organisations with commas; put a name that holds a comma in double quotes. Hide these hides them instead: entrate hides Agenzia delle Entrate, which alone publishes about a third of the catalogue (its municipal cadastral maps).",
+  ),
+  tr(
+    "orgHelp.menu",
+    "In the results, the ⋯ menu of a record keeps only its organisation or hides it, or keeps only the records of its owner by the IPA code at the start of its id (r_piemon), which also finds other spellings of the name and records that name no organisation.",
+  ),
 ];
 
-const OPEN_DATA_HELP = [
-  "Records whose publisher filled in the open data field. It is a declaration, not a check: the field may hold a licence (CC BY 4.0), just the words open data, or even a non-commercial licence.",
-  "Records that state an open licence only in another field are left out. Ignored with Services.",
+const OPEN_DATA_HELP = () => [
+  tr(
+    "openDataHelp.what",
+    "Records whose publisher filled in the open data field. It is a declaration, not a check: the field may hold a licence (CC BY 4.0), just the words open data, or even a non-commercial licence.",
+  ),
+  tr("openDataHelp.left", "Records that state an open licence only in another field are left out. Ignored with Services."),
 ];
 
-const DATE_HELP: [string, string][] = [
-  ["Revision", "the last update of the resource"],
-  ["Publication", "when the resource was published"],
-  ["Creation", "when the resource was produced"],
+const DATE_HELP = (): [string, string][] => [
+  [tr("dateField.revision", "Revision"), tr("dateHelp.revision", "the last update of the resource")],
+  [tr("dateField.publication", "Publication"), tr("dateHelp.publication", "when the resource was published")],
+  [tr("dateField.creation", "Creation"), tr("dateHelp.creation", "when the resource was produced")],
   [
-    "Added to catalogue",
-    "when the record entered the RNDT catalogue, not a date of the resource. Every record has it, but 23,342 records carry 25 April 2026, when the catalogue was loaded in bulk: it tells new records only after that day",
+    tr("dateField.catalogue", "Added to catalogue"),
+    tr(
+      "dateHelp.catalogue",
+      "when the record entered the RNDT catalogue, not a date of the resource. Every record has it, but 23,342 records carry 25 April 2026, when the catalogue was loaded in bulk: it tells new records only after that day",
+    ),
   ],
   [
-    "Record modified",
-    "when the record was last changed, not a date of the resource. Every record has it; Newest and Oldest sort by it",
+    tr("dateField.modified", "Record modified"),
+    tr("dateHelp.modified", "when the record was last changed, not a date of the resource. Every record has it; Newest and Oldest sort by it"),
   ],
 ];
 
@@ -829,36 +915,39 @@ export function withEffectiveSort(form: SearchForm): SearchForm {
   return form.sort === "" && form.text.trim() === "" ? { ...form, sort: "apiso_Modified_dt:desc" } : form;
 }
 
-const SORT_HELP: [string, string][] = [
+const SORT_HELP = (): [string, string][] => [
   [
-    "Relevance",
-    "the records that best match the words searched come first. Without any text the catalogue has nothing to weigh and gives the records in the order it indexed them, so the newest metadata come first instead",
+    tr("sort.relevance", "Relevance"),
+    tr(
+      "sortHelp.relevance",
+      "the records that best match the words searched come first. Without any text the catalogue has nothing to weigh and gives the records in the order it indexed them, so the newest metadata come first instead",
+    ),
   ],
-  ["Title", "alphabetical order"],
+  [tr("sortHelp.titleTerm", "Title"), tr("sortHelp.title", "alphabetical order")],
   [
-    "Metadata date",
-    "when the record was last updated in the catalogue. It is not one of the dates of the Date filter",
+    tr("sortHelp.dateTerm", "Metadata date"),
+    tr("sortHelp.date", "when the record was last updated in the catalogue. It is not one of the dates of the Date filter"),
   ],
 ];
 
-const SORT_NOTE =
-  "The catalogue cannot sort by the resource dates (revision, publication, creation): it ignores that request.";
+const SORT_NOTE = () =>
+  tr("sortHelp.note", "The catalogue cannot sort by the resource dates (revision, publication, creation): it ignores that request.");
 /** The search bar's text box and button join the form through this id. */
 const FORM_ID = "ordt-search-form";
 
-const WHERE_OPTIONS: Option[] = [
-  { value: "anywhere", label: "Anywhere" },
-  { value: "view", label: "Current map view" },
-  { value: "drawn", label: "Drawn shapes (GeoEditor)" },
-  { value: "box", label: "Box (west, south, east, north)" },
+const WHERE_OPTIONS = (): Option[] => [
+  { value: "anywhere", label: tr("where.anywhere", "Anywhere") },
+  { value: "view", label: tr("where.view", "Current map view") },
+  { value: "drawn", label: tr("where.drawn", "Drawn shapes (GeoEditor)") },
+  { value: "box", label: tr("where.box", "Box (west, south, east, north)") },
 ];
-const ORG_MODES: Option[] = [
-  { value: "only", label: "Show only these" },
-  { value: "hide", label: "Hide these" },
+const ORG_MODES = (): Option[] => [
+  { value: "only", label: tr("orgMode.only", "Show only these") },
+  { value: "hide", label: tr("orgMode.hide", "Hide these") },
 ];
-const SPATIAL_RELS: Option[] = [
-  { value: "Intersects", label: "Touches the area" },
-  { value: "Within", label: "Inside the area" },
+const SPATIAL_RELS = (): Option[] => [
+  { value: "Intersects", label: tr("spatial.touches", "Touches the area") },
+  { value: "Within", label: tr("spatial.inside", "Inside the area") },
 ];
 
 /**
@@ -1264,7 +1353,7 @@ export class RndtPanel {
       "fieldset",
       { className: "ordt-fieldset ordt-service-types", hidden: true },
       h("legend", {}, "Service type"),
-      ...SERVICE_TYPES.map((o) =>
+      ...serviceTypeOptions().map((o) =>
         h("label", { className: "ordt-check" }, h("input", { type: "checkbox", name: "serviceType", value: o.value }), o.label),
       ),
     );
@@ -1277,10 +1366,10 @@ export class RndtPanel {
       hidden: true,
       "aria-label": "Box as west, south, east, north",
     });
-    const spatialRel = radioGroup("spatialRel", SPATIAL_RELS, "Intersects", () => undefined);
+    const spatialRel = radioGroup("spatialRel", SPATIAL_RELS(), "Intersects", () => undefined);
     spatialRel.classList.add("ordt-spatial-rel", "ordt-small");
     spatialRel.setAttribute("aria-label", "Records whose extent");
-    const whereSelect = select(WHERE_OPTIONS, "view", {
+    const whereSelect = select(WHERE_OPTIONS(), "view", {
       name: "where",
       "aria-label": "Where",
       onchange: () => {
@@ -1290,7 +1379,7 @@ export class RndtPanel {
       },
     });
 
-    const themes = select([{ value: "", label: "Any theme" }, ...INSPIRE_THEMES], "", {
+    const themes = select([{ value: "", label: "Any theme" }, ...themeOptions()], "", {
       name: "theme",
       "aria-label": "INSPIRE theme",
     });
@@ -1312,12 +1401,12 @@ export class RndtPanel {
       h(
         "ul",
         {},
-        ...SEARCH_EXAMPLES.map((example) =>
+        ...SEARCH_EXAMPLES().map((example) =>
           h(
             "li",
             {},
             exampleButton(example),
-            ` ${TEXT_MODES.find((o) => o.value === example.mode)!.label}: ${example.note}`,
+            ` ${TEXT_MODES().find((o) => o.value === example.mode)!.label}: ${example.note}`,
           ),
         ),
       ),
@@ -1339,14 +1428,14 @@ export class RndtPanel {
       h(
         "ul",
         {},
-        ...FIELD_EXAMPLES.map((example) =>
+        ...FIELD_EXAMPLES().map((example) =>
           h(
             "li",
             {},
             h(
               "strong",
               {},
-              SEARCH_FIELDS.find((o) => o.value === example.field)!.label,
+              searchFieldOptions().find((o) => o.value === example.field)!.label,
             ),
             `: ${example.note}. `,
             exampleButton(example),
@@ -1359,7 +1448,7 @@ export class RndtPanel {
         "Lucene ignores this choice: write the field in the query, e.g. title:ortofoto.",
       ),
     );
-    const fieldSelect = select(SEARCH_FIELDS, "", {
+    const fieldSelect = select(searchFieldOptions(), "", {
       name: "field",
       "aria-label": "Search in",
     });
@@ -1369,14 +1458,14 @@ export class RndtPanel {
       h(
         "ul",
         {},
-        ...WHERE_HELP.map((entry) =>
+        ...WHERE_HELP().map((entry) =>
           h(
             "li",
             {},
             h(
               "strong",
               {},
-              WHERE_OPTIONS.find((o) => o.value === entry.value)!.label,
+              WHERE_OPTIONS().find((o) => o.value === entry.value)!.label,
             ),
             `: ${entry.note}`,
             entry.box
@@ -1412,18 +1501,18 @@ export class RndtPanel {
 
     const resourcesHelp = helpBox(
       "ordt-resources-help",
-      h("ul", {}, ...RESOURCES_HELP.map(([term, note]) => termItem(term, note))),
-      h("p", {}, RESOURCES_NOTE),
+      h("ul", {}, ...RESOURCES_HELP().map(([term, note]) => termItem(term, note))),
+      h("p", {}, RESOURCES_NOTE()),
     );
-    const availableAsHelp = textHelp("ordt-available-as-help", AVAILABLE_AS_HELP);
-    const themeHelp = textHelp("ordt-theme-help", THEME_HELP);
-    const keywordsHelp = textHelp("ordt-keywords-help", KEYWORDS_HELP);
-    const organisationHelp = textHelp("ordt-organisation-help", ORGANISATION_HELP);
-    const openDataHelp = textHelp("ordt-open-data-help", OPEN_DATA_HELP);
+    const availableAsHelp = textHelp("ordt-available-as-help", AVAILABLE_AS_HELP());
+    const themeHelp = textHelp("ordt-theme-help", THEME_HELP());
+    const keywordsHelp = textHelp("ordt-keywords-help", KEYWORDS_HELP());
+    const organisationHelp = textHelp("ordt-organisation-help", ORGANISATION_HELP());
+    const openDataHelp = textHelp("ordt-open-data-help", OPEN_DATA_HELP());
     const dateHelp = helpBox(
       "ordt-date-help",
       h("p", {}, "The first three are dates of the resource, not of its metadata:"),
-      h("ul", {}, ...DATE_HELP.map(([term, note]) => termItem(term, note))),
+      h("ul", {}, ...DATE_HELP().map(([term, note]) => termItem(term, note))),
       h(
         "p",
         {},
@@ -1432,8 +1521,8 @@ export class RndtPanel {
     );
     const sortHelp = helpBox(
       "ordt-sort-help",
-      h("ul", {}, ...SORT_HELP.map(([term, note]) => termItem(term, note))),
-      h("p", {}, SORT_NOTE),
+      h("ul", {}, ...SORT_HELP().map(([term, note]) => termItem(term, note))),
+      h("p", {}, SORT_NOTE()),
     );
 
     this.copyQueryEl = h(
@@ -1489,7 +1578,7 @@ export class RndtPanel {
         onchange: () => this.updateAdvancedCount(),
         oninput: () => this.updateAdvancedCount(),
       },
-      h("div", { className: "ordt-label" }, "Type", radioGroup("kind", KIND_OPTIONS, "all", toggleServiceTypes, "ordt-segmented")),
+      h("div", { className: "ordt-label" }, "Type", radioGroup("kind", KIND_OPTIONS(), "all", toggleServiceTypes, "ordt-segmented")),
       serviceTypes,
       h("div", { className: "ordt-label" }, "Where", whereSelect),
       boxInput,
@@ -1515,7 +1604,7 @@ export class RndtPanel {
           h("span", {}, "Advanced filters ", this.advancedCountEl),
           h("span", { className: "ordt-more-hint" }, "text, theme, organisation, dates, sort"),
         ),
-        h("div", { className: "ordt-label" }, "Match", radioGroup("textMode", TEXT_MODES, "all", () => undefined, "ordt-segmented")),
+        h("div", { className: "ordt-label" }, "Match", radioGroup("textMode", TEXT_MODES(), "all", () => undefined, "ordt-segmented")),
         h("div", { className: "ordt-label" }, "Search in", fieldSelect),
         h(
           "div",
@@ -1523,7 +1612,7 @@ export class RndtPanel {
           h("span", { className: "ordt-label-head" }, "INSPIRE theme", helpToggle(themeHelp, "Help on INSPIRE themes")),
           themeHelp,
           themes,
-          h("p", { className: "ordt-note ordt-services-note", hidden: true }, SERVICES_NO_THEME),
+          h("p", { className: "ordt-note ordt-services-note", hidden: true }, SERVICES_NO_THEME()),
         ),
         h(
           "div",
@@ -1566,7 +1655,7 @@ export class RndtPanel {
             }),
             this.clearButton("organisation", "organisation"),
           ),
-          radioGroup("orgMode", ORG_MODES, "only", () => undefined, "ordt-segmented"),
+          radioGroup("orgMode", ORG_MODES(), "only", () => undefined, "ordt-segmented"),
         ),
         h(
           "div",
@@ -1591,7 +1680,7 @@ export class RndtPanel {
           helpToggle(openDataHelp, "Help on open data"),
         ),
         openDataHelp,
-        h("p", { className: "ordt-note ordt-services-note", hidden: true }, SERVICES_NO_LICENCE),
+        h("p", { className: "ordt-note ordt-services-note", hidden: true }, SERVICES_NO_LICENCE()),
         h(
           "div",
           { className: "ordt-label" },
@@ -1600,20 +1689,20 @@ export class RndtPanel {
           h(
             "div",
             { className: "ordt-date-row" },
-            select(DATE_FIELDS, "apiso_RevisionDate_dt", { name: "dateField", "aria-label": "Date type" }),
+            select(dateFieldOptions(), "apiso_RevisionDate_dt", { name: "dateField", "aria-label": "Date type" }),
             h("input", { className: "ordt-input", type: "date", name: "dateFrom", "aria-label": "From" }),
             h("input", { className: "ordt-input", type: "date", name: "dateTo", "aria-label": "To" }),
           ),
           h(
             "div",
             { className: "ordt-row ordt-small ordt-date-presets" },
-            ...DATE_PRESETS.map(([label, days]) =>
+            ...DATE_PRESETS().map(([label, days]) =>
               h("button", { className: "ordt-link", type: "button", onclick: () => this.setDateFrom(days) }, label),
             ),
           ),
           h("span", { className: "ordt-hint" }, "Most records carry only one of the three resource dates."),
         ),
-        h("div", { className: "ordt-label" }, "Sort by", select(SORT_OPTIONS, "", { name: "sort", "aria-label": "Sort by" })),
+        h("div", { className: "ordt-label" }, "Sort by", select(sortOptions(), "", { name: "sort", "aria-label": "Sort by" })),
         h(
           "div",
           { className: "ordt-row ordt-small" },
@@ -1922,7 +2011,7 @@ export class RndtPanel {
 
   /** Pager with the status between its arrows, curl, sort, the ⋯ menu; below, Zoom to results, Hide footprints and, with no filter, Filters. */
   private buildResultsHead(): HTMLElement {
-    this.sortEl = select(SORT_OPTIONS, "", {
+    this.sortEl = select(sortOptions(), "", {
       className: "ordt-input ordt-sort",
       "aria-label": "Sort results",
       onchange: () => this.changeSort(),
@@ -2227,7 +2316,7 @@ export class RndtPanel {
 
     const mode = checkedValue(this.formEl, "textMode");
     if (mode && mode !== "all") {
-      chips.push({ label: TEXT_MODES.find((o) => o.value === mode)!.label, clear: () => setRadio("textMode", "all") });
+      chips.push({ label: TEXT_MODES().find((o) => o.value === mode)!.label, clear: () => setRadio("textMode", "all") });
     }
     if (this.field("field").value) {
       chips.push({ label: `In ${selected("field")}`, clear: () => (this.field("field").value = "") });
@@ -2235,7 +2324,7 @@ export class RndtPanel {
     const kind = checkedValue(this.formEl, "kind");
     if (kind && kind !== "all") {
       chips.push({
-        label: KIND_OPTIONS.find((o) => o.value === kind)!.label,
+        label: KIND_OPTIONS().find((o) => o.value === kind)!.label,
         clear: () => {
           setRadio("kind", "all");
           for (const box of this.formEl.querySelectorAll<HTMLInputElement>('input[name="serviceType"]')) box.checked = false;
@@ -2639,8 +2728,8 @@ export class RndtPanel {
       if (!box) return { error: `No layer named ${name} in service ${input.service}: use the names open_record gives.` };
       if (box.disabled) return { error: `${name} cannot be ticked: ${box.closest("label")?.title || "the panel disables it"}.` };
     }
-    const label = input.as === "features" ? /^Add features/ : /^(Add to map|Select a layer)/;
-    const button = Array.from(area.querySelectorAll<HTMLButtonElement>("button.ordt-button")).find((b) => label.test(b.textContent ?? ""));
+    const action = input.as === "features" ? "features" : "map";
+    const button = area.querySelector<HTMLButtonElement>(`button.ordt-button[data-action="${action}"]`);
     if (!button) return { error: `Service ${input.service} has no ${input.as === "features" ? "Add features" : "Add to map"} button.` };
     for (const box of inputs) {
       const wanted = input.layers.includes(box.value);
@@ -2842,7 +2931,7 @@ export class RndtPanel {
             const wms = await once(wmsServices, service.url, () => this.prepareWms(record, service));
             const layer = wms.byName.get(link.name);
             if (!layer) continue;
-            if (!wms.crsOf(layer)) throw new Error("GeoLibre cannot display it (not offered in EPSG:3857)");
+            if (!wms.crsOf(layer)) throw new NotInWebMercator("GeoLibre cannot display it (not offered in EPSG:3857)");
             return () => {
               const options = this.wmsOptions(record, wms, link.name);
               if (!this.wmsOnMap(wms.caps.getMapUrl, link.name)) {
@@ -2868,7 +2957,7 @@ export class RndtPanel {
             return record.bbox && !bboxError(record.bbox) ? record.bbox : undefined;
           };
         } catch (error) {
-          if (error instanceof Error && error.message.startsWith("GeoLibre cannot")) throw error;
+          if (error instanceof NotInWebMercator) throw error;
           // This service did not answer: the next one of the record may list the layer.
         }
       }
@@ -3477,7 +3566,7 @@ export class RndtPanel {
     const countEl = h("strong", { className: "ordt-layer-count" });
     const actions: Child[] = [];
     if (service.kind === "download" && isGeoJsonUrl(service.url) && this.app.addGeoJsonLayer) {
-      const add = h("button", { className: "ordt-button", type: "button" }, "Add to map");
+      const add = h("button", { className: "ordt-button", type: "button", "data-action": "map" }, "Add to map");
       // Disabled while it runs, so a slow server is not hit twice.
       add.addEventListener("click", () => {
         add.disabled = true;
@@ -3516,12 +3605,14 @@ export class RndtPanel {
     message: string,
     kind: "info" | "error" | "busy" = "info",
     report?: { record: RndtRecord; service: RndtService },
+    cause?: unknown,
   ): void {
     // A server without CORS headers is not at fault: nothing to report to its owner.
-    if (message.includes(BROWSER_BLOCK_NOTE)) report = undefined;
+    if (message.includes(browserBlockNote())) report = undefined;
     if (report) this.logError(report.record, report.service, message);
     area.replaceChildren(
-      h("p", { className: "ordt-note", "data-kind": kind }, message),
+      // The AI Assistant tells a server that does not answer by this, not by the words (#3).
+      h("p", { className: "ordt-note", "data-kind": kind, ...(cause instanceof Unreachable && { "data-reason": "unreachable" }) }, message),
       // On a row of its own: the same shape as the email to the organisation.
       ...(report ? [reportControl(report.record, report.service, message)] : []),
     );
@@ -3921,7 +4012,7 @@ export class RndtPanel {
         drawnAnyway,
         (name) => fixedPicture.has(name),
       );
-      const add = h("button", { className: "ordt-button ordt-primary", type: "button" });
+      const add = h("button", { className: "ordt-button ordt-primary", type: "button", "data-action": "map" });
       const result = h("p", { className: "ordt-note", hidden: true });
       const sync = () => {
         const count = selected().length;
@@ -3974,7 +4065,7 @@ export class RndtPanel {
     } catch (error) {
       // A WMS the record does not declare is a guess: its absence is not a fault to report.
       if (service.derivedFrom) this.note(area, "This ArcGIS service offers no WMS.", "info");
-      else this.note(area, `WMS error: ${errorMessage(error)}`, "error", { record, service });
+      else this.note(area, `WMS error: ${errorMessage(error)}`, "error", { record, service }, error);
     }
   }
 
@@ -4004,7 +4095,7 @@ export class RndtPanel {
       const wanted = wantedLayer(record, service, caps.featureTypes);
       const { list, controls, selected, nameOf } = this.layerList(caps.featureTypes, wanted, service.url, "single", "WFS feature types", "WFS");
       const inView = h("input", { type: "checkbox", checked: true });
-      const add = h("button", { className: "ordt-button ordt-primary", type: "button" }, "Add features");
+      const add = h("button", { className: "ordt-button ordt-primary", type: "button", "data-action": "features" }, "Add features");
       const syncAdd = () => {
         add.disabled = selected().length === 0;
         add.title = add.disabled ? "Pick a feature type first" : "";
@@ -4069,10 +4160,10 @@ export class RndtPanel {
             // A server that does not answer in time is usually sending a big
             // layer: say what to try, not only what failed.
             const message = errorMessage(error);
-            result.textContent = message.startsWith("cannot reach")
+            result.textContent = error instanceof Unreachable
               ? `WFS error: ${message}. Large layers can be slow: zoom in and keep "Only features in the current map view" checked.`
               : `WFS error: ${message}`;
-            if (!message.includes(BROWSER_BLOCK_NOTE)) {
+            if (!message.includes(browserBlockNote())) {
               result.append(" ", reportControl(record, service, `WFS error: ${message}`));
               this.logError(record, service, `WFS error: ${message}`);
             }
@@ -4093,7 +4184,7 @@ export class RndtPanel {
       showTicked(list);
       syncAdd();
     } catch (error) {
-      this.note(area, `WFS error: ${errorMessage(error)}`, "error", { record, service });
+      this.note(area, `WFS error: ${errorMessage(error)}`, "error", { record, service }, error);
     }
   }
 
@@ -4190,8 +4281,8 @@ export class RndtPanel {
         () => null,
         (name) => scaleNote(byName.get(name)!),
       );
-      const add = h("button", { className: "ordt-button ordt-primary", type: "button" });
-      const addFeatures = h("button", { className: "ordt-button", type: "button" }, "Add features");
+      const add = h("button", { className: "ordt-button ordt-primary", type: "button", "data-action": "map" });
+      const addFeatures = h("button", { className: "ordt-button", type: "button", "data-action": "features" }, "Add features");
       const inView = h("input", { type: "checkbox", checked: true });
       const result = h("p", { className: "ordt-note", hidden: true });
       const sync = () => {
@@ -4249,7 +4340,7 @@ export class RndtPanel {
             const message = `ArcGIS error: ${errorMessage(error)}`;
             result.dataset.kind = "error";
             result.textContent = message;
-            if (!message.includes(BROWSER_BLOCK_NOTE)) {
+            if (!message.includes(browserBlockNote())) {
               result.append(" ", reportControl(record, service, message));
               this.logError(record, service, message);
             }
@@ -4287,7 +4378,7 @@ export class RndtPanel {
     } catch (error) {
       // A REST endpoint the record does not declare is a guess: its absence is not a fault to report.
       if (service.derivedFrom) this.note(area, `The ArcGIS REST endpoint of this WMTS cannot be read: ${errorMessage(error)}.`, "info");
-      else this.note(area, `ArcGIS error: ${errorMessage(error)}`, "error", { record, service });
+      else this.note(area, `ArcGIS error: ${errorMessage(error)}`, "error", { record, service }, error);
     }
   }
 

@@ -202,8 +202,8 @@ describe("open_record result (#58)", () => {
   it("offers both ways when a record can be shown and downloaded", () => {
     const layer = (name: string) => ({ name, title: name, ticked: true });
     const { next } = openResult("c:1", "Catasto 1810", [
-      { service: 1, kind: "WMS", url: "https://a/wms", layers: [layer("V_1810")], buttons: ["Add to map (1)"], messages: [] },
-      { service: 2, kind: "WFS", url: "https://a/wfs", layers: [layer("S:V_1810")], buttons: ["Add features"], messages: [] },
+      { service: 1, kind: "WMS", url: "https://a/wms", layers: [layer("V_1810")], buttons: ["Add to map (1)"], actions: ["map"], messages: [] },
+      { service: 2, kind: "WFS", url: "https://a/wfs", layers: [layer("S:V_1810")], buttons: ["Add features"], actions: ["features"], messages: [] },
     ]);
     expect(next[0]).toContain('service 1, layers ["V_1810"], as "map"');
     expect(next[1]).toMatch(/^For the data: move the map to the record's area/);

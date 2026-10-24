@@ -214,6 +214,10 @@ export interface ShownService {
   more?: number;
   /** Buttons of the service, as labelled on screen. */
   buttons: string[];
+  /** What its add buttons do, whatever the language (#3): draw a layer, download features. */
+  actions: ("map" | "features")[];
+  /** A server that does not exist or does not answer. */
+  unreachable?: true;
   /** Messages shown in the service box (errors, notes). */
   messages: string[];
   /** Still loading when the wait ended. */
@@ -266,6 +270,15 @@ export function readDetail(detail: HTMLElement, filter = ""): ShownService[] {
       layers: kept.slice(0, MAX_TOOL_LAYERS),
       ...(kept.length > MAX_TOOL_LAYERS && { more: kept.length - MAX_TOOL_LAYERS }),
       buttons: Array.from(li.querySelectorAll<HTMLButtonElement>(".ordt-service-area button.ordt-button, .ordt-service-actions button.ordt-button"), (b) => text(b)),
+      actions: [
+        ...new Set(
+          Array.from(
+            li.querySelectorAll<HTMLButtonElement>(".ordt-service-area button[data-action], .ordt-service-actions button[data-action]"),
+            (b) => b.dataset.action as "map" | "features",
+          ),
+        ),
+      ],
+      ...(area?.querySelector('p.ordt-note[data-reason="unreachable"]:not([hidden])') && { unreachable: true as const }),
       messages: Array.from(area?.querySelectorAll<HTMLElement>("p.ordt-note:not([hidden])") ?? [], (p) => text(p)).filter(Boolean),
       ...(area && detailLoading(li) && { loading: true as const }),
     };
@@ -313,10 +326,10 @@ export function openResult(recordId: string, title: string, services: ShownServi
   const next: string[] = [];
   const notes: string[] = [];
   const tickable = services.flatMap((s) => s.layers.filter((l) => !l.disabled).map((l) => ({ ...l, s })));
-  const addable = tickable.filter((l) => l.s.buttons.some((b) => /^(Add to map|Select a layer|Add features)/.test(b)));
+  const addable = tickable.filter((l) => l.s.actions.length > 0);
   if (addable.length) {
-    const drawn = (l: (typeof addable)[number]) => l.s.buttons.some((b) => /^(Add to map|Select a layer)/.test(b));
-    const loaded = (l: (typeof addable)[number]) => l.s.buttons.some((b) => /^Add features/.test(b));
+    const drawn = (l: (typeof addable)[number]) => l.s.actions.includes("map");
+    const loaded = (l: (typeof addable)[number]) => l.s.actions.includes("features");
     const pick = (ok: (l: (typeof addable)[number]) => boolean) => addable.find((l) => ok(l) && l.ticked) ?? addable.find(ok);
     const map = pick(drawn);
     const data = pick(loaded);
@@ -329,14 +342,14 @@ export function openResult(recordId: string, title: string, services: ShownServi
   if (services.some((s) => s.loading)) {
     next.push("Some services are still loading: their server is slow or does not answer (the panel tries for about 20 s). Tell the user; call open_record again in a while, or pick a record of another server. Do not open other records of the same server meanwhile.");
   }
-  if (services.some((s) => s.messages.some((m) => /cannot reach|does not exist/.test(m)))) {
+  if (services.some((s) => s.unreachable)) {
     next.push("A server does not answer: tell the user. Other records on the same server will likely fail too: prefer records of another publisher.");
   }
   if (services.some((s) => s.more)) next.push("Some layers are not listed (more): call open_record again with filter.");
-  if (services.some((s) => s.buttons.some((b) => /^Add features/.test(b)))) {
+  if (services.some((s) => s.actions.includes("features"))) {
     notes.push('as "features" downloads the data into the project, only in the current map view (the panel\'s default); above 10,000 features the panel asks the user.');
   }
-  if (services.some((s) => s.buttons.some((b) => /^(Add to map|Select a layer)/.test(b)))) {
+  if (services.some((s) => s.actions.includes("map"))) {
     notes.push('as "map" adds a layer the server draws: nothing is downloaded, and it shows only where the server has data.');
   }
   if (!services.length) notes.push("The record lists no service.");
