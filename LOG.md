@@ -2,6 +2,7 @@
 
 ## 2026-10-25
 
+- **Address through GeoLibre's `setUrlParameters`, and `plugin=` in it** (#63): on GeoLibre 3.5.0 `syncAddress` hands only the `rndt*` names to `setUrlParameters` (opengeos/GeoLibre#3196) and leaves `lat/lon/zoom` to the host, which reserves them; on 3.4.0 the old path. Both add `plugin=openrndt-geolibre` when missing (reverses #61 point 4, as ingv-geolibre `af6ee85`), taken out on deactivation with ours. 4 new tests, 3 updated; 573 pass, tsc and eslint clean. Tried headed on web.geolibre.app (X410) with the dev copy from a manifest URL: search catasto → `rndt=catasto&rndtBbox=…&plugin=openrndt-geolibre`, host's `lat/lon/zoom` kept; a drag moves `lon` 12.6 → 17.40, ours stay; the address reopened without `plugin=` gives the same search (8,858); Deactivate leaves `?keep=1&lat=…&lon=…&zoom=4.95`. Wiki: Share a search, URL parameters. Not released.
 - **Italian: "ingombri" instead of "impronte"** for the record extents on the map (#3), 8 strings in `i18n-it.ts`; no "impront" left in src, tests, wiki, README. 569 pass.
 - **GeoLibre 3.5.0 released** (19:38 UTC): plugin types diffed against 3.4.0. `setUrlParameters` (opengeos/GeoLibre#3196) can replace the hand-written address sync, and the host now owns `lat/lon/zoom`: #63. #3160/#3161 (adopted in 0.3.14) and #3159 released: try on Desktop, #64. Still blocked: #28 (`addWfsLayer` still sends `srsName=EPSG:4326`), #37 (no `metadata` on `addGeoJsonLayer`). `removeLayer` (#3128) is possible for the footprints, but kept off the layer store on purpose.
 

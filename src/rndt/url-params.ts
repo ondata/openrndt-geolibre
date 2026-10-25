@@ -259,7 +259,7 @@ export function paramsFromForm(form: SearchForm): URLSearchParams {
 /** Where a shared link opens: GeoLibre web, the one address every recipient can open, also from Desktop. */
 export const SHARE_BASE_URL = "https://web.geolibre.app/";
 /** The registry id `?plugin=` installs; the development copy is not in the registry, so it shares this too. */
-const SHARE_PLUGIN_ID = "openrndt-geolibre";
+export const SHARE_PLUGIN_ID = "openrndt-geolibre";
 
 /**
  * The link that gives someone else this search (#31): GeoLibre web with

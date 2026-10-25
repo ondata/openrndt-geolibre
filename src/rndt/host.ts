@@ -91,6 +91,12 @@ export interface RndtHostExtras {
   getViewBounds?: () => Bbox | null;
   getDrawnFeatures?: () => Feature<Geometry | null>[];
   getMap?: () => MapLibreMap | null;
+  /**
+   * Replace the plugin's declared URL parameters in the web address (GeoLibre
+   * 3.5.0, opengeos/GeoLibre#3196); `lat`, `lon`, `zoom` and `plugin` are the
+   * host's. A no-op on Desktop.
+   */
+  setUrlParameters?: (params: URLSearchParams) => void;
   activatePlugin?: (pluginId: string, state?: unknown) => Promise<boolean>;
   /** Registers a tool for the AI Assistant while the plugin is on (GeoLibre 3.0); returns the disposer. */
   registerAssistantToolSpec?: (spec: AssistantToolSpec, ownerPluginId?: string) => () => void;

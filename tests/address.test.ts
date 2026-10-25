@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import plugin from "../src/geolibre";
 import type { GeoLibreRightPanelRegistration } from "../src/lib/geolibre/host-api";
-import { addressWith, syncAddress } from "../src/rndt/address";
+import { addressWith, addressWithPlugin, syncAddress } from "../src/rndt/address";
 import type { RndtHost } from "../src/rndt/host";
 import type { RndtPanel } from "../src/rndt/panel";
 import type { PanelState } from "../src/rndt/project-state";
@@ -16,10 +16,10 @@ const search = () => new URL(location.href).searchParams;
 describe("addressWith (#61)", () => {
   const ours = new URLSearchParams("rndt=catasto&rndtBbox=6,36,19,47&lat=41.9&lon=12.5&zoom=6");
 
-  it("keeps the parameters of others and replaces ours and GeoLibre's view", () => {
+  it("keeps the parameters of others and replaces ours, plugin= and GeoLibre's view", () => {
     const next = new URL(addressWith(`${BASE}?url=p.json&plugin=openrndt-geolibre&other=1&rndt=old&rndtTheme=hy&lat=45&lon=9&zoom=3`, ours));
     expect(next.searchParams.get("url")).toBe("p.json");
-    expect(next.searchParams.get("plugin")).toBe("openrndt-geolibre");
+    expect(next.searchParams.has("plugin")).toBe(false);
     expect(next.searchParams.get("other")).toBe("1");
     expect(next.searchParams.get("rndt")).toBe("catasto");
     expect(next.searchParams.has("rndtTheme")).toBe(false);
@@ -30,9 +30,27 @@ describe("addressWith (#61)", () => {
     expect(addressWith(BASE, ours)).toContain("rndtBbox=6,36,19,47");
   });
 
-  it("takes ours out on stop and leaves GeoLibre's view and the rest", () => {
-    const next = new URL(addressWith(`${BASE}?url=p.json&rndt=old&rndtLayer=a~wms~b&rndtView=6,36,19,47&lat=45&lon=9&zoom=3`, null));
+  it("takes ours and plugin= out on stop and leaves GeoLibre's view and the rest", () => {
+    const next = new URL(addressWith(`${BASE}?url=p.json&plugin=openrndt-geolibre&rndt=old&rndtLayer=a~wms~b&rndtView=6,36,19,47&lat=45&lon=9&zoom=3`, null));
     expect([...next.searchParams.keys()]).toEqual(["url", "lat", "lon", "zoom"]);
+  });
+
+  it("leaves another plugin's plugin= alone", () => {
+    expect(new URL(addressWith(`${BASE}?plugin=other&rndt=old`, null)).searchParams.get("plugin")).toBe("other");
+  });
+});
+
+describe("addressWithPlugin (#63)", () => {
+  it("adds plugin= when missing and keeps the rest", () => {
+    const next = new URL(addressWithPlugin(`${BASE}?rndt=catasto&rndtBbox=6%2C36%2C19%2C47&lat=45`));
+    expect(next.searchParams.get("plugin")).toBe("openrndt-geolibre");
+    expect(next.href).toContain("rndtBbox=6,36,19,47");
+    expect(next.searchParams.get("lat")).toBe("45");
+  });
+
+  it("leaves an address that has it as it is", () => {
+    const href = `${BASE}?plugin=openrndt-geolibre&rndt=catasto`;
+    expect(addressWithPlugin(href)).toBe(href);
   });
 });
 
@@ -43,7 +61,7 @@ describe("syncAddress (#61)", () => {
   });
   afterEach(() => vi.useRealTimers());
 
-  const setup = (initial: PanelState | null) => {
+  const setup = (initial: PanelState | null, setUrlParameters?: (params: URLSearchParams) => void) => {
     let state = initial;
     const panel = { onStateChange: null as (() => void) | null, projectState: () => state };
     const handlers = new Map<string, () => void>();
@@ -53,13 +71,13 @@ describe("syncAddress (#61)", () => {
       getCenter: () => ({ wrap: () => ({ lng: 12.5, lat: 41.9 }) }),
       getZoom: () => 6,
     };
-    const app = { getMap: () => map } as unknown as RndtHost;
+    const app = { getMap: () => map, setUrlParameters } as unknown as RndtHost;
     const stop = syncAddress(panel as unknown as RndtPanel, app);
     return { panel, map, stop, move: () => handlers.get("moveend")!(), set: (s: PanelState | null) => (state = s) };
   };
   const state = (text: string, recordId: string | null = null): PanelState => ({ v: 1, form: { ...emptyForm(), text }, start: 1, recordId });
 
-  it("writes the search and the map view after the panel or the map settles, without plugin=", () => {
+  it("writes the search, the map view and plugin= after the panel or the map settles", () => {
     const { panel, move, set } = setup(null);
     vi.advanceTimersByTime(600);
     expect(location.search).toBe("?url=p.json");
@@ -70,7 +88,7 @@ describe("syncAddress (#61)", () => {
     expect(search().get("lat")).toBe("41.9");
     expect(search().get("zoom")).toBe("6");
     expect(search().get("url")).toBe("p.json");
-    expect(search().has("plugin")).toBe(false);
+    expect(search().get("plugin")).toBe("openrndt-geolibre");
     set(state("catasto", "r_lomb:123"));
     move();
     vi.advanceTimersByTime(600);
@@ -89,7 +107,7 @@ describe("syncAddress (#61)", () => {
     set(null);
     panel.onStateChange!();
     vi.advanceTimersByTime(600);
-    expect(location.search).toBe("?url=p.json&lat=41.9&lon=12.5&zoom=6");
+    expect(location.search).toBe("?url=p.json&lat=41.9&lon=12.5&zoom=6&plugin=openrndt-geolibre");
   });
 
   it("stops listening and takes ours out on stop", () => {
@@ -102,6 +120,34 @@ describe("syncAddress (#61)", () => {
     set(state("altro"));
     vi.advanceTimersByTime(600);
     expect([...search().keys()]).toEqual(["url", "lat", "lon", "zoom"]);
+  });
+});
+
+describe("syncAddress on GeoLibre 3.5.0 (#63)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    history.replaceState(null, "", "/?url=p.json&lat=45&lon=9&zoom=3");
+  });
+  afterEach(() => vi.useRealTimers());
+
+  const state = (text: string): PanelState => ({ v: 1, form: { ...emptyForm(), text }, start: 1, recordId: null });
+
+  it("hands only its own names to setUrlParameters, leaves the view to GeoLibre and adds plugin=", () => {
+    const calls: string[] = [];
+    let current: PanelState | null = state("catasto");
+    const panel = { onStateChange: null as (() => void) | null, projectState: () => current };
+    const map = { on: vi.fn(), off: vi.fn(), getCenter: () => ({ wrap: () => ({ lng: 12.5, lat: 41.9 }) }), getZoom: () => 6 };
+    const app = { getMap: () => map, setUrlParameters: (params: URLSearchParams) => calls.push(params.toString()) } as unknown as RndtHost;
+    const stop = syncAddress(panel as unknown as RndtPanel, app);
+    vi.advanceTimersByTime(600);
+    expect(calls).toEqual(["rndt=catasto"]);
+    expect(location.search).toBe("?url=p.json&lat=45&lon=9&zoom=3&plugin=openrndt-geolibre");
+    current = null;
+    panel.onStateChange!();
+    vi.advanceTimersByTime(600);
+    expect(calls.at(-1)).toBe("");
+    stop();
+    expect(location.search).toBe("?url=p.json&lat=45&lon=9&zoom=3");
   });
 });
 
@@ -158,6 +204,6 @@ describe("the plugin keeps the address (#61)", () => {
     expect(search().get("rndt")).toBe("idrografia");
     expect(search().get("plugin")).toBe("openrndt-geolibre");
     plugin.deactivate(host);
-    expect(location.search).toBe("?plugin=openrndt-geolibre");
+    expect(location.search).toBe("");
   });
 });

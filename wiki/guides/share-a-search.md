@@ -60,13 +60,14 @@ The [openrndt](https://github.com/ondata/openrndt) command line tool writes such
 
 # From the address bar
 
-From 0.3.15 (#61). In GeoLibre web the address follows the panel: half a second after a search, a record opened or closed, or a map move, it holds the same parameters Share writes, the search (or `?rndt=<id>` of the record open) and the map view (`lat`, `lon`, `zoom`). The address can be copied as it is. Differences from Share:
+From 0.3.15 (#61). In GeoLibre web the address follows the panel: half a second after a search, a record opened or closed, or a map move, it holds the same search parameters Share writes (or `?rndt=<id>` of the record open) and the map view (`lat`, `lon`, `zoom`). The address can be copied as it is. Differences from Share:
 
 - no layers: Share checks over the network that the browser can draw each one, too slow at every move. To pass layers on, use Share;
-- no `?plugin=`: the address keeps the one it had, or none;
 - the other parameters of the address (`?url=` of a project, other plugins') stay.
 
-The plugin rewrites the history entry in place, so Back is not filled. Turned off, it takes its parameters out and leaves GeoLibre's view. A link opened stays as it is until the plugin has followed it. GeoLibre Desktop has no address bar: nothing to see there.
+Not released yet (#63): the address also carries `?plugin=openrndt-geolibre`, so a copied address turns the plugin on for whoever opens it, as a Share link does. When trying a local build, remove it before reopening the address: it would load the copy from the registry instead.
+
+On GeoLibre 3.5.0 the plugin writes its parameters through GeoLibre (`setUrlParameters`, opengeos/GeoLibre#3196), and GeoLibre keeps `lat`, `lon`, `zoom` on the map itself; on 3.4.0 the plugin writes them all. Either way the history entry is rewritten in place, so Back is not filled. Turned off, the plugin takes its parameters and `?plugin=` out and leaves GeoLibre's view. A link opened stays as it is until the plugin has followed it. GeoLibre Desktop has no address bar: nothing to see there.
 
 # With a project
 
