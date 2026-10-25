@@ -1,7 +1,12 @@
 # LOG
 
+## 2026-10-26
+
+- GeoLibre 3.5.0 map CRS (opengeos/GeoLibre#3158) does not simplify the EPSG:3857 checks: the default map stays Web Mercator and plugins cannot read the active CRS. Host rewrites plugin WMS/ArcGIS templates to it. Asked to expose it: opengeos/GeoLibre#3213; plugin side #65.
+
 ## 2026-10-25
 
+- **0.4.0 is in the registry**: [opengeos/geolibre-plugins#126](https://github.com/opengeos/geolibre-plugins/pull/126) merged by giswqs at 21:15 UTC; web.geolibre.app pins 0.4.0 from plugins.geolibre.app. **0.4.0 on web.geolibre.app (GeoLibre with #3196), tried headed**: on each map move the host writes `lat/lon/zoom` with 6 decimals and about 200 ms later the plugin rewrites them with 5 (same values, `rndt*` kept, three drags logged every 50 ms); `history.length` stays 2; Deactivate leaves `?plugin=openrndt-geolibre&lat=…`. Harmless; #63 removes the double write.
 - **Address through GeoLibre's `setUrlParameters`, and `plugin=` in it** (#63): on GeoLibre 3.5.0 `syncAddress` hands only the `rndt*` names to `setUrlParameters` (opengeos/GeoLibre#3196) and leaves `lat/lon/zoom` to the host, which reserves them; on 3.4.0 the old path. Both add `plugin=openrndt-geolibre` when missing (reverses #61 point 4, as ingv-geolibre `af6ee85`), taken out on deactivation with ours. 4 new tests, 3 updated; 573 pass, tsc and eslint clean. Tried headed on web.geolibre.app (X410) with the dev copy from a manifest URL: search catasto → `rndt=catasto&rndtBbox=…&plugin=openrndt-geolibre`, host's `lat/lon/zoom` kept; a drag moves `lon` 12.6 → 17.40, ours stay; the address reopened without `plugin=` gives the same search (8,858); Deactivate leaves `?keep=1&lat=…&lon=…&zoom=4.95`. Wiki: Share a search, URL parameters. Not released.
 - **Italian: "ingombri" instead of "impronte"** for the record extents on the map (#3), 8 strings in `i18n-it.ts`; no "impront" left in src, tests, wiki, README. 569 pass.
 - **GeoLibre 3.5.0 released** (19:38 UTC): plugin types diffed against 3.4.0. `setUrlParameters` (opengeos/GeoLibre#3196) can replace the hand-written address sync, and the host now owns `lat/lon/zoom`: #63. #3160/#3161 (adopted in 0.3.14) and #3159 released: try on Desktop, #64. Still blocked: #28 (`addWfsLayer` still sends `srsName=EPSG:4326`), #37 (no `metadata` on `addGeoJsonLayer`). `removeLayer` (#3128) is possible for the footprints, but kept off the layer store on purpose.
