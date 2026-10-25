@@ -1,5 +1,10 @@
 # LOG
 
+## 2026-10-25
+
+- **Italian: "ingombri" instead of "impronte"** for the record extents on the map (#3), 8 strings in `i18n-it.ts`; no "impront" left in src, tests, wiki, README. 569 pass.
+- **GeoLibre 3.5.0 released** (19:38 UTC): plugin types diffed against 3.4.0. `setUrlParameters` (opengeos/GeoLibre#3196) can replace the hand-written address sync, and the host now owns `lat/lon/zoom`: #63. #3160/#3161 (adopted in 0.3.14) and #3159 released: try on Desktop, #64. Still blocked: #28 (`addWfsLayer` still sends `srsName=EPSG:4326`), #37 (no `metadata` on `addGeoJsonLayer`). `removeLayer` (#3128) is possible for the footprints, but kept off the layer store on purpose.
+
 ## 2026-10-24
 
 - **Registry PR for 0.4.0**: [opengeos/geolibre-plugins#126](https://github.com/opengeos/geolibre-plugins/pull/126) from `ondata:update-openrndt-geolibre-0.4.0`, `version` and `source` (sha256 `fbd1f4e2…`, checked on the zip downloaded from the release). `validate_plugins.mjs --changed-since origin/main` (1 bundle imported) and pre-commit pass.
