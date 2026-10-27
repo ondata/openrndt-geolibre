@@ -1,5 +1,10 @@
 # LOG
 
+## 2026-10-27
+
+- **GeoLibre 3.5.1** released (00:35 UTC): plugin stylesheets on Desktop (opengeos/GeoLibre#3212, verified first on a fork test build) and `getMapCrs`/`onMapCrsChange` (opengeos/GeoLibre#3214, from #3213). Told ingv-geolibre.
+- **#64 tried on Desktop 3.5.1**: styles, assistant activation + search, add WMS/ArcGIS, Stop during `open_record`, record link in system browser: all pass. Diagnostics 2 only from dev + registry copies declaring the same URL parameters.
+
 ## 2026-10-26
 
 - GeoLibre 3.5.0 map CRS (opengeos/GeoLibre#3158) does not simplify the EPSG:3857 checks: the default map stays Web Mercator and plugins cannot read the active CRS. Host rewrites plugin WMS/ArcGIS templates to it. Asked to expose it: opengeos/GeoLibre#3213; plugin side #65.
