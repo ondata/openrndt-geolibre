@@ -79,6 +79,17 @@ export interface RndtHostExtras {
    * the server must send CORS headers (ArcGIS Server does by default).
    */
   addTileLayer?: (name: string, url: string, options?: { attribution?: string; bounds?: Bbox; metadata?: Record<string, string> }) => string;
+  /**
+   * A WMTS layer from a `{z}/{x}/{y}` tile template (GeoLibre 3.3.0), kept in
+   * the project as `type: "wmts"`. As `addTileLayer`, the webview fetches the
+   * tiles: the server must send CORS headers.
+   */
+  addWmtsLayer?: (name: string, url: string, options?: { bounds?: Bbox; minzoom?: number; maxzoom?: number; attribution?: string; metadata?: Record<string, string> }) => string;
+  /**
+   * The system the map is drawn in, null on the default Web Mercator map
+   * (GeoLibre 3.5.1). On another one the host draws no tile layers.
+   */
+  getMapCrs?: () => { id: string; code: string; wmsSrs?: string } | null;
   fetchArrayBuffer?: (url: string) => Promise<ArrayBuffer>;
   /**
    * Desktop-native downloader of GeoLibre's Add Vector Layer, with a 180 s

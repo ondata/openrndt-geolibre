@@ -316,22 +316,22 @@ export function linkViewFrom(params: URLSearchParams): Bbox | null {
 /** A layer of a record a link asks to add (#44): the first service of that kind in the record that lists the name. */
 export interface LinkLayer {
   recordId: string;
-  kind: "wms" | "arcgis";
+  kind: "wms" | "wmts" | "arcgis";
   name: string;
 }
 
 /**
  * The layers a link asks for, in their order (bottom to top). The first
- * `~wms~` or `~arcgis~` splits the value, so a record id or a layer name may
+ * `~wms~`, `~wmts~` or `~arcgis~` splits the value, so a record id or a layer name may
  * hold a `~`. A value that is not
  * valid is left out with a warning, as for the other parameters.
  */
 export function linkLayersFrom(params: URLSearchParams): LinkLayer[] {
   const layers: LinkLayer[] = [];
   for (const raw of params.getAll(LAYER_PARAM)) {
-    const match = /^(.+?)~(wms|arcgis)~(.+)$/.exec(raw.trim());
+    const match = /^(.+?)~(wms|wmts|arcgis)~(.+)$/.exec(raw.trim());
     if (match) layers.push({ recordId: match[1], kind: match[2] as LinkLayer["kind"], name: match[3] });
-    else console.warn(`[openrndt-geolibre] Ignoring ${LAYER_PARAM}=${raw} in the link: expected <record id>~<wms|arcgis>~<layer name>.`);
+    else console.warn(`[openrndt-geolibre] Ignoring ${LAYER_PARAM}=${raw} in the link: expected <record id>~<wms|wmts|arcgis>~<layer name>.`);
   }
   return layers;
 }

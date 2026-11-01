@@ -624,7 +624,7 @@ describe("RNDT panel", () => {
     await flush();
     expect(requested).toHaveLength(1);
     const url = new URL(requested[0]);
-    expect(url.searchParams.get("q")).toBe(`(fileid:"${id}")`);
+    expect(url.searchParams.get("q")).toBe(`(_id:"${id}" OR fileid:"${id}")`);
     expect(url.searchParams.get("bbox")).toBeNull();
     const detail = container.querySelector<HTMLElement>(".ordt-detail-view")!;
     expect(detail.hidden).toBe(false);
@@ -1787,6 +1787,100 @@ describe("WMS derived from an ArcGIS WMTS", () => {
   });
 });
 
+describe("WMTS services (#66)", () => {
+  const VENETO = "https://idt2.regione.veneto.it/gwc/service/wmts";
+  const PIEMONTE = "https://geomap.reteunitaria.piemonte.it/WEBCAT/CAPABILITIES/wmts_regp_basecarto10bn_2023.xml";
+  const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0, 0, 0, 0, 0]).buffer;
+  const record = (link: string) =>
+    JSON.stringify({ total: 1, start: 1, results: [{ id: "r:wmts", title: "Ortofoto 2015", _source: { apiso_Type_s: "dataset", links_s: [link] } }] });
+
+  async function open(link: string, browserDraws = true, prepare?: (host: RndtHost) => void) {
+    vi.stubGlobal("fetch", async () => (browserDraws ? new Response(jpeg) : Promise.reject(new TypeError("Failed to fetch"))));
+    const ctx = createHost(() => "");
+    ctx.host.fetchArrayBuffer = vi.fn(async (url: string) => {
+      ctx.requested.push(url);
+      if (url.includes("/rest/metadata/search")) return encode(record(link));
+      if (url.startsWith(`${VENETO}?SERVICE=WMTS&REQUEST=GetCapabilities`)) return encode(fixture("wmts-veneto-gwc.xml"));
+      if (url === PIEMONTE) return encode(fixture("wmts-piemonte-mapproxy.xml"));
+      if (url.includes("REQUEST=GetTile")) return jpeg;
+      return encode("");
+    });
+    ctx.host.addWmtsLayer = vi.fn(() => "wmts-1");
+    prepare?.(ctx.host);
+    plugin.activate(ctx.host);
+    const container = document.createElement("div");
+    document.body.append(container);
+    ctx.getPanel()!.render(container);
+    container.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await flush();
+    const item = openDetail(container.querySelector<HTMLElement>(".ordt-result")!);
+    for (let i = 0; i < 6; i++) await flush();
+    return { ...ctx, item, container };
+  }
+
+  const button = (item: HTMLElement, text: string) => Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent === text)!;
+  const boxes = (item: HTMLElement) => Array.from(item.querySelectorAll<HTMLInputElement>('[aria-label="WMTS layers"] input[type="checkbox"]'));
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("adds the linked layer from its Web Mercator grid, over https, with zooms and provenance", async () => {
+    const { host, item } = await open(`${VENETO}?SERVICE=WMTS&REQUEST=GetCapabilities&LAYER=rv:OrthoPhoto_2015_pyramid`);
+    expect(boxes(item).filter((b) => b.checked).map((b) => b.value)).toEqual(["rv:OrthoPhoto_2015_pyramid"]);
+    button(item, "Add to map (1)").click();
+    const [, template, options] = vi.mocked(host.addWmtsLayer!).mock.calls[0];
+    expect(template).toBe(
+      `${VENETO}?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=rv%3AOrthoPhoto_2015_pyramid&STYLE=&TILEMATRIXSET=EPSG%3A900913&TILEMATRIX=EPSG%3A900913%3A{z}&TILEROW={y}&TILECOL={x}&FORMAT=image%2Fjpeg`,
+    );
+    expect(options).toMatchObject({ minzoom: 0, metadata: { catalogue: "RNDT", serviceType: "WMTS", layerName: "rv:OrthoPhoto_2015_pyramid" } });
+    expect(options!.bounds).toHaveLength(4);
+    expect(item.querySelector('[aria-label="WMTS layers"] .ordt-layer-tag')!.textContent).toBe("on the map");
+  });
+
+  it("does not add again a layer the project holds", async () => {
+    const first = await open(`${VENETO}?LAYER=rv:OrthoPhoto_2015_pyramid`);
+    button(first.item, "Add to map (1)").click();
+    const template = vi.mocked(first.host.addWmtsLayer!).mock.calls[0][1];
+    plugin.deactivate(first.host);
+    const { host, item } = await open(`${VENETO}?LAYER=rv:OrthoPhoto_2015_pyramid`, true, (h) => {
+      h.getLayers = () => ["saved"];
+      h.getProjectSnapshot = () => ({ layers: [{ id: "saved", type: "wmts", source: { type: "raster", tiles: [template] } }] });
+    });
+    button(item, "Add to map (1)").click();
+    expect(host.addWmtsLayer).not.toHaveBeenCalled();
+  });
+
+  it("keeps Add to map off, without a report, when the browser cannot get the tiles", async () => {
+    const { item } = await open(`${VENETO}?LAYER=rv:OrthoPhoto_2015_pyramid`, false);
+    expect(button(item, "Add to map (1)").disabled).toBe(true);
+    expect(item.textContent).toContain("no CORS header");
+    expect(item.querySelector(".ordt-report")).toBeNull();
+  });
+
+  it("says why a layer offered only in UTM cannot be added", async () => {
+    const { host, item } = await open(PIEMONTE);
+    expect(boxes(item).every((b) => b.disabled)).toBe(true);
+    expect(item.textContent).toContain("Not offered in a Web Mercator tile grid (only EPSG:32632)");
+    expect(item.textContent).toContain("No layer of this WMTS is offered in a Web Mercator tile grid");
+    expect(host.addWmtsLayer).not.toHaveBeenCalled();
+  });
+
+  it("adds a layer a link asks for, and says why it cannot add one outside Web Mercator", async () => {
+    const { host, container } = await open(`${VENETO}?LAYER=rv:OrthoPhoto_2015_pyramid`);
+    await plugin.handleUrlParameters!(host, new URLSearchParams("rndtLayer=r:wmts~wmts~rv:OrthoPhoto_2015_pyramid&rndtLayer=r:wmts~wmts~Nope"));
+    for (let i = 0; i < 6; i++) await flush();
+    expect(host.addWmtsLayer).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(host.addWmtsLayer!).mock.calls[0][2]).toMatchObject({ metadata: { recordId: "r:wmts", serviceType: "WMTS", layerName: "rv:OrthoPhoto_2015_pyramid" } });
+    expect(container.querySelector(".ordt-link-note")!.textContent).toMatch(/^Added 1 of 2 layers of the link\. Could not add Nope: not found in a WMTS service of /);
+  });
+
+  it("warns when the map is drawn in another system", async () => {
+    const { item } = await open(`${VENETO}?LAYER=rv:OrthoPhoto_2015_pyramid`, true, (h) => {
+      h.getMapCrs = () => ({ id: "EPSG:32632", code: "EPSG:32632" });
+    });
+    expect(item.textContent).toContain("The map is drawn in EPSG:32632");
+  });
+});
+
 describe("ArcGIS REST services", () => {
   const ARPAE = "https://servizi-gis.arpae.it/server/rest/services/Geoportal/ACQUEPressioni/MapServer";
   const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]).buffer;
@@ -2729,6 +2823,14 @@ describe("Share (#31)", () => {
           metadata: { recordId: "c_y:2", serviceType: "ArcGIS", layerName: "3" },
         },
         wms("wms-a", "https://s.example/wms", "A"),
+        {
+          id: "wmts",
+          name: "Layer wmts",
+          type: "wmts",
+          visible: true,
+          source: { tiles: ["https://t.example/wmts/tile/1.0.0/O/default/GoogleMapsCompatible/{z}/{y}/{x}"], minzoom: 0, maxzoom: 18 },
+          metadata: { recordId: "c_z:3", serviceType: "WMTS", layerName: "O" },
+        },
         wms("hidden", "https://s.example/wms", "H"),
         wms("old", "https://s.example/wms", null),
         wms("nocors", "https://nocors.example/wms", "N"),
@@ -2741,12 +2843,13 @@ describe("Share (#31)", () => {
       await flush();
 
       const link = new URL((writeText.mock.calls[0] as unknown as [string])[0]);
-      expect(link.searchParams.getAll("rndtLayer")).toEqual(["c_x:1~wms~A", "c_y:2~arcgis~3", "c_x:1~wms~B"]);
+      expect(link.searchParams.getAll("rndtLayer")).toEqual(["c_z:3~wmts~O", "c_x:1~wms~A", "c_y:2~arcgis~3", "c_x:1~wms~B"]);
       // An http server is left out without asking: web.geolibre.app is https.
       expect(fetchMock.mock.calls.some(([url]) => url.startsWith("http://"))).toBe(false);
       expect(fetchMock.mock.calls.some(([url]) => url.startsWith("https://a.example/") && !url.includes("{bbox"))).toBe(true);
+      expect(fetchMock.mock.calls.some(([url]) => /^https:\/\/t\.example\/.*\/\d+\/\d+\/\d+$/.test(url))).toBe(true);
       const note = container.querySelector(".ordt-link-note")!.textContent!;
-      expect(note).toContain("Layers in the link: 3.");
+      expect(note).toContain("Layers in the link: 4.");
       expect(note).toContain("Left out: Layer nocors; Layer old; Layer http; Tram worksites.");
       plugin.deactivate(host);
     } finally {

@@ -1,5 +1,12 @@
 # LOG
 
+## 2026-11-01
+
+- **WMTS layers added to the map** (#66): `src/rndt/wmts.ts` reads WMTS capabilities (layers, tile matrix sets, limits, RESTful templates, KVP GetTile) and finds a Web Mercator grid (256 px, top-left within 1 m, scales of zoom 0-30 within 1%, matrix ids "prefix + zoom": `EPSG:900913:<z>` in GeoWebCache), GoogleMapsCompatible first; the panel adds such layers with `addWmtsLayer` (GeoLibre 3.3.0) and a `{z}/{x}/{y}` template, bounds, min/max zoom and provenance; others show why (only `EPSG:32632`…, ids not by zoom, a `{Time}` placeholder). Same checks as WMS: https upgrade of operation URLs, one test tile from the browser (no CORS: Add off, no report), on-map from the project (`type: "wmts"`), errors reported; a note when `getMapCrs` (3.5.1) says the map is in another system. Links take `rndtLayer=<id>~wmts~<layer>`, Share puts WMTS layers in them, the AI Assistant's `add_layers` covers WMTS rows. Fixtures: AgEA 2022 (ArcGIS), Veneto (GeoWebCache, KVP only, trimmed), Piemonte (MapProxy, UTM only). Probe tiles built by the code fetched live: Veneto png/jpeg 200, AgEA 200. RNDT has 81 WMTS endpoints (795 records): 23 (749 records) with a Web Mercator grid, all with CORS; 36 national/UTM only (openrndt session). GeoLibre 3.6.0 still reprojects no tiles (#3158 places them unreprojected). 591 pass.
+- **AgEA orthophotos: the checkerboard is the server's**: `exportImage` of `Ortofoto_AgEA_2022/ImageServer` answers a black and white checkerboard at every zoom and format (Siena z14), while its cached tiles (`…/WMTS/tile/…/GoogleMapsCompatible/14/6000/8707`, `…/ImageServer/tile/14/6000/8707`) give the orthophoto. The WMTS row now draws it.
+- **A record found by its catalogue id** (#67): `idForm` searches `_id:"<id>" OR fileid:"<id>"`; AgEA 2022/2023/2024 have an `_id` that is not their `fileid`, and links to them found nothing.
+- **Tried headed on web.geolibre.app (GeoLibre 3.6.0, X410)** with the dev copy from a manifest URL: AgEA 2022 record, WMTS row 1 layer, Add to map → orthophoto over Siena; `?rndtLayer=agea%3AOI%3ADATEVOLO%3Am001…~wmts~AgEA_Ortofoto_AgEA_2022&lat=43.3188&lon=11.3308&zoom=15` → "Added 1 of 1 layer of the link", orthophoto on screen. A changed dev build is refused ("changed since you last trusted it") until the manifest URL is added again.
+
 ## 2026-10-27
 
 - **GeoLibre 3.5.1** released (00:35 UTC): plugin stylesheets on Desktop (opengeos/GeoLibre#3212, verified first on a fork test build) and `getMapCrs`/`onMapCrsChange` (opengeos/GeoLibre#3214, from #3213). Told ingv-geolibre.

@@ -56,8 +56,8 @@ The assistant fills the search form, opens a record, ticks a layer and adds it, 
 
 ## What else it does
 
-- **Any kind of service**: WMS layers are added as images, named with their titles; WFS and ArcGIS REST layers can also be downloaded as features (GeoJSON); WFS features are drawn with the style the server gives, when it has one. A layer from a regional or municipal record is limited to that area, even when the service covers all of Italy.
-- **Where each layer comes from**: WMS and ArcGIS image layers added from the panel carry the record it came from (catalogue, record id, organisation, link to the record's page), in GeoLibre's Metadata dialog.
+- **Any kind of service**: WMS layers are added as images, named with their titles; WMTS layers as ready-made tiles, when they are offered in Web Mercator (orthophotos such as AgEA's); WFS and ArcGIS REST layers can also be downloaded as features (GeoJSON); WFS features are drawn with the style the server gives, when it has one. A layer from a regional or municipal record is limited to that area, even when the service covers all of Italy.
+- **Where each layer comes from**: WMS, WMTS and ArcGIS image layers added from the panel carry the record it came from (catalogue, record id, organisation, link to the record's page), in GeoLibre's Metadata dialog.
 - **Recent searches**: a click in the search box lists your last 20 searches; a click runs one again.
 - **When a service does not answer**, the panel says why, in plain words (server gone, no CORS, an error from the server), and, when the server is at fault, **Copy error report** prepares an email for whoever publishes the data. **Contact** prepares one for any other request: a question on the data, its licence, an update.
 

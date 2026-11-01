@@ -1,5 +1,9 @@
 # Update Log
 
+## 2026-11-01
+* **Update**: [Add layers to the map](guides/add-layers.md): WMTS layers in a Web Mercator grid are added as tiles (#66, from 0.5.0). [URL parameters](reference/url-parameters.md): `rndtLayer` takes `~wmts~`. [GeoLibre hooks used](reference/geolibre-hooks.md): `addWmtsLayer`, `getMapCrs`.
+* **Update**: [Search query](reference/search-query.md): a record id is searched as `_id` or `fileid` (#67).
+
 ## 2026-10-24
 * **New**: [Language](reference/language.md): the panel follows GeoLibre's language, Italian or English (#3, from 0.4.0). **Update**: [GeoLibre hooks used](reference/geolibre-hooks.md): the locale methods are used now.
 * **Update**: [Registry status](upstream/registry-status.md): 0.3.14 and 0.3.15 are in the registry (opengeos/geolibre-plugins#111, #123).

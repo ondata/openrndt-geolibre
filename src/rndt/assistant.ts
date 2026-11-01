@@ -136,7 +136,7 @@ const ABSTRACT_LENGTH = 300;
 const toolKindName = (kind: string) => (kind === ARCGIS_KIND ? "ArcGIS" : kind);
 
 /** Kinds `open_record` and `add_layers` work with; the others (downloads, WCS…) are listed for reference. */
-const ADDABLE_KINDS = ["WMS", "WFS", "ArcGIS"];
+const ADDABLE_KINDS = ["WMS", "WMTS", "WFS", "ArcGIS"];
 
 /**
  * The page the panel shows, as the tool's result: metadata only, with `next`
@@ -427,7 +427,7 @@ export function addResult(outcome: PressOutcome) {
 }
 
 /** Text added to the assistant's system prompt while the plugin is on: when and how to use the tools. */
-export const ASSISTANT_GUIDANCE = `openrndt-geolibre: the RNDT panel searches RNDT, the Italian national catalogue of geospatial metadata (about 24,000 records of Italian public bodies), and adds its WMS, WFS and ArcGIS services to the map.
+export const ASSISTANT_GUIDANCE = `openrndt-geolibre: the RNDT panel searches RNDT, the Italian national catalogue of geospatial metadata (about 24,000 records of Italian public bodies), and adds its WMS, WMTS, WFS and ArcGIS services to the map.
 
 Your job with its tools is to turn what the user asks into the panel's form and gestures: the tools fill the search form, open a record, tick and add layers as the user would by hand, and the user watches the panel. Do not answer from memory about what RNDT holds: search. Use them for Italian geographic data (cadastre, hydrography, land use, hazards, geology, orthophotos, protected sites, monumental trees, transport, boundaries), not for data outside Italy.
 

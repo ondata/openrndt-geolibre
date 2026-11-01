@@ -59,6 +59,7 @@ import { shareUrl, type LinkLayer, type LinkSearch } from "./url-params";
 import { fmt, isItalian, tr, trCount } from "./i18n";
 import { IT } from "./i18n-it";
 import { agentText } from "./agent-text";
+import { parseWmtsCapabilities, planWmtsLayer, wmtsCapabilitiesUrl, wmtsProbeUrl, type WmtsCapabilities, type WmtsLayer, type WmtsPlan } from "./wmts";
 import { detailLoading, TOOL_WAIT_MS, type AssistantAdd, type AssistantSearch } from "./assistant";
 import { bboxError, buildCurlCommand, buildSearchUrl, clampBbox, emptyForm, idForm, joinNames, recordIdIn, splitNames, type Bbox, type ResourceKind, type LinkKind, type SearchForm, type SpatialRel, type TextMode } from "./query";
 import { footprints, parseSearchResponse, provenance, type RndtRecord, type RndtService } from "./records";
@@ -264,6 +265,21 @@ interface PreparedArcgis {
   tileUrl: (name: string) => string;
 }
 
+/** A WMTS read for adding its layers: how each layer is added, or why not. */
+interface PreparedWmts {
+  caps: WmtsCapabilities;
+  plans: Map<string, WmtsPlan>;
+  byName: Map<string, WmtsLayer>;
+}
+
+/** One tile of a WMTS layer in the project, in the view (#66). */
+function wmtsLayerProbeUrl(source: Record<string, unknown>, view: Bbox | null): string | null {
+  const template = Array.isArray(source.tiles) ? source.tiles[0] : null;
+  if (typeof template !== "string") return null;
+  const zoom = (value: unknown, fallback: number) => (typeof value === "number" ? value : fallback);
+  return wmtsProbeUrl(template, view, zoom(source.minzoom, 0), zoom(source.maxzoom, 22));
+}
+
 /**
  * A small GetMap of a WMS layer in the project, at the centre of the view,
  * from what the project keeps of it (#44): in its own system when that is
@@ -291,8 +307,8 @@ function arcgisProbeUrl(source: Record<string, unknown>, view: Bbox | null): str
  * metadata next to the provenance: Share reads it to put the layer in a
  * link (#44), and GeoLibre's Metadata dialog shows it.
  */
-function layerSource(kind: "wms" | "arcgis", name: string): Record<string, string> {
-  return { serviceType: kind === "wms" ? "WMS" : "ArcGIS", layerName: name };
+function layerSource(kind: "wms" | "wmts" | "arcgis", name: string): Record<string, string> {
+  return { serviceType: kind === "wms" ? "WMS" : kind === "wmts" ? "WMTS" : "ArcGIS", layerName: name };
 }
 
 /** One key for every link to the same ArcGIS REST service, scheme and case aside. */
@@ -303,9 +319,9 @@ function arcgisKey(url: string): string | null {
 
 /**
  * The record's services plus, for each ArcGIS WMTS, the WMS and the ArcGIS
- * REST service of the same service (GeoLibre plugins cannot add a WMTS; both
- * reproject on request). Each is added only when the record does not
- * already declare it.
+ * REST service of the same service (both reproject on request, where a WMTS
+ * draws only in its own tile grids). Each is added only when the record does
+ * not already declare it.
  */
 function servicesWithDerivedWms(services: RndtService[]): ServiceGroup[] {
   const groups = groupServices(services);
@@ -3005,11 +3021,12 @@ export class RndtPanel {
     const records = new Map<string, Promise<RndtRecord | null>>();
     const wmsServices = new Map<string, Promise<PreparedWms>>();
     const arcgisServices = new Map<string, Promise<PreparedArcgis>>();
+    const wmtsServices = new Map<string, Promise<PreparedWmts>>();
     /** How to add one layer, found before any is added so the order holds; it returns the layer's box. */
     const resolve = async (link: LinkLayer): Promise<() => Bbox | undefined> => {
       const record = await once(records, link.recordId, () => this.recordById(link.recordId));
       if (!record) throw new Error(tr("link.noRecord", "no record {{id}} in the catalogue", { id: link.recordId }));
-      const kind = link.kind === "wms" ? "WMS" : ARCGIS_KIND;
+      const kind = link.kind === "wms" ? "WMS" : link.kind === "wmts" ? "WMTS" : ARCGIS_KIND;
       for (const service of servicesWithDerivedWms(record.services).filter((s) => s.kind === kind)) {
         try {
           if (link.kind === "wms") {
@@ -3023,6 +3040,21 @@ export class RndtPanel {
               if (!this.wmsOnMap(wms.caps.getMapUrl, link.name)) {
                 const id = this.app.addWmsLayer!(shownTitle(layer) || link.name, options);
                 this.addedWms.set(`${wms.caps.getMapUrl}|${link.name}`, id);
+              }
+              return options.bounds;
+            };
+          }
+          if (link.kind === "wmts") {
+            if (!this.app.addWmtsLayer) break;
+            const wmts = await once(wmtsServices, service.url, () => this.prepareWmts(service));
+            const plan = wmts.plans.get(link.name);
+            if (!plan) continue;
+            if (!plan.ok) throw new NotInWebMercator(tr("link.notWebMercator", "GeoLibre cannot display it (not offered in a Web Mercator tile grid)"));
+            return () => {
+              const options = this.wmtsOptions(record, wmts, link.name);
+              if (!this.wmsOnMap(service.url, link.name, plan.template)) {
+                const id = this.app.addWmtsLayer!(wmts.byName.get(link.name)!.title || link.name, plan.template, options);
+                this.addedWms.set(`${service.url}|${link.name}`, id);
               }
               return options.bounds;
             };
@@ -3047,7 +3079,7 @@ export class RndtPanel {
           // This service did not answer: the next one of the record may list the layer.
         }
       }
-      throw new Error(tr("link.notFound", "not found in a {{kind}} service of {{title}}", { kind: link.kind === "wms" ? "WMS" : "ArcGIS", title: record.title }));
+      throw new Error(tr("link.notFound", "not found in a {{kind}} service of {{title}}", { kind: link.kind === "wms" ? "WMS" : link.kind === "wmts" ? "WMTS" : "ArcGIS", title: record.title }));
     };
     const found = await Promise.allSettled(layers.map(resolve));
     const failed: string[] = [];
@@ -3105,10 +3137,10 @@ export class RndtPanel {
         if (!layer || layer.visible === false || layer.metadata?.sourceKind === "maplibre-basemap-control") return null;
         const name = typeof layer.name === "string" ? layer.name : id;
         const { recordId, serviceType, layerName } = layer.metadata ?? {};
-        const kind = serviceType === "WMS" ? "wms" : serviceType === "ArcGIS" ? "arcgis" : null;
+        const kind = serviceType === "WMS" ? "wms" : serviceType === "WMTS" ? "wmts" : serviceType === "ArcGIS" ? "arcgis" : null;
         if (!kind || typeof recordId !== "string" || typeof layerName !== "string") return name;
         const source = layer.source ?? {};
-        const probe = kind === "wms" ? wmsProbeUrl(source, layerName, view) : arcgisProbeUrl(source, view);
+        const probe = kind === "wms" ? wmsProbeUrl(source, layerName, view) : kind === "wmts" ? wmtsLayerProbeUrl(source, view) : arcgisProbeUrl(source, view);
         if (!probe || !/^https:/i.test(probe) || !(await browserReaches(probe, timeoutMs))) return name;
         return { recordId, kind, name: layerName };
       }),
@@ -3145,7 +3177,7 @@ export class RndtPanel {
         left.length > 0 &&
           tr(
             "share.leftOut",
-            "Left out: {{layers}}. A link brings back only catalogue layers drawn from a service (WMS, ArcGIS images) on an https server the web version can read.",
+            "Left out: {{layers}}. A link brings back only catalogue layers drawn from a service (WMS, WMTS, ArcGIS images) on an https server the web version can read.",
             { layers: left.join("; ") },
           ),
       ]
@@ -3676,6 +3708,7 @@ export class RndtPanel {
     actions.push(h("a", { className: "ordt-link", href: service.url, target: "_blank", rel: "noopener" }, tr("service.open", "Open")));
     actions.push(this.copyButton(service.url));
     if (service.kind === "WMS" && this.app.addWmsLayer) void this.openWms(record, service, area, countEl);
+    else if (service.kind === "WMTS" && this.app.addWmtsLayer) void this.openWmts(record, service, area, countEl);
     else if (service.kind === "WFS" && this.app.addGeoJsonLayer) void this.openWfs(record, service, area, countEl);
     else if (service.kind === ARCGIS_KIND && (this.app.addTileLayer || this.app.addGeoJsonLayer)) void this.openArcgis(record, service, area, countEl);
     return h(
@@ -3694,8 +3727,8 @@ export class RndtPanel {
           "p",
           { className: "ordt-note" },
           service.kind === "WMS"
-            ? tr("service.derivedWms", "Not declared in the record: the WMS of the same ArcGIS service as its WMTS, which GeoLibre plugins cannot add.")
-            : tr("service.derivedRest", "Not declared in the record: the REST endpoint of the same ArcGIS service as its WMTS, which GeoLibre plugins cannot add."),
+            ? tr("service.derivedWms", "Not declared in the record: the WMS of the same ArcGIS service as its WMTS.")
+            : tr("service.derivedRest", "Not declared in the record: the REST endpoint of the same ArcGIS service as its WMTS."),
         ),
       area,
     );
@@ -3758,7 +3791,7 @@ export class RndtPanel {
         const { url, layers: names, tiles } = layer.source ?? {};
         if (layer.type === "wms" && typeof url === "string" && typeof names === "string") {
           for (const name of names.split(",")) found.set(`${url}|${name}`, layer.id);
-        } else if (layer.type === "xyz" && Array.isArray(tiles) && typeof tiles[0] === "string") {
+        } else if ((layer.type === "xyz" || layer.type === "wmts") && Array.isArray(tiles) && typeof tiles[0] === "string") {
           found.set(tiles[0], layer.id);
         }
       }
@@ -4169,6 +4202,134 @@ export class RndtPanel {
       // A WMS the record does not declare is a guess: its absence is not a fault to report.
       if (service.derivedFrom) this.note(area, tr("wms.derivedNone", "This ArcGIS service offers no WMS."), "info");
       else this.note(area, tr("wms.error", "WMS error: {{error}}", { error: errorMessage(error) }), "error", { record, service }, error);
+    }
+  }
+
+  /**
+   * A WMTS: the layers offered in a Web Mercator tile grid are added with
+   * `addWmtsLayer` from a `{z}/{x}/{y}` template; the others show why not.
+   * The webview fetches the tiles, so one test tile from the browser tells a
+   * server without CORS headers, as for ArcGIS.
+   */
+  private async prepareWmts(service: ServiceGroup): Promise<PreparedWmts> {
+    const fetched = await fetchTextFrom(this.app, wmtsCapabilitiesUrl(service.url));
+    const caps = parseWmtsCapabilities(fetched.text);
+    // Servers keep old http:// operation URLs (Veneto's GeoWebCache): https when the capabilities came so.
+    if (caps.getTileUrl) caps.getTileUrl = upgradeToHttps(caps.getTileUrl, fetched.url);
+    for (const layer of caps.layers) for (const t of layer.templates) t.template = upgradeToHttps(t.template, fetched.url);
+    return { caps, plans: new Map(caps.layers.map((l) => [l.name, planWmtsLayer(caps, l)])), byName: new Map(caps.layers.map((l) => [l.name, l])) };
+  }
+
+  /** The options of `addWmtsLayer` for one addable layer, as Add to map and a link add it. */
+  private wmtsOptions(record: RndtRecord, wmts: PreparedWmts, name: string) {
+    const plan = wmts.plans.get(name) as Extract<WmtsPlan, { ok: true }>;
+    return {
+      bounds: wmsLayerBounds(wmts.byName.get(name)!.bbox, record.bbox, record.type),
+      minzoom: plan.minzoom,
+      maxzoom: plan.maxzoom,
+      metadata: { ...provenance(record), ...layerSource("wmts", name) },
+    };
+  }
+
+  private async openWmts(record: RndtRecord, service: ServiceGroup, area: HTMLElement, countEl: HTMLElement): Promise<void> {
+    this.note(area, tr("wmts.reading", "Reading the WMTS capabilities…"), "busy");
+    try {
+      const wmts = await this.prepareWmts(service);
+      const { caps, plans } = wmts;
+      if (!caps.layers.length) {
+        this.note(area, tr("wmts.noLayers", "The WMTS lists no layers."), "error", { record, service });
+        return;
+      }
+      countEl.textContent = layerCount(caps.layers.length);
+      const why = (name: string) => {
+        const plan = plans.get(name)!;
+        if (plan.ok) return null;
+        if (plan.reason === "matrix-ids") return tr("wmts.matrixIds", "Offered in a Web Mercator tile grid whose levels GeoLibre cannot address (ids not numbered by zoom).");
+        if (plan.reason === "template") return tr("wmts.template", "Its tile address needs values GeoLibre cannot fill in (a time or another dimension).");
+        return tr("wmts.not3857", "Not offered in a Web Mercator tile grid (only {{systems}}): GeoLibre cannot display it.", {
+          systems: plan.systems.slice(0, 6).join(", ") || "?",
+        });
+      };
+      const addable = caps.layers.filter((l) => plans.get(l.name)!.ok);
+
+      // One test tile of the first addable layer, from the browser as the map will ask it.
+      let drawProblem: string | null = null;
+      if (addable.length) {
+        this.note(area, tr("wmts.checking", "Checking that the service draws in GeoLibre…"), "busy");
+        const sample = addable.find((l) => wantedLayer(record, service, caps.layers) === l.name) ?? addable[0];
+        const plan = plans.get(sample.name)! as Extract<WmtsPlan, { ok: true }>;
+        const probe = wmtsProbeUrl(plan.template, sample.bbox ?? record.bbox, plan.minzoom, plan.maxzoom);
+        if (!(await browserGetsImage(probe))) {
+          drawProblem = (await answersWithImage(this.app, probe))
+            ? tr("arcgis.noCors", "The server draws the map, but does not let GeoLibre show it (no CORS header in its answer).")
+            : tr("wmts.noImage", "The server did not give a test tile.");
+        }
+      }
+      const mapCrs = this.app.getMapCrs?.() ?? null;
+
+      const wanted = wantedLayer(record, service, caps.layers);
+      const { list, controls, selected, nameOf, setOnMap } = this.layerList(
+        caps.layers,
+        wanted,
+        service.url,
+        "multi",
+        tr("wmts.layersAria", "WMTS layers"),
+        "WMTS",
+        why,
+      );
+      const template = (name: string) => (plans.get(name) as Extract<WmtsPlan, { ok: true }>).template;
+      const add = h("button", { className: "ordt-button ordt-primary", type: "button", "data-action": "map" });
+      const result = h("p", { className: "ordt-note", hidden: true });
+      const sync = () => {
+        const count = selected().length;
+        add.disabled = !!drawProblem || count === 0;
+        add.textContent = count ? tr("service.addCount", "Add to map ({{n}})", { n: fmt(count) }) : tr("service.select", "Select a layer");
+      };
+      if (controls.some((c) => c.tagName === "INPUT")) add.title = tr("service.hiddenTicked", "Ticked layers hidden by the filter are added too");
+      list.addEventListener("change", sync);
+      add.addEventListener("click", () => {
+        const already = selected().filter((name) => this.wmsOnMap(service.url, name, template(name)));
+        const names = selected().filter((name) => !already.includes(name));
+        const failed: string[] = [];
+        for (const name of names) {
+          try {
+            const id = this.app.addWmtsLayer!(nameOf(name), template(name), this.wmtsOptions(record, wmts, name));
+            this.addedWms.set(`${service.url}|${name}`, id);
+            setOnMap(name, true);
+          } catch (error) {
+            failed.push(`${nameOf(name)}: ${errorMessage(error)}`);
+          }
+        }
+        const added = names.length - failed.length;
+        result.hidden = false;
+        result.dataset.kind = failed.length ? "error" : "info";
+        result.textContent = [
+          names.length > 0 && addedText(added, names.length),
+          already.length > 0 && alreadyText(already.map(nameOf)),
+          ...failed.map((f) => tr("service.failed", "Could not add {{layer}}", { layer: f })),
+        ]
+          .filter(Boolean)
+          .join(" ");
+      });
+      for (const l of addable) if (this.wmsOnMap(service.url, l.name, template(l.name))) setOnMap(l.name, true);
+      const notes: HTMLElement[] = [];
+      if (!addable.length) notes.push(h("p", { className: "ordt-note", "data-kind": "error" }, tr("wmts.none", "No layer of this WMTS is offered in a Web Mercator tile grid: GeoLibre cannot display them.")));
+      else {
+        if (drawProblem) notes.push(h("p", { className: "ordt-note", "data-kind": "error" }, drawProblem));
+        if (mapCrs) notes.push(h("p", { className: "ordt-note" }, tr("wmts.mapCrs", "The map is drawn in {{crs}}: GeoLibre shows WMTS tiles only on the Web Mercator map.", { crs: mapCrs.code })));
+      }
+      area.replaceChildren(
+        ...controls.filter((c) => c.tagName === "INPUT"),
+        list,
+        ...controls.filter((c) => c.tagName !== "INPUT"),
+        ...notes,
+        h("div", { className: "ordt-row ordt-small ordt-add-row" }, add, h("span", { className: "ordt-muted" }, tr("wmts.addedHint", "added as tiles, with their titles as layer names"))),
+        result,
+      );
+      showTicked(list);
+      sync();
+    } catch (error) {
+      this.note(area, tr("wmts.error", "WMTS error: {{error}}", { error: errorMessage(error) }), "error", { record, service }, error);
     }
   }
 

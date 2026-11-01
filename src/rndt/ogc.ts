@@ -42,29 +42,30 @@ const OPERATION_PARAMS = new Set([
   "service", "request", "version", "acceptversions", "layers", "layer", "typename",
   "typenames", "outputformat", "srs", "crs", "srsname", "bbox", "width", "height",
   "format", "styles", "count", "maxfeatures", "startindex",
+  "style", "tilematrixset", "tilematrix", "tilerow", "tilecol",
 ]);
 
-function localName(el: Element): string {
+export function localName(el: Element): string {
   return el.localName || el.tagName.split(":").pop() || "";
 }
 
-function childElements(el: Element, name?: string): Element[] {
+export function childElements(el: Element, name?: string): Element[] {
   return Array.from(el.children).filter((c) => !name || localName(c) === name);
 }
 
-function firstChild(el: Element | null | undefined, name: string): Element | null {
+export function firstChild(el: Element | null | undefined, name: string): Element | null {
   return el ? (childElements(el, name)[0] ?? null) : null;
 }
 
-function descendants(el: Element | Document, name: string): Element[] {
+export function descendants(el: Element | Document, name: string): Element[] {
   return Array.from(el.getElementsByTagName("*")).filter((c) => localName(c) === name);
 }
 
-function text(el: Element | null | undefined): string {
+export function text(el: Element | null | undefined): string {
   return (el?.textContent ?? "").trim();
 }
 
-function href(el: Element | null | undefined): string {
+export function href(el: Element | null | undefined): string {
   if (!el) return "";
   return (
     el.getAttributeNS("http://www.w3.org/1999/xlink", "href") ??
@@ -168,7 +169,7 @@ export function upgradeToHttps(target: string, fetchedFrom: string): string {
   return target;
 }
 
-export function capabilitiesUrl(url: string, service: "WMS" | "WFS"): string {
+export function capabilitiesUrl(url: string, service: "WMS" | "WFS" | "WMTS"): string {
   const parsed = new URL(serviceBaseUrl(url));
   parsed.searchParams.set("SERVICE", service);
   parsed.searchParams.set("REQUEST", "GetCapabilities");

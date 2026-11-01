@@ -253,8 +253,11 @@ describe("rndtLayer (#44)", () => {
   it("keeps a ~ in the layer name, and drops values that are not valid with a warning", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const params = new URLSearchParams();
-    for (const value of ["c_x:1~wms~a~b", "c_x:1~wmts~a", "c_x:1~wms~", "nothing"]) params.append("rndtLayer", value);
-    expect(linkLayersFrom(params)).toEqual([{ recordId: "c_x:1", kind: "wms", name: "a~b" }]);
+    for (const value of ["c_x:1~wms~a~b", "c_x:1~wmts~rv:ortho", "c_x:1~wfs~a", "c_x:1~wms~", "nothing"]) params.append("rndtLayer", value);
+    expect(linkLayersFrom(params)).toEqual([
+      { recordId: "c_x:1", kind: "wms", name: "a~b" },
+      { recordId: "c_x:1", kind: "wmts", name: "rv:ortho" },
+    ]);
     expect(warn).toHaveBeenCalledTimes(3);
   });
 

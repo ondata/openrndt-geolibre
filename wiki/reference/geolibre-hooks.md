@@ -47,7 +47,8 @@ GeoLibre 3.4.0, to be declared as `minGeoLibreVersion` in the registry entry wit
 | `getActiveMapTool`, `onActiveMapToolChange` | footprints answer no click or hover while Identify, feature selection or GeoEditor owns the map, and close their menu when one turns on (GeoLibre 3.4.0, [#43](https://github.com/ondata/openrndt-geolibre/issues/43)) | no: without them the footprints always answer |
 | `getDrawnFeatures`, `activatePlugin` | search in shapes drawn with GeoEditor | no |
 | `fetchArrayBuffer`, `fetchVectorUrl` | read the catalogue and the services through the native client in Desktop | no: in the web version the browser reads them |
-| `addWmsLayer`, `addTileLayer`, `addGeoJsonLayer` | add layers | per kind of service |
+| `addWmsLayer`, `addWmtsLayer`, `addTileLayer`, `addGeoJsonLayer` | add layers (`addWmtsLayer`: WMTS in a Web Mercator grid, GeoLibre 3.3.0, [#66](https://github.com/ondata/openrndt-geolibre/issues/66), from 0.5.0) | per kind of service |
+| `getMapCrs` | a note on a WMTS when the map is drawn in another system, where GeoLibre draws no tiles (GeoLibre 3.5.1, #66) | no |
 | `metadata` on `addWmsLayer` and `addTileLayer` | the record a layer comes from (GeoLibre 3.3.0, [#36](https://github.com/ondata/openrndt-geolibre/issues/36)) | no |
 | `addWmsLayer({ queryable: false })` | no GetFeatureInfo on a layer the server marks not queryable (GeoLibre 3.3.0, [#32](https://github.com/ondata/openrndt-geolibre/issues/32)) | no |
 | `importLayerStyle` | draw WFS features with the server's SLD (GeoLibre 3.2.0); its presence also tells that `addWmsLayer` takes a `crs` | no |
