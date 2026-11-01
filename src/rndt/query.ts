@@ -297,9 +297,16 @@ export function recordIdIn(text: string): string | null {
   return /^[^\s:"()]+:[^\s"()]+$/.test(t) ? t : null;
 }
 
-/** A form that finds one record by id, whatever the other filters (`id:` finds nothing, `fileid:` does). */
+/**
+ * A form that finds one record by id, whatever the other filters. The id
+ * the catalogue gives a record is its `_id`; `fileid` is the identifier in
+ * its XML, the same for most records but not all: the AgEA orthophotos have
+ * `_id` `agea:OI:DATEVOLO:m001+-++-+2026-09-25+12:42:55` and `fileid`
+ * `agea:OI:ORTOIMMAGINI:m004` (2026-11-01). Either finds it. `id:` finds nothing.
+ */
 export function idForm(id: string): SearchForm {
-  return { ...emptyForm(), textMode: "lucene", text: `fileid:"${escapePhrase(id)}"` };
+  const phrase = escapePhrase(id);
+  return { ...emptyForm(), textMode: "lucene", text: `_id:"${phrase}" OR fileid:"${phrase}"` };
 }
 
 /** REST parameters for a page of results (JSON format), in request order. */

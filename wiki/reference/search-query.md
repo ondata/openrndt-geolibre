@@ -66,7 +66,7 @@ With Relevance and no text the panel sends `apiso_Modified_dt:desc`: see [Newest
 
 # A record id
 
-A text that is a record id (`<prefix>:<local part>`, no space, quote or bracket) is searched as `fileid:"<id>"`, and the record with exactly that id is opened. `id:` finds nothing in the catalogue; `fileid:` does.
+A text that is a record id (`<prefix>:<local part>`, no space, quote or bracket) is searched as `_id:"<id>" OR fileid:"<id>"`, and the record with exactly that id is opened. `_id` is the id the catalogue gives each record, `fileid` the identifier in its XML: the same for most records, not for all (the AgEA orthophotos: `_id` `agea:OI:DATEVOLO:m001+-++-+2026-09-25+12:42:55`, `fileid` `agea:OI:ORTOIMMAGINI:m004`). `id:` finds nothing in the catalogue.
 
 # Differences from the portal's advanced search
 

@@ -88,7 +88,7 @@ export function agentText(page: AgentPage, now = new Date()): string {
     "```",
     "",
     `- Next page: start=${start + num}, then steps of ${num}. A larger num gives more records in one answer.`,
-    '- One record: q=fileid:"<id>", with no other filter.',
+    '- One record: q=_id:"<id>" OR fileid:"<id>", with no other filter.',
     `- ISO XML of a record: ${base}/rest/metadata/item/<id>/xml (the id URL-encoded)`,
     "",
     "## Results on this page",

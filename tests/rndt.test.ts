@@ -630,8 +630,14 @@ describe("record ids in the search box", () => {
     expect(recordIdIn(text)).toBe(expected);
   });
 
-  it("finds the record by fileid, with no other filter", () => {
-    expect(buildQuery(idForm("r_veneto:c11023040561_RovereVer"))).toEqual({ q: '(fileid:"r_veneto:c11023040561_RovereVer")' });
+  it("finds the record by its catalogue id or its fileid, with no other filter", () => {
+    expect(buildQuery(idForm("r_veneto:c11023040561_RovereVer"))).toEqual({ q: '(_id:"r_veneto:c11023040561_RovereVer" OR fileid:"r_veneto:c11023040561_RovereVer")' });
+  });
+
+  it("takes a catalogue id that is not the fileid (AgEA orthophoto 2022)", () => {
+    const id = "agea:OI:DATEVOLO:m001+-++-+2026-09-25+12:42:55";
+    expect(recordIdIn(id)).toBe(id);
+    expect(buildQuery(idForm(id)).q).toBe(`(_id:"${id}" OR fileid:"${id}")`);
   });
 });
 
