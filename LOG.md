@@ -2,7 +2,7 @@
 
 ## 2026-11-02
 
-- **0.5.2 is in the registry**: [opengeos/geolibre-plugins#141](https://github.com/opengeos/geolibre-plugins/pull/141) merged by aborruso at 15:13 UTC; at 15:16 the plugin's `plugin.json` on plugins.geolibre.app gave 0.5.2, `plugin-registry.json` still 0.5.1 (being rebuilt).
+- **0.5.2 is in the registry**: [opengeos/geolibre-plugins#141](https://github.com/opengeos/geolibre-plugins/pull/141) merged by aborruso at 15:13 UTC; at 15:16 the plugin's `plugin.json` on plugins.geolibre.app gave 0.5.2, `plugin-registry.json` still 0.5.1, then 0.5.2 (sha256 `456afd6f…`) by [exit UTC.
 - **#141 preview tried** (0.5.2 from the preview registry): Lombardy + Bassa Romagna WMS link "Added 2 of 2" over the default map; AgEA WMTS link added; cadastre gives the CORS reason. Diagnostics 5, all host warnings (`?plugin=` already loaded, missing basemap sprite images). Said on the PR.
 - **#141 green**: CodeRabbit had hit its free OSS limit (skipping); `@coderabbitai review` after the reset at 14:56 UTC → pass and APPROVED at 15:00, no inline comments; claude-review "no blocking findings", answered; validate, pre-commit, preview build pass; 0 review threads. Not merged: waits for the user's go.
 - **Registry PR for 0.5.2**: [opengeos/geolibre-plugins#141](https://github.com/opengeos/geolibre-plugins/pull/141), `version` and `source` (sha256 `456afd6f…`, checked on the downloaded zip). Validator (1 bundle imported) and pre-commit pass. #69, #70 closed. To merge after its checks and the preview.
