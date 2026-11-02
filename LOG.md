@@ -1,5 +1,9 @@
 # LOG
 
+## 2026-11-02
+
+- **Map CRS from a link, requested upstream**: [opengeos/GeoLibre#3308](https://github.com/opengeos/GeoLibre/issues/3308), a host URL parameter (`crs=`) and `setMapCrs` for plugins, so a link can open a WMS offered only in a national system (idea from the openrndt session, for `geolibre_map_url`). On `main` the plugin API reads the map CRS but cannot set it, and no host URL parameter sets it. Second point added to #65.
+
 ## 2026-11-01
 
 - **0.5.0 is in the registry**: [opengeos/geolibre-plugins#139](https://github.com/opengeos/geolibre-plugins/pull/139) merged by giswqs at 12:48 UTC; `plugin-registry.json` gives 0.5.0, sha256 `3fac6a12…`. openrndt 3.12.0 gives `geolibre_map_url` (a link with `rndtLayer`) and ports `wmts.ts` for `resources --layers`; it opened the AgEA 2022 orthophoto with the registry's 0.5.0 (openrndt session).
