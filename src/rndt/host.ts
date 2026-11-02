@@ -365,7 +365,9 @@ export async function testTile(host: RndtHost, url: string, size: number): Promi
     if (!isImage(buffer)) return "none";
     // A PNG has its width and height at bytes 16-23 (IHDR); other formats are taken as they come.
     const b = new Uint8Array(buffer);
-    if (b[0] !== 0x89 || buffer.byteLength < 24) return "tile";
+    if (b[0] !== 0x89) return "tile";
+    // Cut before them: a broken answer, not a tile (#70).
+    if (buffer.byteLength < 24) return "none";
     const view = new DataView(buffer);
     return view.getUint32(16) === size && view.getUint32(20) === size ? "tile" : "other-size";
   } catch {

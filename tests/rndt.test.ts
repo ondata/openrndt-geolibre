@@ -589,6 +589,8 @@ describe("EPSG:3857 test tile", () => {
     expect(await testTile(host(png(500)), "u", 64)).toBe("other-size");
     expect(await testTile(host([0xff, 0xd8, 0xff, 0xe0]), "u", 64)).toBe("tile");
     expect(await testTile(host([...new TextEncoder().encode("<?xml version")]), "u", 64)).toBe("none");
+    // Cut before the IHDR width and height: a broken answer, not a tile (#70).
+    expect(await testTile(host(png(64).slice(0, 12)), "u", 64)).toBe("none");
   });
 
   it("tells an image from an error document by its first bytes", async () => {
