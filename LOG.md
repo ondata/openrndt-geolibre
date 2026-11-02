@@ -2,7 +2,7 @@
 
 ## 2026-11-02
 
-- **opengeos/GeoLibre#3308 done the same day**: [#3309](https://github.com/opengeos/GeoLibre/pull/3309) by giswqs, merged 13:01 UTC on `main`, not released (latest 3.6.0). Host URL parameter `crs=EPSG:<code>` or a preset id (kept in the address, reserved from plugins; an unresolvable value gives a toast and the default map) and `app.setMapCrs(id | null)` (resolves `false` when it cannot draw it). Makes #65 the next step: judge WMS layers on the map's CRS. Told the openrndt session.
+- **opengeos/GeoLibre#3308 done the same day**: [#3309](https://github.com/opengeos/GeoLibre/pull/3309) by giswqs, merged 13:01 UTC on `main`, not released (latest 3.6.0). Host URL parameter `crs=EPSG:<code>` or a preset id (kept in the address, reserved from plugins; an unresolvable value gives a toast and the default map) and `app.setMapCrs(id | null)` (resolves `false` when it cannot draw it). Makes #65 the next step: judge WMS layers on the map's CRS. The openrndt session to be told (none open on 2026-11-02).
 - **Map CRS from a link, requested upstream**: [opengeos/GeoLibre#3308](https://github.com/opengeos/GeoLibre/issues/3308), a host URL parameter (`crs=`) and `setMapCrs` for plugins, so a link can open a WMS offered only in a national system (idea from the openrndt session, for `geolibre_map_url`). On `main` the plugin API reads the map CRS but cannot set it, and no host URL parameter sets it. Second point added to #65.
 
 ## 2026-11-01
