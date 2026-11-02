@@ -2,6 +2,7 @@
 
 ## 2026-11-02
 
+- **#141 green**: CodeRabbit had hit its free OSS limit (skipping); `@coderabbitai review` after the reset at 14:56 UTC → pass and APPROVED at 15:00, no inline comments; claude-review "no blocking findings", answered; validate, pre-commit, preview build pass; 0 review threads. Not merged: waits for the user's go.
 - **Registry PR for 0.5.2**: [opengeos/geolibre-plugins#141](https://github.com/opengeos/geolibre-plugins/pull/141), `version` and `source` (sha256 `456afd6f…`, checked on the downloaded zip). Validator (1 bundle imported) and pre-commit pass. #69, #70 closed. To merge after its checks and the preview.
 - **#140 merged by aborruso** (14:21 UTC): write access to opengeos/geolibre-plugins granted by giswqs on #140. 0.5.1 in the registry.
 - **A truncated PNG is not a test tile** (#70): `testTile` took a PNG shorter than 24 bytes (no IHDR size) as a tile; now "none". Found by the openrndt session (ondata/openrndt#50, Greptile). Test failed before the fix. 595 pass.
