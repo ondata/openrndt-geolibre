@@ -2,6 +2,7 @@
 
 ## 2026-11-02
 
+- **Registry PR for 0.5.2**: [opengeos/geolibre-plugins#141](https://github.com/opengeos/geolibre-plugins/pull/141), `version` and `source` (sha256 `456afd6f…`, checked on the downloaded zip). Validator (1 bundle imported) and pre-commit pass. #69, #70 closed. To merge after its checks and the preview.
 - **#140 merged by aborruso** (14:21 UTC): write access to opengeos/geolibre-plugins granted by giswqs on #140. 0.5.1 in the registry.
 - **A truncated PNG is not a test tile** (#70): `testTile` took a PNG shorter than 24 bytes (no IHDR size) as a tile; now "none". Found by the openrndt session (ondata/openrndt#50, Greptile). Test failed before the fix. 595 pass.
 - **Release 0.5.2**: the web version no longer adds a WMS layer only Desktop can redraw, and a map drawn in a system the layer lists counts (#69, first step of #65); a truncated PNG is not a test tile (#70). Zip 1,176,486 bytes, sha256 `456afd6f8e06abf5e7e103fc5abb256876736ddf69aa9a37ff3e34e7c7d24d75`. Minimum GeoLibre unchanged (3.4.0). Tried before on web.geolibre.app (dev copy, fresh profile): Lombardy and Bassa Romagna WMS links, "Added 2 of 2", Lugo civici over OpenStreetMap, `CRS=EPSG:3857`. Registry PR waits for #140 (0.5.1).
