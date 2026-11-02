@@ -186,6 +186,34 @@
       "uses": ["http-only"],
       "checked": "2026-10-20",
       "note": "https redirects (301) to http: an https page cannot load it. Its GetMap answered with an empty 96-byte PNG."
+    },
+    {
+      "id": "lombardia-ortho2015-utm-wms",
+      "kind": "wms",
+      "recordId": "r_lombar:8ad9e31c-6c4a-4879-8db2-a779e827f778",
+      "title": "Ortofoto 2015 - WMS (Regione Lombardia)",
+      "url": "https://www.cartografia.servizirl.it/arcgis2/services/BaseMap/ortofoto2015UTM32N/ImageServer/WMSServer",
+      "layer": "ortofoto2015UTM32N",
+      "nativeCrs": "EPSG:32632",
+      "bbox3857": [1021000, 5693000, 1025000, 5697000],
+      "cors": true,
+      "uses": ["national-crs-only"],
+      "checked": "2026-11-02",
+      "note": "ArcGIS. Lists only EPSG:32632 and EPSG:4326, yet draws EPSG:3857: on web.geolibre.app's Web Mercator map it lies over OpenStreetMap (Milan). With crs=EPSG:32632 the map opens in UTM 32N and it is asked there."
+    },
+    {
+      "id": "bassa-romagna-civici-wms",
+      "kind": "wms",
+      "recordId": "UNCOBARO:2024-11-09T121121",
+      "title": "Anagrafe Comunale degli Immobili (WMS) (Unione dei Comuni della Bassa Romagna)",
+      "url": "https://mapservice.labassaromagna.it/geoserver/aci/wms",
+      "layer": "civici",
+      "nativeCrs": "EPSG:25832",
+      "bbox3857": [1324000, 5528000, 1328000, 5532000],
+      "cors": true,
+      "uses": ["national-crs-only"],
+      "checked": "2026-11-02",
+      "note": "GeoServer. Lists only EPSG:25832 and EPSG:4326, yet draws EPSG:3857 (Lugo). Found by the openrndt session among 7 WMS listing only a national system with CORS: none of those tried refuses EPSG:3857."
     }
   ],
   "failures": [

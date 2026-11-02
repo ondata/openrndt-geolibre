@@ -11,6 +11,8 @@ export interface ReferenceService {
   layer?: string;
   features?: number;
   bbox3857?: [number, number, number, number];
+  /** For `national-crs-only`: the one projected system the capabilities list. */
+  nativeCrs?: string;
   cors: boolean;
   uses: string[];
   checked: string;

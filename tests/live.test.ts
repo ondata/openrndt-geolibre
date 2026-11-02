@@ -78,6 +78,12 @@ describe.skipIf(!live)("live reference services (#60)", () => {
         expectCors(cors, s);
         const image = png(body);
         expect(image, "a PNG").not.toBeNull();
+        if (s.uses.includes("national-crs-only")) {
+          // Listed in one national system, drawn in EPSG:3857 all the same: the server reprojects.
+          const caps = new TextDecoder().decode((await asWeb(`${s.url}?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetCapabilities`)).body);
+          expect(caps, "lists its system").toContain(s.nativeCrs!);
+          expect(caps, "does not list EPSG:3857").not.toMatch(/EPSG:(3857|900913)\b/);
+        }
         if (s.uses.includes("not-3857")) {
           // The server ignores the request and sends a fixed picture: the panel's "other-size".
           expect(image!.width, "not the size asked").not.toBe(size);

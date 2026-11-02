@@ -14,6 +14,7 @@ const NEEDED: Record<string, number> = {
   "no-answer": 2,
   "not-3857": 1,
   "http-only": 1,
+  "national-crs-only": 2,
 };
 
 describe("reference services (#60)", () => {
@@ -37,7 +38,8 @@ describe("reference services (#60)", () => {
       expect(s.recordId, s.id).toMatch(/^[^\s:]+:\S+$/);
       // Only the http-only reference is plain http: an https page cannot load it.
       expect(new URL(s.url).protocol, s.id).toBe(s.uses.includes("http-only") ? "http:" : "https:");
-      if (s.uses.includes("wms") || s.uses.includes("not-3857")) {
+      if (s.uses.includes("national-crs-only")) expect(s.nativeCrs, s.id).toMatch(/^EPSG:\d+$/);
+      if (s.uses.includes("wms") || s.uses.includes("not-3857") || s.uses.includes("national-crs-only")) {
         expect(s.layer, s.id).toBeTruthy();
         expect(s.bbox3857, s.id).toHaveLength(4);
       }
@@ -48,7 +50,7 @@ describe("reference services (#60)", () => {
       if (s.uses.includes("wfs-small")) expect(s.features!, s.id).toBeLessThan(1000);
       if (s.uses.includes("wfs-large")) expect(s.features!, s.id).toBeGreaterThan(10_000);
       if (s.uses.includes("no-cors")) expect(s.cors, s.id).toBe(false);
-      if (s.uses.some((u) => u === "wms" || u.startsWith("wfs-") || u.startsWith("arcgis-"))) expect(s.cors, s.id).toBe(true);
+      if (s.uses.some((u) => u === "wms" || u === "national-crs-only" || u.startsWith("wfs-") || u.startsWith("arcgis-"))) expect(s.cors, s.id).toBe(true);
     }
   });
 });
