@@ -1653,11 +1653,18 @@ describe("WMS layers that do not declare EPSG:3857", () => {
    * group layer whatever the request, an error document for the others in
    * EPSG:3857.
    */
-  async function openAde(drawsTile: boolean, hostTakesCrs = false) {
+  /** GeoLibre Desktop: the webview's Tauri global, as `isDesktop` reads it (#69). */
+  const asDesktop = () => Object.assign(window, { __TAURI_INTERNALS__: {} });
+  afterEach(() => {
+    delete (window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
+  });
+
+  async function openAde(drawsTile: boolean, hostTakesCrs = false, prepare?: (host: RndtHost) => void) {
     const ctx = createHost((url) =>
       url.includes("/rest/metadata/search") ? fixture("search-services.json") : fixture("wms-ade-130.xml"),
     );
     if (hostTakesCrs) ctx.host.importLayerStyle = () => undefined;
+    prepare?.(ctx.host);
     const plain = ctx.host.fetchArrayBuffer!;
     ctx.host.fetchArrayBuffer = vi.fn(async (url: string) => {
       if (!/REQUEST=GetMap/i.test(url)) return plain(url);
@@ -1696,7 +1703,8 @@ describe("WMS layers that do not declare EPSG:3857", () => {
     expect(new URL(probe).searchParams.get("LAYERS")).toBe("province");
   });
 
-  it("adds them in a system they list when the host takes a crs", async () => {
+  it("adds them in a system they list when the host takes a crs, on Desktop", async () => {
+    asDesktop();
     const { host, item } = await openAde(false, true);
     const box = (name: string) => item.querySelector<HTMLInputElement>(`[aria-label="WMS layers"] input[value="${name}"]`)!;
     expect(box("CP.CadastralParcel").disabled).toBe(false);
@@ -1726,6 +1734,7 @@ describe("WMS layers that do not declare EPSG:3857", () => {
   });
 
   it("passes queryable: false only for a layer the server marks not queryable", async () => {
+    asDesktop();
     const { host, item } = await openAde(false, true);
     for (const name of ["fabbricati", "CP.CadastralParcel"]) {
       const box = item.querySelector<HTMLInputElement>(`[aria-label="WMS layers"] input[value="${name}"]`)!;
@@ -1738,6 +1747,40 @@ describe("WMS layers that do not declare EPSG:3857", () => {
     // Every layer carries the record it comes from (#36).
     expect(options["CP.CadastralParcel"].metadata).toMatchObject({ catalogue: "RNDT", recordId: expect.any(String), recordUrl: expect.stringMatching(/\/html$/) });
     expect(options["CP.CadastralParcel"]).not.toHaveProperty("queryable");
+  });
+
+  it("keeps them disabled in the web version, which does not redraw them, and says Desktop does (#69)", async () => {
+    const { host, item } = await openAde(false, true);
+    const box = item.querySelector<HTMLInputElement>('[aria-label="WMS layers"] input[value="CP.CadastralParcel"]')!;
+    expect(box.disabled).toBe(true);
+    expect(box.closest("label")!.title).toContain("GeoLibre Desktop shows it, redrawn from EPSG:6706; the web version cannot.");
+    expect(item.textContent).toContain("No layer of this WMS is drawn in EPSG:3857: GeoLibre Desktop shows them, the web version cannot.");
+    expect(host.addWmsLayer).not.toHaveBeenCalled();
+  });
+
+  it("does not add them from a link in the web version, and says why (#69)", async () => {
+    const { host, item } = await openAde(false, true);
+    const container = item.closest<HTMLElement>(".ordt-panel")!;
+    await plugin.handleUrlParameters!(host, new URLSearchParams("rndtLayer=c_l219:a883ab12-e713-41fe-b2a2-34c7756dc4e2~wms~CP.CadastralParcel"));
+    for (let i = 0; i < 6; i++) await flush();
+    expect(host.addWmsLayer).not.toHaveBeenCalled();
+    expect(container.querySelector(".ordt-link-note")!.textContent).toContain(
+      "Could not add CP.CadastralParcel: not offered in EPSG:3857: GeoLibre Desktop shows it, redrawn from EPSG:6706; the web version cannot.",
+    );
+    plugin.deactivate(host);
+  });
+
+  it("adds them on a map drawn in a system they list, in the web version too (#69, #65)", async () => {
+    const { host, item } = await openAde(false, true, (h) => {
+      h.getMapCrs = () => ({ id: "EPSG:25832", code: "EPSG:25832" });
+    });
+    const box = item.querySelector<HTMLInputElement>('[aria-label="WMS layers"] input[value="CP.CadastralParcel"]')!;
+    expect(box.disabled).toBe(false);
+    expect(item.textContent).toContain("Not offered in EPSG:3857: asked in EPSG:25832, the system the map is drawn in.");
+    box.checked = true;
+    box.dispatchEvent(new Event("change", { bubbles: true }));
+    Array.from(item.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent!.startsWith("Add to map"))!.click();
+    expect(host.addWmsLayer).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ layers: "CP.CadastralParcel", crs: "EPSG:25832" }));
   });
 
   it("keeps them disabled when the test tile is an error", async () => {

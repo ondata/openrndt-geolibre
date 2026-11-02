@@ -1,5 +1,8 @@
 # Update Log
 
+## 2026-11-02
+* **Update**: [Add layers to the map](guides/add-layers.md): a WMS only Desktop can redraw is not added in the web version; on a map drawn in a system it lists it is (#69).
+
 ## 2026-11-01
 * **Update**: [Add layers to the map](guides/add-layers.md): WMTS layers in a Web Mercator grid are added as tiles (#66, from 0.5.0). [URL parameters](reference/url-parameters.md): `rndtLayer` takes `~wmts~`. [GeoLibre hooks used](reference/geolibre-hooks.md): `addWmtsLayer`, `getMapCrs`.
 * **Update**: [Search query](reference/search-query.md): a record id is searched as `_id` or `fileid` (#67).

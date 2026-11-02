@@ -253,6 +253,10 @@ interface PreparedWms {
   serverDraws3857: boolean;
   hostTakesCrs: boolean;
   crsOf: (layer: WmsLayer) => string | null;
+  /** Why a layer with no `crsOf` cannot be shown, in words for the panel and a link (#69). */
+  whyNot: (layer: WmsLayer) => string;
+  /** The system the map is drawn in, when not Web Mercator (GeoLibre 3.5.1). */
+  mapCrs: string | null;
 }
 
 /** An ArcGIS REST service read for adding its layers. */
@@ -3037,7 +3041,7 @@ export class RndtPanel {
             const wms = await once(wmsServices, service.url, () => this.prepareWms(record, service));
             const layer = wms.byName.get(link.name);
             if (!layer) continue;
-            if (!wms.crsOf(layer)) throw new NotInWebMercator(tr("link.not3857", "GeoLibre cannot display it (not offered in EPSG:3857)"));
+            if (!wms.crsOf(layer)) throw new NotInWebMercator(tr("link.not3857", "not offered in EPSG:3857: {{why}}", { why: wms.whyNot(layer) }));
             return () => {
               const options = this.wmsOptions(record, wms, link.name);
               if (!this.wmsOnMap(wms.caps.getMapUrl, link.name)) {
@@ -4075,11 +4079,30 @@ export class RndtPanel {
         )) === "tile";
     }
     // Without EPSG:3857, GeoLibre 3.2.0 asks the tiles in a system the
-    // layer lists and redraws them.
+    // layer lists and redraws them: Desktop only, the web build leaves them
+    // blank (#69). On a map drawn in another system (GeoLibre 3.5.1) both
+    // builds ask every WMS in it, so a layer that lists it lines up.
     const hostTakesCrs = this.app.importLayerStyle !== undefined;
+    const redraws = hostTakesCrs && isDesktop();
+    const map = this.app.getMapCrs?.() ?? null;
+    const mapCrs = map ? (map.wmsSrs ?? map.code) : null;
+    const listsMapCrs = (layer: WmsLayer) => !!mapCrs && layer.crs.some((c) => c.toUpperCase() === mapCrs.toUpperCase());
     const crsOf = (layer: WmsLayer) =>
-      supportsWebMercator(layer) || serverDraws3857 ? "EPSG:3857" : hostTakesCrs ? pickWmsCrs(layer, caps.version) : null;
-    return { caps, byName: new Map(caps.layers.map((l) => [l.name, l])), endpointNote: endpoint.note, serverDraws3857, hostTakesCrs, crsOf };
+      supportsWebMercator(layer) || serverDraws3857
+        ? "EPSG:3857"
+        : listsMapCrs(layer)
+          ? mapCrs
+          : redraws
+            ? pickWmsCrs(layer, caps.version)
+            : null;
+    const whyNot = (layer: WmsLayer) => {
+      if (!hostTakesCrs) return tr("wms.needs320", "it needs GeoLibre 3.2.0 or later.");
+      const crs = pickWmsCrs(layer, caps.version);
+      return crs && !isDesktop()
+        ? tr("wms.desktopOnly", "GeoLibre Desktop shows it, redrawn from {{crs}}; the web version cannot.", { crs })
+        : tr("wms.cannotDisplay", "GeoLibre cannot display it.");
+    };
+    return { caps, byName: new Map(caps.layers.map((l) => [l.name, l])), endpointNote: endpoint.note, serverDraws3857, hostTakesCrs, crsOf, whyNot, mapCrs };
   }
 
   /** The options of `addWmsLayer` for one layer of a prepared WMS, as Add to map and a link add it. */
@@ -4104,7 +4127,7 @@ export class RndtPanel {
     this.note(area, tr("wms.reading", "Reading the WMS capabilities…"), "busy");
     try {
       const wms = await this.prepareWms(record, service, (text) => this.note(area, text, "busy"));
-      const { caps, byName, serverDraws3857, hostTakesCrs, crsOf } = wms;
+      const { caps, byName, serverDraws3857, hostTakesCrs, crsOf, whyNot, mapCrs } = wms;
       if (!caps.layers.length) {
         if (service.derivedFrom) this.note(area, tr("wms.derivedNoLayers", "This ArcGIS service has no WMS layers."), "info");
         else this.note(area, tr("wms.noLayers", "The WMS lists no named layers."), "error", { record, service });
@@ -4132,15 +4155,17 @@ export class RndtPanel {
           ? null
           : tr("wms.not3857", "Not offered in EPSG:3857 (only {{systems}}), and the server did not draw a test tile in it: {{why}}", {
               systems: `${layer.crs.slice(0, 6).join(", ")}${layer.crs.length > 6 ? ", …" : ""}`,
-              why: hostTakesCrs ? tr("wms.cannotDisplay", "GeoLibre cannot display it.") : tr("wms.needs320", "it needs GeoLibre 3.2.0 or later."),
+              why: whyNot(layer),
             });
       };
       const drawnAnyway = (name: string) => {
         const layer = byName.get(name)!;
         if (supportsWebMercator(layer)) return null;
-        return serverDraws3857
-          ? tr("wms.drew3857", "EPSG:3857 not declared, but the server drew a test tile in it.")
-          : tr("wms.redrawn", "Not offered in EPSG:3857: asked in {{crs}} and redrawn by GeoLibre.", { crs: crsOf(layer) ?? "" });
+        if (serverDraws3857) return tr("wms.drew3857", "EPSG:3857 not declared, but the server drew a test tile in it.");
+        const crs = crsOf(layer) ?? "";
+        return crs === mapCrs
+          ? tr("wms.mapCrs", "Not offered in EPSG:3857: asked in {{crs}}, the system the map is drawn in.", { crs })
+          : tr("wms.redrawn", "Not offered in EPSG:3857: asked in {{crs}} and redrawn by GeoLibre.", { crs });
       };
       const wanted = wantedLayer(record, service, caps.layers);
       const { list, controls, selected, nameOf, setOnMap } = this.layerList(
@@ -4190,7 +4215,15 @@ export class RndtPanel {
       });
       for (const name of caps.layers.map((l) => l.name)) if (this.wmsOnMap(caps.getMapUrl, name)) setOnMap(name, true);
       const note = enabledCount(caps.layers, outside3857) === 0
-        ? h("p", { className: "ordt-note", "data-kind": "error" }, hostTakesCrs ? tr("wms.noneCannot", "No layer of this WMS is offered in EPSG:3857: GeoLibre cannot display them.") : tr("wms.noneNeeds", "No layer of this WMS is offered in EPSG:3857: they need GeoLibre 3.2.0 or later."))
+        ? h(
+            "p",
+            { className: "ordt-note", "data-kind": "error" },
+            !hostTakesCrs
+              ? tr("wms.noneNeeds", "No layer of this WMS is offered in EPSG:3857: they need GeoLibre 3.2.0 or later.")
+              : !isDesktop() && caps.layers.some((l) => pickWmsCrs(l, caps.version))
+                ? tr("wms.noneDesktop", "No layer of this WMS is drawn in EPSG:3857: GeoLibre Desktop shows them, the web version cannot.")
+                : tr("wms.noneCannot", "No layer of this WMS is offered in EPSG:3857: GeoLibre cannot display them."),
+          )
         : null;
       area.replaceChildren(
         ...controls.filter((c) => c.tagName === "INPUT"),
