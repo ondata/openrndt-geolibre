@@ -2,6 +2,7 @@
 
 ## 2026-11-02
 
+- **#141 preview tried** (0.5.2 from the preview registry): Lombardy + Bassa Romagna WMS link "Added 2 of 2" over the default map; AgEA WMTS link added; cadastre gives the CORS reason. Diagnostics 5, all host warnings (`?plugin=` already loaded, missing basemap sprite images). Said on the PR.
 - **#141 green**: CodeRabbit had hit its free OSS limit (skipping); `@coderabbitai review` after the reset at 14:56 UTC → pass and APPROVED at 15:00, no inline comments; claude-review "no blocking findings", answered; validate, pre-commit, preview build pass; 0 review threads. Not merged: waits for the user's go.
 - **Registry PR for 0.5.2**: [opengeos/geolibre-plugins#141](https://github.com/opengeos/geolibre-plugins/pull/141), `version` and `source` (sha256 `456afd6f…`, checked on the downloaded zip). Validator (1 bundle imported) and pre-commit pass. #69, #70 closed. To merge after its checks and the preview.
 - **#140 merged by aborruso** (14:21 UTC): write access to opengeos/geolibre-plugins granted by giswqs on #140. 0.5.1 in the registry.
