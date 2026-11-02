@@ -2151,6 +2151,25 @@ describe("search from a link (?rndt=, ?rndtBbox=)", () => {
     plugin.deactivate(host);
   });
 
+  it("says why a link's layer could not be added when its service cannot be read (#68)", async () => {
+    // The browser's own requests fail at once too, as on a server the web version cannot read.
+    vi.stubGlobal("fetch", async () => Promise.reject(new TypeError("Failed to fetch")));
+    const { host, container } = await mountPanel((url) => {
+      if (url.includes("/rest/metadata/search")) return fixture("search-services.json");
+      throw new Error("HTTP 503");
+    });
+    const id = "c_l219:4bfe0c85-3a26-4e3f-a6c8-88cf6f6e2dcf";
+    // A layer of its own: a link already followed is not followed again (#49).
+    await handle(host, `rndtLayer=${id}~wms~Zone`);
+    for (let i = 0; i < 5; i++) await flush();
+    expect(host.addWmsLayer).not.toHaveBeenCalled();
+    const note = container.querySelector(".ordt-link-note")!.textContent!;
+    expect(note).toMatch(/Could not add Zone: the WMS service of .+ cannot be read: .*503/);
+    expect(note).not.toContain("not found");
+    plugin.deactivate(host);
+    vi.unstubAllGlobals();
+  });
+
   it("opens on the layers a link adds when it sets no view, and not when it does (#49)", async () => {
     const id = "c_l219:4bfe0c85-3a26-4e3f-a6c8-88cf6f6e2dcf";
     const answer = (url: string) => (url.includes("/rest/metadata/search") ? fixture("search-services.json") : fixture("wms-piemonte-111.xml"));

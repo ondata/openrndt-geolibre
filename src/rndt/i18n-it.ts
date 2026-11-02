@@ -227,6 +227,7 @@ export const IT: Record<string, string> = {
   "link.not3857": "GeoLibre non può mostrarlo (non offerto in EPSG:3857)",
   "link.notWebMercator": "GeoLibre non può mostrarlo (non offerto in una griglia di tile Web Mercator)",
   "link.notFound": "non trovato in un servizio {{kind}} di {{title}}",
+  "link.unreadable": "il servizio {{kind}} di {{title}} non si può leggere: {{error}}",
   "link.added_one": "Layer del link aggiunti: {{added}} su {{n}}.",
   "link.added_other": "Layer del link aggiunti: {{added}} su {{n}}.",
   "link.failed": "Impossibile aggiungere {{layer}}.",

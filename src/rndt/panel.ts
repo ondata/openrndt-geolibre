@@ -3027,6 +3027,9 @@ export class RndtPanel {
       const record = await once(records, link.recordId, () => this.recordById(link.recordId));
       if (!record) throw new Error(tr("link.noRecord", "no record {{id}} in the catalogue", { id: link.recordId }));
       const kind = link.kind === "wms" ? "WMS" : link.kind === "wmts" ? "WMTS" : ARCGIS_KIND;
+      const kindName = link.kind === "wms" ? "WMS" : link.kind === "wmts" ? "WMTS" : "ArcGIS";
+      /** Why a service of the kind could not be read: said when none lists the layer (#68). */
+      let unread: unknown = null;
       for (const service of servicesWithDerivedWms(record.services).filter((s) => s.kind === kind)) {
         try {
           if (link.kind === "wms") {
@@ -3077,9 +3080,11 @@ export class RndtPanel {
         } catch (error) {
           if (error instanceof NotInWebMercator) throw error;
           // This service did not answer: the next one of the record may list the layer.
+          unread ??= error;
         }
       }
-      throw new Error(tr("link.notFound", "not found in a {{kind}} service of {{title}}", { kind: link.kind === "wms" ? "WMS" : link.kind === "wmts" ? "WMTS" : "ArcGIS", title: record.title }));
+      if (unread) throw new Error(tr("link.unreadable", "the {{kind}} service of {{title}} cannot be read: {{error}}", { kind: kindName, title: record.title, error: errorMessage(unread) }));
+      throw new Error(tr("link.notFound", "not found in a {{kind}} service of {{title}}", { kind: kindName, title: record.title }));
     };
     const found = await Promise.allSettled(layers.map(resolve));
     const failed: string[] = [];
