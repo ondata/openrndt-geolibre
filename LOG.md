@@ -2,6 +2,7 @@
 
 ## 2026-11-02
 
+- **#140 preview tried** (pr-140 pages preview, a full GeoLibre web with the PR's registry, 0.5.1): cadastre link gives the CORS reason; AgEA WMTS link drawn; `crs=EPSG:32632` + Lombardy WMS asked with `SRS=EPSG:32632`. Said on the PR.
 - **Registry PR for 0.5.1**: [opengeos/geolibre-plugins#140](https://github.com/opengeos/geolibre-plugins/pull/140) from `ondata:update-openrndt-geolibre-0.5.1`, `version` and `source` (sha256 `89eff647…`, checked on the downloaded zip). Validator (1 bundle imported) and pre-commit pass. #68 closed.
 - **Release 0.5.1**: a layer link says why its service cannot be read (#68). Zip 1,175,546 bytes, sha256 `89eff647a0928042cbbf41867b3ff2f7a5cf1fe6e56238daef6aebbae5959f2c`. Minimum GeoLibre unchanged (3.4.0). Tried before on web.geolibre.app (headed, dev copy 0.5.1 from a manifest URL): cadastre link gives the CORS reason; AgEA 2022 WMTS link over Siena; Lombardy ortofoto 2015 WMS (lists only EPSG:32632) on the Web Mercator map; `crs=EPSG:32632` with the Lombardy and Bassa Romagna WMS, "Added 2 of 2", GetMap with `SRS=EPSG:32632`.
 - **A layer link says why its service cannot be read** (#68): `addLinkLayers` kept going past a service that failed and ended with "not found"; now, when no service lists the layer and one could not be read, it gives that error ("the WMS service of … cannot be read: …"), "not found" only for services read. Italian string added. Test with a host whose WMS fails (it shares no link key with #49: lat/lon are not in the "already followed" key). 592 pass. Not released.
