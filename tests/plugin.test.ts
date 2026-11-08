@@ -2306,7 +2306,7 @@ describe("Services and the filters they do not declare (#33)", () => {
     skipped(container).querySelector<HTMLButtonElement>("button")!.click();
     await flush();
     const sent = q(requested.at(-1)!);
-    expect(sent).toContain('INSPIRETheme_s:("Parcelle catastali")');
+    expect(sent).toContain('INSPIRETheme_s:("Parcelle catastali" OR "cp" OR "Cadastral parcels")');
     expect(sent).toContain("apiso_Type_s:(dataset OR series)");
     expect(sent).toContain("links_s:");
     expect(container.querySelector<HTMLInputElement>('input[name="availableAs"][value="WMS"]')!.checked).toBe(true);

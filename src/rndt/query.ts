@@ -10,6 +10,9 @@
  *   metadata contact, not the responsible party: for "Regione Piemonte" it
  *   misses 249 of 612 records whose contact is CSI Piemonte (2026-09-26);
  * - INSPIRE themes and "open data only" apply to "All" too, not only to "Data";
+ * - an INSPIRE theme is searched under all its spellings (name in Italian and
+ *   English, code, variants), not only the Italian name the portal sends: that
+ *   name alone misses 10% of the datasets with a theme (2026-11-08, #71);
  * - a date range keeps only records that have the chosen date: there is no
  *   "include empty values" option. Most records carry only one of the three
  *   dates, so with it a range let in about half of the catalogue;
@@ -17,6 +20,7 @@
  *   query; `*` and `?` stay usable as wildcards. "Lucene" mode passes text as is.
  */
 
+import { INSPIRE_THEME_CODES, INSPIRE_THEME_SPELLINGS } from "./constants";
 import { tr } from "./i18n";
 
 export type ResourceKind = "all" | "data" | "services";
@@ -45,7 +49,7 @@ export interface SearchForm {
   invertOrganisation: boolean;
   /** Comma-separated IPA codes of the owner, the prefix of the record id before ":" (#54). */
   ipa: string;
-  /** Italian INSPIRE theme labels, as stored in `INSPIRETheme_s`. */
+  /** Italian INSPIRE theme labels; `buildQuery` searches all their spellings. */
   inspireThemes: string[];
   openDataOnly: boolean;
   dateField: string;
@@ -162,6 +166,14 @@ export function joinNames(names: string[]): string {
   return names.map((name) => (name.includes(",") ? `"${name}"` : name)).join(", ");
 }
 
+const THEME_CODES = new Map(Object.entries(INSPIRE_THEME_CODES).map(([code, label]) => [label, code]));
+
+/** Every way the catalogue writes a theme, from its Italian label. */
+function themeSpellings(label: string): string[] {
+  const code = THEME_CODES.get(label);
+  return code ? [label, code, ...INSPIRE_THEME_SPELLINGS[code]] : [label];
+}
+
 function quotedOr(values: string[]): string {
   return values.map((v) => `"${escapePhrase(v)}"`).join(" OR ");
 }
@@ -246,7 +258,7 @@ export function buildQuery(form: SearchForm): BuiltQuery {
   }
 
   if (form.kind !== "services") {
-    if (form.inspireThemes.length) clauses.push(`INSPIRETheme_s:(${quotedOr(form.inspireThemes)})`);
+    if (form.inspireThemes.length) clauses.push(`INSPIRETheme_s:(${quotedOr(form.inspireThemes.flatMap(themeSpellings))})`);
     if (form.openDataOnly) clauses.push("_exists_:isOpendata");
   }
 

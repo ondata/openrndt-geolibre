@@ -156,7 +156,7 @@
         "openDataOnly": true
       },
       "expected": {
-        "q": "INSPIRETheme_s:(\"Idrografia\" OR \"Unità amministrative\") AND _exists_:isOpendata"
+        "q": "INSPIRETheme_s:(\"Idrografia\" OR \"hy\" OR \"Hydrography\" OR \"idrografia\" OR \"Unità amministrative\" OR \"au\" OR \"Administrative units\") AND _exists_:isOpendata"
       }
     },
     {

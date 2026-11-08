@@ -154,8 +154,9 @@ export function searchResult(page: { form: SearchForm; total: number; start: num
     if (area !== "anywhere") next.push('- area: "anywhere" (the search was limited to ' + (area === "view" ? "the map view" : "a box") + ")");
     if (form.textMode === "all" && form.text.trim().split(/\s+/).length > 1) next.push('- fewer words, or textMode: "any" (words are in AND)');
     if (form.organisation.trim()) next.push("- organisation: an acronym does not match; a municipality often does not publish itself, its data come under the region or the metropolitan city; try ipa, or the place name in text");
-    // Measured 2026-10-19: 23,905 records, 20,735 with an INSPIRE theme, 16,825 with the open data field.
-    if (form.inspireThemes.length) next.push("- drop theme: 13% of the records declare no INSPIRE theme");
+    // Measured 2026-10-19: 23,905 records, 16,825 with the open data field. 2026-11-08: none of the 3,061
+    // services has an INSPIRE theme, 7 of the 20,740 datasets and series have none.
+    if (form.inspireThemes.length && form.kind !== "services") next.push("- drop theme: it leaves out services, which declare none");
     if (form.openDataOnly) next.push("- drop openDataOnly: 30% of the records leave the open data field empty, open data included");
     if (form.dateFrom || form.dateTo) next.push("- drop dateFrom/dateTo, or change dateField");
     if (form.availableAs.length) next.push("- drop availableAs");

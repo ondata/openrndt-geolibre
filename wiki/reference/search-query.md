@@ -44,7 +44,7 @@ A date or a box that is not valid stops the search with a message: the catalogue
 | Keywords | `keywords_s:("a" OR "b")`, exact values |
 | Organisation, show only | `EnteResponsabile_s:` with a case-insensitive "contains" match, a regular expression |
 | Organisation, hide | the same, prefixed by `NOT ` |
-| INSPIRE theme | `INSPIRETheme_s:("…")`, the Italian label; not with Type Services |
+| INSPIRE theme | `INSPIRETheme_s:("…" OR …)`, every spelling of the theme in the catalogue (Italian and English name, code, variants); not with Type Services |
 | Open data only | `_exists_:isOpendata`; not with Type Services |
 | Available as WMS or WFS | `links_s:(http*wms* OR http*WMS* OR http*Wms*)`, and the same for `wfs` |
 | Available as ArcGIS REST | `links_s:` with a regular expression for `…/rest/services/…/(Map\|Image\|Feature)Server` |

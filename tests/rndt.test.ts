@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { RNDT_BASE_URL } from "../src/rndt/constants";
+import { INSPIRE_THEME_CODES, INSPIRE_THEME_SPELLINGS, INSPIRE_THEMES, RNDT_BASE_URL } from "../src/rndt/constants";
 import {
   buildGetFeatureUrl,
   buildHitsUrl,
@@ -41,6 +41,33 @@ describe("buildQuery (shared fixtures)", () => {
       expect(() => buildQuery({ ...emptyForm(), ...c.form })).toThrow(c.message);
     });
   }
+});
+
+describe("INSPIRE theme spellings (#71)", () => {
+  const clause = (theme: string) => buildQuery({ ...emptyForm(), inspireThemes: [theme] }).q;
+
+  it("searches a theme under every spelling in the catalogue", () => {
+    expect(clause("Idrografia")).toBe('INSPIRETheme_s:("Idrografia" OR "hy" OR "Hydrography" OR "idrografia")');
+  });
+
+  it("has English name and code for all the themes", () => {
+    for (const { value } of INSPIRE_THEMES) {
+      const code = Object.keys(INSPIRE_THEME_CODES).find((c) => INSPIRE_THEME_CODES[c] === value)!;
+      expect(INSPIRE_THEME_SPELLINGS[code]?.length, value).toBeGreaterThan(0);
+    }
+  });
+
+  it("keeps the non-breaking space of the catalogue's variant", () => {
+    expect(clause(INSPIRE_THEME_CODES.am)).toContain("regolamentazione  e unità");
+  });
+
+  it("uses the em dash of the catalogue, not the panel's label", () => {
+    expect(clause(INSPIRE_THEME_CODES.pd)).toContain('"Population distribution — demography"');
+  });
+
+  it("still searches a theme it does not know, as written", () => {
+    expect(clause("Altro")).toBe('INSPIRETheme_s:("Altro")');
+  });
 });
 
 describe("buildSearchUrl", () => {

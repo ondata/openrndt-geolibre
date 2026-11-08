@@ -1,5 +1,9 @@
 # LOG
 
+## 2026-11-08
+
+- **INSPIRE theme filter finds every spelling** (#71, raised by the openrndt session): `INSPIRETheme_s` is not a controlled list and the query sent only the Italian name, missing 2,087 of the 20,713 datasets with a known theme (orthoimagery 405 → 802, hydrography 857 → 1,022). `buildQuery` now expands each theme to Italian, code, English and the spellings seen (`INSPIRE_THEME_SPELLINGS`); `form.inspireThemes`, `rndtTheme` and saved projects unchanged. The built clause matches the full-form count live on all 34 themes; tried on web.geolibre.app with the dev copy: `rndtTheme=oi&rndtKind=data` gives "1-20 of 802". Assistant hint reworded: the 13% was the services (0 of 3,061 have a theme, 7 of 20,740 datasets have none); 3/3 on a model. Not released.
+
 ## 2026-11-02
 
 - **0.5.2 is in the registry**: [opengeos/geolibre-plugins#141](https://github.com/opengeos/geolibre-plugins/pull/141) merged by aborruso at 15:13 UTC; at 15:16 the plugin's `plugin.json` on plugins.geolibre.app gave 0.5.2, `plugin-registry.json` still 0.5.1, then 0.5.2 (sha256 `456afd6f…`) by [exit UTC.

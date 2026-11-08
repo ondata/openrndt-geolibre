@@ -1,5 +1,8 @@
 # Update Log
 
+## 2026-11-08
+* **Update**: [Search query](reference/search-query.md): an INSPIRE theme is searched under every spelling in the catalogue (#71).
+
 ## 2026-11-02
 * **Update**: [Add layers to the map](guides/add-layers.md): a WMS only Desktop can redraw is not added in the web version; on a map drawn in a system it lists it is (#69).
 

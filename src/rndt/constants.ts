@@ -36,9 +36,10 @@ export interface Option {
 }
 
 /**
- * INSPIRE themes. `value` is the Italian label stored in `INSPIRETheme_s`
- * (case- and accent-sensitive), `label` the English name shown in the panel.
- * All 34 values verified against the live catalogue on 2026-09-26.
+ * INSPIRE themes. `value` is the Italian label, the most common way a record
+ * writes the theme in `INSPIRETheme_s` (case- and accent-sensitive; see
+ * INSPIRE_THEME_SPELLINGS for the others), `label` the English name shown in
+ * the panel. All 34 values verified against the live catalogue on 2026-09-26.
  */
 export const INSPIRE_THEMES: Option[] = [
   { value: "Indirizzi", label: "Addresses" },
@@ -121,6 +122,53 @@ export const INSPIRE_THEME_CODES: Record<string, string> = {
   su: "Unità statistiche",
   tn: "Reti di trasporto",
   us: "Servizi di pubblica utilità e servizi amministrativi",
+};
+
+/**
+ * How else a record may write each theme in `INSPIRETheme_s`, beside the
+ * Italian label and the code: the field is not a controlled list. The English
+ * name, then other spellings seen for that theme, from a scan of all 23,801
+ * records on 2026-11-08 (#71). Written out on purpose: the panel's English
+ * `label` is not always the catalogue's (hyphen against em dash for `pd`).
+ */
+export const INSPIRE_THEME_SPELLINGS: Record<string, string[]> = {
+  ac: ["Atmospheric conditions"],
+  ad: ["Addresses"],
+  af: ["Agricultural and aquaculture facilities"],
+  am: [
+    "Area management/restriction/regulation zones and reporting units",
+    "Zone sottoposte a gestione/limitazioni/regolamentazione\u00a0 e unità con obbligo di comunicare dati",
+  ],
+  au: ["Administrative units"],
+  br: ["Bio-geographical regions"],
+  bu: ["Buildings"],
+  cp: ["Cadastral parcels"],
+  ef: ["Environmental monitoring facilities"],
+  el: ["Elevation"],
+  er: ["Energy resources"],
+  ge: ["Geology"],
+  gg: ["Geographical grid systems"],
+  gn: ["Geographical names"],
+  hb: ["Habitats and biotopes"],
+  hh: ["Human health and safety"],
+  hy: ["Hydrography", "idrografia"],
+  lc: ["Land cover"],
+  lu: ["Land use"],
+  mf: ["Meteorological geographical features"],
+  mr: ["Mineral resources"],
+  nz: ["Natural risk zones"],
+  of: ["Oceanographic geographical features"],
+  oi: ["Orthoimagery", "Ortoimmagini"],
+  pd: ["Population distribution — demography", "Distribuzione della popolazione - demografia"],
+  pf: ["Production and industrial facilities"],
+  ps: ["Protected sites"],
+  rs: ["Coordinate reference systems"],
+  sd: ["Species distribution"],
+  so: ["Soil"],
+  sr: ["Sea regions"],
+  su: ["Statistical units"],
+  tn: ["Transport networks"],
+  us: ["Utility and governmental services"],
 };
 
 /** INSPIRE spatial data service types (`apiso_ServiceType_s`). */
