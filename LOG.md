@@ -2,6 +2,7 @@
 
 ## 2026-11-08
 
+- **Release 0.5.3**: the INSPIRE theme filter finds the records that spell the theme differently (#71), about one dataset in ten more. Zip 1,177,812 bytes, sha256 `7479c6038a08e6288e97a3a593d62bb11527576b0d888620b93e16791fd00b53`. Minimum GeoLibre unchanged (3.4.0). Tried before on web.geolibre.app (headed, dev copy): orthoimagery 802 records. Registry not updated yet.
 - **INSPIRE theme filter finds every spelling** (#71, raised by the openrndt session): `INSPIRETheme_s` is not a controlled list and the query sent only the Italian name, missing 2,087 of the 20,713 datasets with a known theme (orthoimagery 405 → 802, hydrography 857 → 1,022). `buildQuery` now expands each theme to Italian, code, English and the spellings seen (`INSPIRE_THEME_SPELLINGS`); `form.inspireThemes`, `rndtTheme` and saved projects unchanged. The built clause matches the full-form count live on all 34 themes; tried on web.geolibre.app with the dev copy: `rndtTheme=oi&rndtKind=data` gives "1-20 of 802". Assistant hint reworded: the 13% was the services (0 of 3,061 have a theme, 7 of 20,740 datasets have none); 3/3 on a model. Not released.
 
 ## 2026-11-02
