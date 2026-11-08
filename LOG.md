@@ -2,6 +2,7 @@
 
 ## 2026-11-08
 
+- **minimatch forced to 11.0.5** (#72, Dependabot #47, GHSA-g3hv-75wg-m249, medium): `overrides` in `package.json`, since `eslint` and `typescript-eslint` still ask for 10.x. Dev dependency only, not in the bundle. eslint (a probe with an unused variable is still caught), tsc, 600 tests and build pass. Drop the override when eslint moves to 11.
 - **0.5.3 is in the registry**: #143 merged by aborruso at 11:20 UTC, deploy green, `plugins.geolibre.app` serves 0.5.3; the registry copy on web.geolibre.app gives "1-20 of 802" for `rndtTheme=oi&rndtKind=data`. CI `validate` imported the bundle, but the preview was not built and claude-review could not read the zip: both timed out on the release asset, the same URL that failed from WSL.
 - **Registry PR for 0.5.3**: [opengeos/geolibre-plugins#143](https://github.com/opengeos/geolibre-plugins/pull/143), `version` and `source` (sha256 `7479c603…`, on the zip downloaded with `gh`). pre-commit passed; `validate_plugins.mjs` could not fetch the release asset from WSL (503, then timeout, the 0.5.2 zip too), bundle check left to the PR's CI.
 - **Release 0.5.3**: the INSPIRE theme filter finds the records that spell the theme differently (#71), about one dataset in ten more. Zip 1,177,812 bytes, sha256 `7479c6038a08e6288e97a3a593d62bb11527576b0d888620b93e16791fd00b53`. Minimum GeoLibre unchanged (3.4.0). Tried before on web.geolibre.app (headed, dev copy): orthoimagery 802 records. Registry not updated yet.
